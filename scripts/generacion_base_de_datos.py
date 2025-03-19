@@ -5,9 +5,11 @@ import random
 from tqdm import tqdm
 
 # Constants
-NUM_ROWS = 5_000_000
-CHUNK_SIZE = 500_000  # Process in chunks to optimize memory
-OUTPUT_FILE = "synthetic_dataset.csv"
+#NUM_ROWS = 5_000_000
+NUM_ROWS = 5
+#CHUNK_SIZE = 500_000  # Process in chunks to optimize memory
+CHUNK_SIZE = 5
+OUTPUT_FILE = "test_synthetic_dataset.csv"
 
 # Initialize Faker
 fake = faker.Faker()
