@@ -2,54 +2,79 @@ import numpy as np
 import pandas as pd
 import psycopg2
 import pickle
+import hashlib
 from sklearn.metrics.pairwise import cosine_similarity
 import random
+import ast
 
-# Set a fixed dimension for hypervectors
+# Establece dimensiones de los hypervectores
 DIMENSION = 10000
 
-# Generate a consistent dictionary of random hypervectors
-random.seed(42)
+
+# Dictionario global para cachear los
 hv_dict = {}
 
+def deterministic_hash(key):
+    """Generar un hash entero reproducible a partir de cualquier clave"""
+    # Conversion de la clave a string y codificación a bytes
+    key_bytes = str(key).encode('utf-8')
+    # Creacion de un hash
+    hash_obj = hashlib.md5(key_bytes)
+    # Conversion a entero usando los primeros 8 bytes
+    hash_int = int.from_bytes(hash_obj.digest()[:8], byteorder='little')
+    return hash_int
 
 def get_hv(key):
-    if key not in hv_dict:
-        hv_dict[key] = np.random.choice([-1, 1], DIMENSION)  # Binary bipolar representation
-    return hv_dict[key]
+    """
+    Obtener un hipervector reproducible para una clave a partir de su hash
+    """
+    key_str = str(key)
+    if key_str not in hv_dict:
+        # Uso de hash determinado por la clave como semilla
+        seed = deterministic_hash(key_str) % (2**32) # chequea que esté dentro del rango aceptado x numpy
+        # Creacion de un generador de números aleatorios inicializado con la semilla
+        rng = np.random.RandomState(seed)
+        # Genera el hypervector
+        hv_dict[key_str] = rng.choice([-1, 1], DIMENSION)
+    return hv_dict[key_str]
 
-def normalize_hv(hv):
-    return hv / np.linalg.norm(hv)
-
-
-# Function to encode a person's data into an HDV
 def encode_person(person):
+    """Codifica los datos de una persona en un hypervector"""
     components = []
 
-    for key, value in person.items():
-        if isinstance(value, list):
-            encoded_value = sum(get_hv(str(v)) for v in value)  # Bundle list elements
+    # ordena las claves para asegurar orden consistente
+    for key in sorted(person.keys()):
+        value = person[key]
+        # si el valor es una lista (x ejemplo multiples direcciones)
+        if isinstance(value, list): # necesito probar la decodificación de esto!
+            if not value:  # Manejo de listas vacías
+                encoded_value = np.zeros(DIMENSION)
+            else:
+                encoded_value = sum(get_hv(str(v)) for v in value) # sumo todos los vectores correspondientes a cada item de la lista
         else:
             encoded_value = get_hv(str(value))
 
-        components.append(get_hv(key) * encoded_value)  # Bind key and value
+        components.append(get_hv(key) * encoded_value)  # Binding de clave y valor
 
-    return normalize_hv(sum(components))  # Bundle all components
+    if not components:  # Manejo de componentes vacíos (1 componente = clave * valor)
+        return np.zeros(DIMENSION)
 
+    return sum(components)  # Ahora sumo todos los vectores correspondientes a los atributos individuales para generar el vector que representa  a la persona
 
-# Connect to PostgreSQL database
+# Connect to PostgreSQL
 conn = psycopg2.connect(
-    dbname="postgres",  # Matches POSTGRES_DB in docker-compose
-    user="uapp",  # Matches POSTGRES_USER
-    password="papp",  # Matches POSTGRES_PASSWORD
-    host="localhost",  # Running locally via Docker
-    port="5433"  # Matches mapped port in Docker
+    dbname="postgres",
+    user="uapp",
+    password="papp",
+    host="localhost",
+    port="5433"
 )
 cursor = conn.cursor()
 
-# Create table for storing HDVs
+# Drop and recreate the table
+cursor.execute("DROP TABLE IF EXISTS people")
 cursor.execute("""
-CREATE TABLE IF NOT EXISTS people (
+CREATE TABLE people (
     id SERIAL PRIMARY KEY,
     name TEXT,
     lastname TEXT,
@@ -61,57 +86,79 @@ CREATE TABLE IF NOT EXISTS people (
     mobile_number TEXT,
     gender TEXT,
     race TEXT,
-    hdv BYTEA
+    hdv BYTEA  -- Store HDV as binary
 )
 """)
 conn.commit()
 
+def parse_list_string(list_str):
+    """Parse list strings from CSV"""
+    if not list_str or list_str == '[]':
+        return []
+    try:
+        return ast.literal_eval(list_str)
+    except:
+        return [list_str]
 
-# Function to store a person in the database
-def store_person(person, hdv):
-    """Store a person's data and encoded hyperdimensional vector in PostgreSQL."""
-    hdv_binary = pickle.dumps(hdv)  # Serialize HDV to binary format
+def normalize_person_data(person):
+    """Normalize person data to handle format inconsistencies"""
+    normalized = {}
+    for key, value in person.items():
+        # Handle list strings
+        if isinstance(value, str) and value.startswith('[') and value.endswith(']'):
+            normalized[key] = parse_list_string(value)
+        else:
+            normalized[key] = value
 
-    # Ensure lists are stored as proper PostgreSQL arrays
-    def format_list(value):
-        return value if isinstance(value, list) else [value]  # Ensure all values are lists
+    return normalized
 
+def store_person(person):
+    """Store a person in the database with their HDV"""
+    # Normalize data
+    normalized_data = normalize_person_data(person)
+
+    # Generate HDV
+    hdv = encode_person(normalized_data)
+    hdv_binary = pickle.dumps(hdv)
+
+    # Insert into database
     cursor.execute("""
         INSERT INTO people (name, lastname, dob, address, marital_status, akas, landlines, mobile_number, gender, race, hdv)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """, (
-        person["name"],
-        person["lastname"],
-        person["DOB"],
-        format_list(person["address"]),  # Convert to PostgreSQL array
-        person["marital_status"],
-        format_list(person["Akas"]),     # Convert to PostgreSQL array
-        format_list(person["landlines"]),# Convert to PostgreSQL array
-        person["mobile_number"],
-        person["gender"],
-        person["race"],
-        hdv_binary
+        normalized_data.get("name", ""),
+        normalized_data.get("lastname", ""),
+        normalized_data.get("DOB", ""),
+        normalized_data.get("address", []),
+        normalized_data.get("marital_status", ""),
+        normalized_data.get("Akas", []),
+        normalized_data.get("landlines", []),
+        normalized_data.get("mobile_number", ""),
+        normalized_data.get("gender", ""),
+        normalized_data.get("race", ""),
+        psycopg2.Binary(hdv_binary)
     ))
     conn.commit()
 
-
-
-# Load database from CSV file
 def load_database(csv_file):
+    """Load database from CSV file"""
     df = pd.read_csv(csv_file)
-    people_db = df.to_dict(orient='records')
 
-    for person in people_db:
-        hdv = encode_person(person)  # Encode as HDV
-        store_person(person, hdv)  # Store in database
+    # Process each row
+    for _, row in df.iterrows():
+        store_person(row.to_dict())
 
     print("Database successfully stored in PostgreSQL!")
 
-
-# Function to find closest match in the database
 def find_closest_match_db(query_person, threshold=0.7):
-    query_vector = encode_person(query_person)
+    """Find the closest match to a query person"""
+    # Normalize query data
+    normalized_query = normalize_person_data(query_person)
 
+    # Encode query
+    query_vector = encode_person(normalized_query)
+
+    # Retrieve all HDVs
     cursor.execute("SELECT id, name, lastname, hdv FROM people")
     results = cursor.fetchall()
 
@@ -121,16 +168,32 @@ def find_closest_match_db(query_person, threshold=0.7):
     print("\n--- Debugging: Comparing Stored vs Computed HDVs ---")
 
     for person_id, name, lastname, hdv_binary in results:
+        # Unpickle the HDV
         stored_hdv = pickle.loads(hdv_binary)
 
-        # Debugging: Check stored vs computed HDV for a specific name
-        if name == "Danielle" and lastname == "Rhodes":
-            print(f"\nComparing HDVs for {name} {lastname}:")
-            print(f"Stored HDV (first 10 dims): {stored_hdv[:10]}")
-            print(f"Query HDV (first 10 dims): {query_vector[:10]}")
+        # Debug only for known target
+        if name.lower() == "danielle" and lastname.lower() == "rhodes":
+            print(f"\nChecking {name} {lastname}:")
 
-        # Normalize before computing cosine similarity
-        score = cosine_similarity([normalize_hv(query_vector)], [normalize_hv(stored_hdv)])[0][0]
+            # Compare vectors directly
+            are_equal = np.array_equal(query_vector, stored_hdv)
+            print(f"Vectors are equal: {are_equal}")
+
+            if not are_equal:
+                # Check specific differences
+                diff_count = np.sum(query_vector != stored_hdv)
+                print(f"Number of different elements: {diff_count} out of {DIMENSION}")
+
+                # Show sample values
+                print("First 5 query vector values:", query_vector[:5])
+                print("First 5 stored vector values:", stored_hdv[:5])
+
+                # Check cosine similarity
+                sim = cosine_similarity([query_vector], [stored_hdv])[0][0]
+                print(f"Cosine similarity between vectors: {sim}")
+
+        # Compute similarity using cosine similarity
+        score = cosine_similarity([query_vector], [stored_hdv])[0][0]
 
         if score > best_score:
             best_score = score
@@ -140,22 +203,72 @@ def find_closest_match_db(query_person, threshold=0.7):
         return None, best_score
 
     return best_match, best_score
+'''
+def verify_encoding_consistency():
+    """Verify that encoding is consistent with deterministic approach"""
+    print("\n--- Verifying Encoding Consistency ---")
+    
+    # Create a test person
+    test_person = {
+        "name": "Test", 
+        "lastname": "Person",
+        "DOB": "2000-01-01",
+        "address": ["123 Test St"],
+        "marital_status": "Single",
+        "Akas": ["Testy"],
+        "landlines": ["555-1234"],
+        "mobile_number": "555-5678",
+        "gender": "Other",
+        "race": "Other"
+    }
+    
+    # Clear dictionary and encode
+    global hv_dict
+    hv_dict = {}
+    encoding1 = encode_person(test_person)
+    
+    # Clear dictionary and encode again
+    hv_dict = {}
+    encoding2 = encode_person(test_person)
+    
+    # Compare
+    are_equal = np.array_equal(encoding1, encoding2)
+    print(f"Same person encoded twice with reset dictionary - Vectors are equal: {are_equal}")
+    
+    if not are_equal:
+        diff_count = np.sum(encoding1 != encoding2)
+        print(f"Number of different elements: {diff_count} out of {DIMENSION}")
+    else:
+        print("Deterministic encoding is working correctly!")
 
+    # Verify that different data produces different encodings
+    test_person2 = test_person.copy()
+    test_person2["name"] = "Different"
+    
+    # Encode different person
+    hv_dict = {}
+    encoding3 = encode_person(test_person2)
+    
+    # Compare
+    are_different = not np.array_equal(encoding1, encoding3)
+    print(f"Different people produce different encodings: {are_different}")
+'''
+# --- MAIN ---
 
-# Load the database
-# csv_file = "synthetic_dataset.csv"
+# Verify encoding consistency
+# verify_encoding_consistency()
+
+# Load DB from CSV
 csv_file = "test_synthetic_dataset.csv"
 load_database(csv_file)
 
-# Example queries (iterate over multiple entries) what about order sensitivity?
+# Example query
 query_entries = [
-    {"name": "Danielle", "lastname": "Rhodes", "DOB": "1950 - 03 - 03",
+    {"name": "Danielle", "lastname": "Rhodes", "DOB": "1950-03-03",
      "address": ["9402 Peterson Drives, Port Matthew, CO 50298", "407 Teresa Lane Apt. 849, Barbaraland, AZ 87174"],
-     "marital_status": "Divorced", "Akas": ["Sonya Johnston", "John Russel"], "landlines": ["538.372.6247"],
+     "marital_status": "Divorced", "Akas": ["Sonya Johnston", "John Russell"], "landlines": ["538.372.6247"],
      "mobile_number": "(613)354-2784x980", "gender": "Other", "race": "Other"}
 ]
-
-
 
 for query in query_entries:
     best_match, similarity_score = find_closest_match_db(query)
@@ -163,4 +276,4 @@ for query in query_entries:
         print("Closest match found:", best_match)
         print("Similarity Score:", similarity_score)
     else:
-        print("No good match found, the closest has a similarity score below the threshold:", similarity_score)
+        print("No good match found. Closest score:", similarity_score)
