@@ -101,14 +101,17 @@ def parse_list_string(list_str):
         return [list_str]
 
 def normalize_person_data(person):
-    """Normalize person data to handle format inconsistencies"""
+    """Normalize person data to handle format inconsistencies and standardize key case"""
     normalized = {}
     for key, value in person.items():
+        # Standardize key to lowercase
+        normalized_key = key.lower()
+
         # Handle list strings
         if isinstance(value, str) and value.startswith('[') and value.endswith(']'):
-            normalized[key] = parse_list_string(value)
+            normalized[normalized_key] = parse_list_string(value)
         else:
-            normalized[key] = value
+            normalized[normalized_key] = value
 
     return normalized
 
@@ -128,10 +131,10 @@ def store_person(person):
     """, (
         normalized_data.get("name", ""),
         normalized_data.get("lastname", ""),
-        normalized_data.get("DOB", ""),
+        normalized_data.get("dob", ""),
         normalized_data.get("address", []),
         normalized_data.get("marital_status", ""),
-        normalized_data.get("Akas", []),
+        normalized_data.get("akas", []),
         normalized_data.get("landlines", []),
         normalized_data.get("mobile_number", ""),
         normalized_data.get("gender", ""),

@@ -178,17 +178,20 @@ def parse_list_string(list_str):
 
 
 def normalize_person_data(person):
-    """Normalize person data to handle format inconsistencies and convert types"""
+    """Normalize person data to handle format inconsistencies, convert types, and standardize key case"""
     normalized = {}
     for key, value in person.items():
+        # Standardize key to lowercase
+        normalized_key = key.lower()
+
         # Handle list strings
         if isinstance(value, str) and value.startswith('[') and value.endswith(']'):
-            normalized[key] = parse_list_string(value)
+            normalized[normalized_key] = parse_list_string(value)
         # Convert date strings to date objects
-        elif key.lower() == 'dob' and value and not isinstance(value, (date, datetime)):
-            normalized[key] = parse_date(value)
+        elif normalized_key == 'dob' and value and not isinstance(value, (date, datetime)):
+            normalized[normalized_key] = parse_date(value)
         else:
-            normalized[key] = value
+            normalized[normalized_key] = value
 
     return normalized
 
@@ -210,10 +213,10 @@ def store_person(person):
                    """, (
                        normalized_data.get("name", ""),
                        normalized_data.get("lastname", ""),
-                       normalized_data.get("DOB") or normalized_data.get("dob"),  # Handle different key cases
+                       normalized_data.get("dob"),  # Use lowercase consistently
                        normalized_data.get("address", []),
                        normalized_data.get("marital_status", ""),
-                       normalized_data.get("Akas", []) or normalized_data.get("akas", []),  # Handle different key cases
+                       normalized_data.get("akas", []),  # Use lowercase consistently
                        normalized_data.get("landlines", []),
                        normalized_data.get("mobile_number", ""),
                        normalized_data.get("gender", ""),
@@ -231,11 +234,11 @@ def load_database(csv_file):
     df = pd.read_csv(csv_file)
 
     # Convert DOB column to datetime if it exists
-    if 'DOB' in df.columns:
+    if 'dob' in df.columns:
         # Keep original string for reference
-        df['DOB_original'] = df['DOB']
+        df['dob_original'] = df['dob']
         # Parse dates
-        df['DOB'] = df['DOB'].apply(parse_date)
+        df['dob'] = df['dob'].apply(parse_date)
 
     # Process each row
     ids = []

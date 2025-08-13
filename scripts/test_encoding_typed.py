@@ -26,10 +26,10 @@ def test_encoding_consistency():
     test_person = {
         "name": "Test",
         "lastname": "Person",
-        "DOB": "2000-01-01",
+        "dob": "2000-01-01",
         "address": ["123 Test St"],
         "marital_status": "Single",
-        "Akas": ["Testy"],
+        "akas": ["Testy"],
         "landlines": ["555-1234"],
         "mobile_number": "555-5678",
         "gender": "Other",
@@ -53,7 +53,7 @@ def test_encoding_consistency():
         diff_count = np.sum(encoding1 != encoding2)
         print(f"Number of different elements: {diff_count} out of {DIMENSION}")
     else:
-        print("Deterministic encoding is working correctly!")
+        print("\033[92mDeterministic encoding is working correctly!\033[0m")
 
     # Verify that different data produces different encodings
     test_person2 = test_person.copy()
@@ -79,10 +79,10 @@ def test_db_encoding_preservation():
     test_person = {
         "name": "John",
         "lastname": "Doe",
-        "DOB": "1990-05-15",  # This will be converted to a date object
+        "dob": "1990-05-15",  # This will be converted to a date object
         "address": ["456 Main St", "Apt 789"],
         "marital_status": "Married",
-        "Akas": ["Johnny", "J.D."],
+        "akas": ["Johnny", "J.D."],
         "landlines": ["555-9876"],
         "mobile_number": "555-1111",
         "gender": "Male",
@@ -119,15 +119,28 @@ def test_db_encoding_preservation():
     for key, value in retrieved_person.items():
         print(f"  {key}: {value}")
 
+    # Get the original person keys in their original order
+    original_keys = list(test_person.keys())
+
+    # With standardized lowercase keys, we can now directly use the retrieved data
+    # We'll just maintain the same order as the original keys for consistency
+    normalized_retrieved = {}
+    for key in original_keys:
+        normalized_retrieved[key] = retrieved_person.get(key, None)
+
+    print("\nNormalized retrieved person data:")
+    for key, value in normalized_retrieved.items():
+        print(f"  {key}: {value}")
+
     # Retrieve the encoding from the database
     cursor.execute("SELECT hdv FROM people_typed WHERE id = %s", (person_id,))
     hdv_binary = cursor.fetchone()[0]
     stored_encoding = pickle.loads(hdv_binary)
     print(f"Retrieved encoding (first 5 elements): {stored_encoding[:5]}")
 
-    # Clear the hv_dict and re-encode the retrieved person
+    # Clear the hv_dict and re-encode the normalized retrieved person
     hv_dict = {}
-    recomputed_encoding = encode_person(retrieved_person)
+    recomputed_encoding = encode_person(normalized_retrieved)
     print(f"\nRecomputed encoding (first 5 elements): {recomputed_encoding[:5]}")
 
     # Compare encodings
@@ -156,14 +169,14 @@ def test_search_with_encoded_vector():
     """Test searching for a person using an encoded vector with slight variations"""
     print("\n--- Testing Search with Encoded Vector ---")
 
-    # Create original test person with proper date
+    # Create original test person with proper date and lowercase keys
     original_person = {
         "name": "Jane",
         "lastname": "Smith",
-        "DOB": date(1985, 8, 23),  # Using a proper date object
+        "dob": date(1985, 8, 23),  # Using a proper date object
         "address": ["789 Oak Rd", "Suite 456"],
         "marital_status": "Single",
-        "Akas": ["J. Smith", "Janie"],
+        "akas": ["J. Smith", "Janie"],
         "landlines": ["555-4321"],
         "mobile_number": "555-8765",
         "gender": "Female",
@@ -178,13 +191,13 @@ def test_search_with_encoded_vector():
     for key, value in original_person.items():
         print(f"  {key}: {value}")
 
-    # Create a similar query with some slight differences
+    # Create a similar query with some slight differences and lowercase keys
     query_person = original_person.copy()
     query_person["name"] = "Jane"  # Same name
     query_person["lastname"] = "Smyth"  # Slight misspelling
-    query_person["DOB"] = date(1985, 8, 25)  # 2 days off
+    query_person["dob"] = date(1985, 8, 25)  # 2 days off
     query_person["address"] = ["789 Oak Road"]  # Slightly different address
-    query_person["Akas"] = ["J. Smith"]  # Subset of AKAs
+    query_person["akas"] = ["J. Smith"]  # Subset of AKAs
 
     print("\nQuery person (with slight variations):")
     for key, value in query_person.items():
@@ -205,10 +218,10 @@ def test_search_with_encoded_vector():
     different_person = {
         "name": "Bob",
         "lastname": "Johnson",
-        "DOB": date(1970, 1, 1),  # Much different date
+        "dob": date(1970, 1, 1),  # Much different date
         "address": ["123 Different St"],
         "marital_status": "Married",
-        "Akas": ["Robert"],
+        "akas": ["Robert"],
         "landlines": ["555-9999"],
         "mobile_number": "555-0000",
         "gender": "Male",
@@ -258,25 +271,25 @@ def test_date_encoding_and_search():
         {
             "name": "Person",
             "lastname": "One",
-            "DOB": date(1990, 5, 15),
+            "dob": date(1990, 5, 15),
             "gender": "Male"
         },
         {
             "name": "Person",
             "lastname": "Two",
-            "DOB": date(1990, 5, 20),  # 5 days difference
+            "dob": date(1990, 5, 20),  # 5 days difference
             "gender": "Female"
         },
         {
             "name": "Person",
             "lastname": "Three",
-            "DOB": date(1990, 6, 15),  # 1 month difference
+            "dob": date(1990, 6, 15),  # 1 month difference
             "gender": "Other"
         },
         {
             "name": "Person",
             "lastname": "Four",
-            "DOB": date(1991, 5, 15),  # 1 year difference
+            "dob": date(1991, 5, 15),  # 1 year difference
             "gender": "Male"
         }
     ]
@@ -286,7 +299,7 @@ def test_date_encoding_and_search():
     for person in test_people:
         person_id = store_person(person)
         ids.append(person_id)
-        print(f"Stored {person['name']} {person['lastname']} (DOB: {person['DOB']}) with ID: {person_id}")
+        print(f"Stored {person['name']} {person['lastname']} (DOB: {person['dob']}) with ID: {person_id}")
 
     # Test the date range search
     print("\nSearching for people born in May 1990 (within 15 days of May 15):")
@@ -352,7 +365,7 @@ if __name__ == "__main__":
     if consistency_result and differentiation_result:
         print("✓ Encoding consistency tests PASSED!")
     else:
-        print("✗ Some encoding consistency tests FAILED!")
+        print("\033[91m✗ Some encoding consistency tests FAILED!\033[0m")
         if not consistency_result:
             print("  - Consistency test failed: Same data produced different encodings")
         if not differentiation_result:
@@ -361,14 +374,14 @@ if __name__ == "__main__":
     if db_preservation_result:
         print("✓ Database encoding preservation test PASSED!")
     else:
-        print("✗ Database encoding preservation test FAILED!")
+        print("\033[91m✗ Database encoding preservation test FAILED!\033[0m")
 
     if search_result:
         print("✓ Vector-based search test PASSED!")
     else:
-        print("✗ Vector-based search test FAILED!")
+        print("\033[91m✗ Vector-based search test FAILED!\033[0m")
 
     if date_result:
         print("✓ Date encoding and search tests PASSED!")
     else:
-        print("✗ Date encoding and search tests FAILED!")
+        print("\033[91m✗ Date encoding and search tests FAILED!\033[0m")

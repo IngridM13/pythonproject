@@ -20,14 +20,14 @@ def test_encoding_consistency():
     """Verify that encoding is consistent with deterministic approach"""
     print("\n--- Verifying Encoding Consistency ---")
 
-    # Create a test person
+    # Create a test person with lowercase keys
     test_person = {
         "name": "Test",
         "lastname": "Person",
-        "DOB": "2000-01-01",
+        "dob": "2000-01-01",
         "address": ["123 Test St"],
         "marital_status": "Single",
-        "Akas": ["Testy"],
+        "akas": ["Testy"],
         "landlines": ["555-1234"],
         "mobile_number": "555-5678",
         "gender": "Other",
@@ -77,10 +77,10 @@ def test_db_encoding_preservation():
     test_person = {
         "name": "John",
         "lastname": "Doe",
-        "DOB": "1990-05-15",
+        "dob": "1990-05-15",
         "address": ["456 Main St", "Apt 789"],
         "marital_status": "Married",
-        "Akas": ["Johnny", "J.D."],
+        "akas": ["Johnny", "J.D."],
         "landlines": ["555-9876"],
         "mobile_number": "555-1111",
         "gender": "Male",
@@ -175,16 +175,16 @@ def test_search_with_encoded_vector():
     original_person = {
         "name": "Jane",
         "lastname": "Smith",
-        "DOB": "1985-08-23",
+        "dob": "1985-08-23",
         "address": ["789 Oak Rd", "Suite 456"],
         "marital_status": "Single",
-        "Akas": ["J. Smith", "Janie"],
+        "akas": ["J. Smith", "Janie"],
         "landlines": ["555-4321"],
         "mobile_number": "555-8765",
         "gender": "Female",
         "race": "Asian"
     }
-    
+
     # Clear the dictionary and store the original person
     global hv_dict
     hv_dict = {}
@@ -197,9 +197,9 @@ def test_search_with_encoded_vector():
     query_person = original_person.copy()
     query_person["name"] = "Jane"  # Same name
     query_person["lastname"] = "Smyth"  # Slight misspelling
-    query_person["DOB"] = "1985-08-23"  # Same DOB
+    query_person["dob"] = "1985-08-23"  # Same DOB
     query_person["address"] = ["789 Oak Road"]  # Slightly different address
-    query_person["Akas"] = ["J. Smith"]  # Subset of AKAs
+    query_person["akas"] = ["J. Smith"]  # Subset of AKAs
     
     print("\nQuery person (with slight variations):")
     for key, value in query_person.items():
@@ -220,10 +220,10 @@ def test_search_with_encoded_vector():
     different_person = {
         "name": "Bob",
         "lastname": "Johnson",
-        "DOB": "1970-01-01",
+        "dob": "1970-01-01",
         "address": ["123 Different St"],
         "marital_status": "Married",
-        "Akas": ["Robert"],
+        "akas": ["Robert"],
         "landlines": ["555-9999"],
         "mobile_number": "555-0000",
         "gender": "Male",
