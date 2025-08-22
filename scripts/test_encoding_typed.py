@@ -17,7 +17,6 @@ from scripts.encoding_and_search_typed import (
 # Global variable needed for the test
 hv_dict = {}
 
-
 def test_encoding_consistency():
     """Verify that encoding is consistent with deterministic approach"""
     print("\n--- Verifying Encoding Consistency ---")
@@ -33,7 +32,8 @@ def test_encoding_consistency():
         "landlines": ["555-1234"],
         "mobile_number": "555-5678",
         "gender": "Other",
-        "race": "Other"
+        "race": "Other",
+        "annual_income": "85000"
     }
 
     # Clear dictionary and encode
@@ -86,7 +86,8 @@ def test_db_encoding_preservation():
         "landlines": ["555-9876"],
         "mobile_number": "555-1111",
         "gender": "Male",
-        "race": "Caucasian"
+        "race": "Caucasian",
+        "annual_income": "100000"
     }
 
     # Normalize to convert date string to date object
@@ -180,7 +181,8 @@ def test_search_with_encoded_vector():
         "landlines": ["555-4321"],
         "mobile_number": "555-8765",
         "gender": "Female",
-        "race": "Asian"
+        "race": "Asian",
+        "annual_income": "100000"
     }
 
     # Clear the dictionary and store the original person
@@ -225,7 +227,8 @@ def test_search_with_encoded_vector():
         "landlines": ["555-9999"],
         "mobile_number": "555-0000",
         "gender": "Male",
-        "race": "Caucasian"
+        "race": "Caucasian",
+        "annual_income": "105000"
     }
 
     print("\nCompletely different query person:")

@@ -22,10 +22,36 @@ races = ["White", "Black", "Asian", "Hispanic", "Mixed", "Other"]
 
 # Function to generate random data
 def generate_data_chunk(num_rows):
+    # Generate dates of birth first so we can use age to influence income
+    dobs = [fake.date_of_birth(minimum_age=18, maximum_age=90) for _ in range(num_rows)]
+    
+    # Calculate ages for income generation
+    current_year = pd.Timestamp.now().year
+    ages = [current_year - dob.year for dob in dobs]
+    
+    # Generate income based on age (simple model where income generally increases with age up to a point)
+    annual_incomes = []
+    for age in ages:
+        # Base income based on age brackets
+        if age < 25:
+            base = random.uniform(20000, 45000)
+        elif age < 35:
+            base = random.uniform(40000, 80000)
+        elif age < 50:
+            base = random.uniform(60000, 120000)
+        elif age < 65:
+            base = random.uniform(75000, 150000)
+        else:
+            base = random.uniform(30000, 90000)  # Retirement age
+            
+        # Add some random variation
+        variation = random.uniform(0.8, 1.2)
+        annual_incomes.append(round(base * variation, 2))
+    
     data = {
         "name": [fake.first_name() for _ in range(num_rows)],
         "lastname": [fake.last_name() for _ in range(num_rows)],
-        "DOB": [fake.date_of_birth(minimum_age=18, maximum_age=90).isoformat() for _ in range(num_rows)],
+        "DOB": [dob.isoformat() for dob in dobs],
         "address": [str([fake.address().replace("\n", ", ") for _ in range(random.randint(0, 5))]) for _ in range(num_rows)],
         "marital_status": np.random.choice(marital_statuses, num_rows),
         "Akas": [str([fake.name() for _ in range(random.randint(0, 3))]) for _ in range(num_rows)],
@@ -33,6 +59,7 @@ def generate_data_chunk(num_rows):
         "mobile_number": [fake.phone_number() for _ in range(num_rows)],
         "gender": np.random.choice(genders, num_rows),
         "race": np.random.choice(races, num_rows),
+        "annual_income": annual_incomes,
     }
     return pd.DataFrame(data)
 

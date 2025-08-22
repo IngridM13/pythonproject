@@ -59,7 +59,7 @@ def encode_date(date_obj):
 
 
 def encode_person(person):
-    """Encode a person's data into a hypervector, with special handling for dates"""
+    """Encode a person's data into a hypervector, with special handling for dates and numeric values"""
     components = []
 
     # Sort keys to ensure consistent order
@@ -80,6 +80,22 @@ def encode_person(person):
         elif value is None:
             # Handle None values
             encoded_value = np.zeros(DIMENSION)
+        elif key == "annual_income" or isinstance(value, (int, float)) or (
+                isinstance(value, str) and value.replace(".", "", 1).isdigit()):
+            # Normalize numeric values by converting to a standard format
+            # This ensures "100000", 100000, and 100000.00 all encode the same way
+            try:
+                # Try to convert to float first to handle both integers and decimals
+                numeric_value = float(value)
+                # For integers or whole numbers, use the integer representation
+                if numeric_value.is_integer():
+                    normalized_value = int(numeric_value)
+                else:
+                    normalized_value = numeric_value
+                encoded_value = get_hv(str(normalized_value))
+            except (ValueError, TypeError):
+                # If conversion fails, use the original value
+                encoded_value = get_hv(str(value))
         else:
             # Default encoding for other types
             encoded_value = get_hv(str(value))
@@ -92,7 +108,6 @@ def encode_person(person):
 
     # Sum all component vectors to create the person representation
     return sum(components)
-
 
 # Connect to PostgreSQL
 conn = psycopg2.connect(
@@ -120,6 +135,7 @@ cursor.execute("""
                    mobile_number  TEXT,
                    gender         TEXT,
                    race           TEXT,
+                   annual_income  NUMERIC(12,2),
                    hdv            BYTEA, -- Store HDV as binary
                    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                )
@@ -208,8 +224,8 @@ def store_person(person):
     # Insert into database
     cursor.execute("""
                    INSERT INTO people_typed (name, lastname, dob, address, marital_status, akas, landlines,
-                                             mobile_number, gender, race, hdv)
-                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
+                                             mobile_number, gender, race, annual_income, hdv)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
                    """, (
                        normalized_data.get("name", ""),
                        normalized_data.get("lastname", ""),
@@ -221,6 +237,7 @@ def store_person(person):
                        normalized_data.get("mobile_number", ""),
                        normalized_data.get("gender", ""),
                        normalized_data.get("race", ""),
+                       normalized_data.get("annual_income", None),
                        psycopg2.Binary(hdv_binary)
                    ))
 
@@ -305,7 +322,8 @@ def get_person_details(person_id):
                           landlines,
                           mobile_number,
                           gender,
-                          race
+                          race,
+                          annual_income
                    FROM people_typed
                    WHERE id = %s
                    """, (person_id,))
@@ -317,7 +335,7 @@ def get_person_details(person_id):
 
     # Convert to dictionary
     columns = ["id", "name", "lastname", "dob", "address", "marital_status",
-               "akas", "landlines", "mobile_number", "gender", "race"]
+               "akas", "landlines", "mobile_number", "gender", "race", "annual_income"]
 
     return dict(zip(columns, result))
 
@@ -354,10 +372,10 @@ if __name__ == "__main__":
     # Example of loading a CSV file
     print("To load data from a CSV file, use:")
     print("ids = load_database('your_file.csv')")
-
+    
     # Example of using the find functions
     print("\nTo search for similar people:")
     print("matches = find_closest_match_db({'name': 'John', 'DOB': '1990-01-01'})")
-
+    
     print("\nTo search by date:")
     print("date_matches = find_similar_by_date('1990-05-15', range_days=30)")
