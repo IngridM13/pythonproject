@@ -1,5 +1,5 @@
 import numpy as np
-from configs import HDC_DIM
+from configs.settings import HDC_DIM
 
 
 # hypervector random para 1
