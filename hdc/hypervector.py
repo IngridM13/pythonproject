@@ -1,4 +1,5 @@
 from configs import HDC_DIM, DEFAULT_SEED
+import numpy as np
 
 # TODO Bernie: Yo no se si esto lo usamos Ingrid, pero por las dudas.
 class HyperDimensionalContext:

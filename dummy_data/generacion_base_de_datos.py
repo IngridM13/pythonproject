@@ -41,3 +41,5 @@ def generate_data_and_save(OUTPUT_FILE=OUTPUT_FILE):
             first_chunk = False  # Only write header for the first chunk
 
     print(f"Dataset generated: {OUTPUT_FILE} (5M rows)") #TODO BERNIE: En vez de print, hacelo con log.
+
+generate_data_and_save()
