@@ -54,7 +54,7 @@ def encode_date(date_obj):
     year_encoding = get_hv(f"year_{date_obj.year}") * 0.5  # Lower weight
     month_encoding = get_hv(f"month_{date_obj.month}") * 0.3  # Lower weight
 
-    # Combine all encodings
+    # Combine all encoding_methods
     return base_encoding + year_encoding + month_encoding
 
 

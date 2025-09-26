@@ -1,18 +1,20 @@
 import numpy as np
 import sys
 import os
+import pickle
 from datetime import datetime, date
 from sklearn.metrics.pairwise import cosine_similarity
 
 # Add the parent directory to the path so we can import from the main script
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Import from the typed module
-from scripts.encoding_and_search_typed import (
+# Import from the renamed module location
+from encoding_methods.encoding_and_search_typed import (
     get_hv, encode_person, encode_date, DIMENSION, store_person,
-    normalize_person_data, conn, cursor, pickle,
+    normalize_person_data, conn, cursor,
     find_closest_match_db, parse_date, get_person_details, find_similar_by_date
 )
+
 
 # Global variable needed for the test
 hv_dict = {}
@@ -55,7 +57,7 @@ def test_encoding_consistency():
     else:
         print("\033[92mDeterministic encoding is working correctly!\033[0m")
 
-    # Verify that different data produces different encodings
+    # Verify that different data produces different encoding_methods
     test_person2 = test_person.copy()
     test_person2["name"] = "Different"
 
@@ -65,7 +67,7 @@ def test_encoding_consistency():
 
     # Compare
     are_different = not np.array_equal(encoding1, encoding3)
-    print(f"Different people produce different encodings: {are_different}")
+    print(f"Different people produce different encoding_methods: {are_different}")
 
     # Return test results for potential assertion
     return are_equal, are_different
@@ -143,7 +145,7 @@ def test_db_encoding_preservation():
     recomputed_encoding = encode_person(normalized_retrieved)
     print(f"\nRecomputed encoding (first 5 elements): {recomputed_encoding[:5]}")
 
-    # Compare encodings
+    # Compare encoding_methods
     stored_vs_original = np.array_equal(stored_encoding, original_encoding)
     print(f"\nStored encoding matches original: {stored_vs_original}")
 
@@ -367,7 +369,7 @@ if __name__ == "__main__":
     else:
         print("\033[91m✗ Some encoding consistency tests FAILED!\033[0m")
         if not consistency_result:
-            print("  - Consistency test failed: Same data produced different encodings")
+            print("  - Consistency test failed: Same data produced different encoding_methods")
         if not differentiation_result:
             print("  - Differentiation test failed: Different data produced same encoding")
 

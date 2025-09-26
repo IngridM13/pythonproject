@@ -37,4 +37,21 @@ def encode_row(row):
 df = pd.read_csv("synthetic_dataset.csv")
 
 # First pass: Learn context vectors
-for _, row in tqdm(df.iterrows(), total=len(df
+# Load dataset and encode HDVs
+df = pd.read_csv("synthetic_dataset.csv")
+
+# First pass: Learn context vectors
+for _, row in tqdm(df.iterrows(), total=len(df)):
+    # Process each row to build the context vectors
+    for col, value in row.items():
+        if pd.notna(value):
+            # This will initialize vectors in the beagle_vectors dictionary
+            get_feature_hdv(str(value))
+
+# Second pass: Create encoded HDVs for each row
+encoded_hdvs = []
+for _, row in tqdm(df.iterrows(), total=len(df), desc="Encoding rows"):
+    encoded_hdvs.append(encode_row(row))
+
+# Convert to numpy array for easier processing
+encoded_hdvs = np.array(encoded_hdvs)
