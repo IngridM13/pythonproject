@@ -277,4 +277,4 @@ if __name__ == "__main__":
     if search_result:
         print("✓ Vector-based search test PASSED!")
     else:
-        print("✗ Vector-based search test FAILED!")
+        print("✗ Vector-based search test FAILED!dane")

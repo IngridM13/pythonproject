@@ -3,17 +3,11 @@ import numpy as np
 import faker
 import random
 from tqdm import tqdm
-
-# Constants
-#NUM_ROWS = 5_000_000
-NUM_ROWS = 5
-#CHUNK_SIZE = 500_000  # Process in chunks to optimize memory
-CHUNK_SIZE = 5
-OUTPUT_FILE = "test_synthetic_dataset.csv"
+from configs.settings import NUM_ROWS, CHUNK_SIZE, OUTPUT_FILE, DEFAULT_SEED
 
 # Initialize Faker
 fake = faker.Faker()
-faker.Faker.seed(42)  # Ensure reproducibility
+faker.Faker.seed(DEFAULT_SEED)  # Ensure reproducibility
 
 # Predefined lists for faster selection
 genders = ["Male", "Female", "Non-binary", "Other"]
@@ -36,13 +30,16 @@ def generate_data_chunk(num_rows):
     }
     return pd.DataFrame(data)
 
-# Write CSV in chunks
-with open(OUTPUT_FILE, "w", newline="", encoding="utf-8") as f:
-    first_chunk = True  # To handle header writing
+def generate_data_and_save(OUTPUT_FILE=OUTPUT_FILE):
+    # Write CSV in chunks
+    with open(OUTPUT_FILE, "w", newline="", encoding="utf-8") as f:
+        first_chunk = True  # To handle header writing
 
-    for _ in tqdm(range(NUM_ROWS // CHUNK_SIZE), desc="Generating dataset", unit="chunk"):
-        df_chunk = generate_data_chunk(CHUNK_SIZE)
-        df_chunk.to_csv(f, mode="a", header=first_chunk, index=False)
-        first_chunk = False  # Only write header for the first chunk
+        for _ in tqdm(range(NUM_ROWS // CHUNK_SIZE), desc="Generating dataset", unit="chunk"):
+            df_chunk = generate_data_chunk(CHUNK_SIZE)
+            df_chunk.to_csv(f, mode="a", header=first_chunk, index=False)
+            first_chunk = False  # Only write header for the first chunk
 
-print(f"Dataset generated: {OUTPUT_FILE} (5M rows)")
+    print(f"Dataset generated: {OUTPUT_FILE} (5M rows)") #TODO BERNIE: En vez de print, hacelo con log.
+
+generate_data_and_save()

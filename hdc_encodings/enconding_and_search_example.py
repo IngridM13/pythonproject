@@ -16,7 +16,7 @@ def get_hv(key):
     return hv_dict[key]
 
 
-# Function to encode a person's data into an HDV
+# Function to encode a person's data into an HD
 def encode_person(person):
     components = []
 
