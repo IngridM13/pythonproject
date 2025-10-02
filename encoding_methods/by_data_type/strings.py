@@ -1,5 +1,7 @@
 import numpy as np
-from hdc_encoding.utils import bipolar_random, cosine_similarity, binary_random
+from hdc.hdc_common_operations import bipolar_random, cosine_similarity, binary_random
+
+from hdc.ops_bipolar import HyperDimensionalComputingBipolar
 
 
 class StringEncoding:

@@ -1,7 +1,7 @@
 import numpy as np
-from configs.settings import HDC_DIM, DEFAULT_SEED
-from encoding_methods.by_data_type.operaciones_vectoriales import bipolar_random, flip_inplace, cosine_similarity
-
+from configs.settings import HDC_DIM
+from hdc.hdc_common_operations import bipolar_random, flip_inplace
+from sklearn.metrics.pairwise import cosine_similarity
 class IntegerEncoding:
     """
     Linear Mapping para números enteros.

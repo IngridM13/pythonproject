@@ -1,4 +1,4 @@
-from configs import HDC_DIM, DEFAULT_SEED
+from configs.settings import HDC_DIM, DEFAULT_SEED
 import numpy as np
 
 # TODO Bernie: Yo no se si esto lo usamos Ingrid, pero por las dudas.
@@ -53,31 +53,33 @@ class HyperDimensionalComputingBipolar:
 
     def add_hv(self, x, y):
         return np.clip(x + y, -1, 1)
-
-    # Mas usado para binarios que bipolares.
+    '''
+    # No funciona bien para bipolares. En este caso se usa el producto.
     def xor_hv(self, x, y):
         return np.logical_xor(x, y)
-
+    '''
     def dot_product_hv(self, x, y):
         return np.dot(x, y)
 
     def elementwise_product_hv(self, x, y):
         return x * y  # Multiplicación elemento a elemento
 
+    ''' Éste es el binding bipolar '''
+    def xor_bipolar_hv(self, x, y):
+        return self.elementwise_product_hv(x, y)
+
     # Circle Shifting
     def shifting_hv(self, x, k=1):
         return np.roll(x, k)
-
+    '''
+    usamos uno que importamos de sklearn.metrics.pairwise
     def cosine_similarity(self, x, y):
         return self.dot_product_hv(x, y) / (np.linalg.norm(x) * np.linalg.norm(y))
-
+    '''
     def normalize(self, x):
         norm = np.linalg.norm(x)
         if norm == 0:  # Previene la división por cero
             return x
         return x / norm
-
-    def bipolarize(self, vector):
-        return np.where(vector >= 0, 1, -1)
 
 # TODO: Bernie: agregate otro no para bipolares, pero para binarios.
