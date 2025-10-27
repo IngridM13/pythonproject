@@ -1,226 +1,345 @@
-import numpy as np
-import sys
 import os
-import pickle
-from datetime import datetime, date
+import sys
+from datetime import date
+
+import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
-# Add the parent directory to the path so we can import from the main script
+# Make project root importable (same as before)
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Import from the renamed module location
-from encoding_methods.encoding_and_search_typed import (
-    get_hv, encode_person, encode_date, DIMENSION, store_person,
-    normalize_person_data, conn, cursor,
-    find_closest_match_db, parse_date, get_person_details, find_similar_by_date
+# --- Your code (unchanged) ---
+from encoding_methods.encoding_and_search_milvus import (
+    encode_person, encode_date, DIMENSION, store_person,
+    normalize_person_data, find_closest_match_db, parse_date,
+    find_similar_by_date
 )
 
+# --- Milvus glue (new) ---
+from database_utils.milvus_db_connection import ensure_people_collection
+try:
+    # If you exposed this in your schema module
+    from database_utils.milvus_db_connection import VECTOR_MODE
+except Exception:
+    VECTOR_MODE = os.getenv("MILVUS_VECTOR_MODE", "binary").lower()
 
-# Global variable needed for the test
+# Global for deterministic symbol HVs during a test run
 hv_dict = {}
 
+# --- Helpers to read/compare hv from Milvus ---
+
+def _unpack_binary_to_bipolar(payload, dim: int) -> np.ndarray:
+    """
+    Accepts:
+      - bytes/bytearray/memoryview of packed bits (0/1)
+      - list with a single bytes object (common from Milvus)
+      - list/ndarray of uint8 values (either packed bytes 0..255 or already-unpacked bits 0/1)
+    Returns bipolar {-1,+1} of length dim.
+    """
+    # If Milvus gave us a list wrapper, unwrap common cases
+    if isinstance(payload, list):
+        if len(payload) == 0:
+            raise ValueError("Empty hv payload")
+        first = payload[0]
+        # Case: [b'\x12\x34...']  -> unwrap to bytes
+        if isinstance(first, (bytes, bytearray, memoryview)):
+            payload = first
+        else:
+            # Treat as numeric uint8 array (could be bits or packed bytes)
+            arr = np.asarray(payload, dtype=np.uint8).ravel()
+            # If already bits of length dim, use directly
+            if arr.size == dim and np.all((arr == 0) | (arr == 1)):
+                bits = arr
+            else:
+                # Assume packed bytes 0..255
+                bits = np.unpackbits(arr, bitorder="big")
+            bits = bits[:dim]
+            return np.where(bits == 1, 1, -1).astype(np.int8)
+
+    # Bytes-like path
+    if isinstance(payload, (bytes, bytearray, memoryview)):
+        arr = np.frombuffer(payload, dtype=np.uint8)
+    else:
+        # Fallback (handles ndarray, lists of ints, etc.)
+        arr = np.asarray(payload, dtype=np.uint8).ravel()
+
+    bits = np.unpackbits(arr, bitorder="big")
+    bits = bits[:dim]
+    return np.where(bits == 1, 1, -1).astype(np.int8)
+
+def _unpack_binary(payload, dim: int) -> np.ndarray:
+    """
+    Similar to _unpack_binary_to_bipolar but returns binary {0,1} values.
+    Accepts:
+      - bytes/bytearray/memoryview of packed bits (0/1)
+      - list with a single bytes object (common from Milvus)
+      - list/ndarray of uint8 values (either packed bytes 0..255 or already-unpacked bits 0/1)
+    Returns binary {0,1} of length dim.
+    """
+    # If Milvus gave us a list wrapper, unwrap common cases
+    if isinstance(payload, list):
+        if len(payload) == 0:
+            raise ValueError("Empty hv payload")
+        first = payload[0]
+        # Case: [b'\x12\x34...']  -> unwrap to bytes
+        if isinstance(first, (bytes, bytearray, memoryview)):
+            payload = first
+        else:
+            # Treat as numeric uint8 array (could be bits or packed bytes)
+            arr = np.asarray(payload, dtype=np.uint8).ravel()
+            # If already bits of length dim, use directly
+            if arr.size == dim and np.all((arr == 0) | (arr == 1)):
+                return arr.astype(np.uint8)  # Already binary
+            else:
+                # Assume packed bytes 0..255
+                bits = np.unpackbits(arr, bitorder="big")
+                return bits[:dim].astype(np.uint8)  # Return binary bits
+
+    # Bytes-like path
+    if isinstance(payload, (bytes, bytearray, memoryview)):
+        arr = np.frombuffer(payload, dtype=np.uint8)
+    else:
+        # Fallback (handles ndarray, lists of ints, etc.)
+        arr = np.asarray(payload, dtype=np.uint8).ravel()
+
+    # Now arr is properly defined in all code paths
+    bits = np.unpackbits(arr, bitorder="big")
+    bits = bits[:dim]
+    return bits.astype(np.uint8)  # Returns 0/1
+
+def _load_person_from_milvus(person_id: int, with_hv: bool = True):
+    """
+    Query Milvus by primary key and return a dict with scalar fields and optionally 'hv'.
+    """
+    col = ensure_people_collection()
+    out_fields = ["name", "lastname", "dob", "marital_status", "mobile_number", "gender", "race", "attrs"]
+    if with_hv:
+        out_fields.append("hv")
+
+    res = col.query(expr=f"id == {person_id}", output_fields=out_fields, consistency_level="Strong")
+    # query returns list[dict]
+    return res[0] if res else None
+
+def _delete_people_from_milvus(ids):
+    col = ensure_people_collection()
+    if not ids:
+        # When called with empty list, delete all records instead of returning early
+        col.delete(expr="id >= 0")  # Delete all records
+        return
+    id_list = ",".join(str(i) for i in ids)
+    col.delete(expr=f"id in [{id_list}]")
+
+# -------------------- Tests --------------------
 
 def test_encoding_consistency():
-    """Verify that encoding is consistent with deterministic approach"""
-    print("\n--- Verifying Encoding Consistency ---")
+    """Verificamos que el encoding es consistente con enfoque determinista"""
 
-    # Create a test person
+
+    print("\n--- Verificación de Consistencia del Encoding ---")
+
     test_person = {
-        "name": "Test",
-        "lastname": "Person",
-        "dob": "2000-01-01",
-        "address": ["123 Test St"],
-        "marital_status": "Single",
-        "akas": ["Testy"],
-        "landlines": ["555-1234"],
-        "mobile_number": "555-5678",
-        "gender": "Other",
-        "race": "Other"
+        "name": "John",
+        "lastname": "Doe",
+        "dob": "1990-05-15",  # normalize() lo va a parsear
+        "marital_status": "Married",
+        "mobile_number": "555-1111",
+        "gender": "Male",
+        "race": "Caucasian",
+        "attrs": {  # <-- los arrays viven en attrs en Milvus
+            "address": ["456 Main St", "Apt 789"],
+            "akas": ["Johnny", "J.D."],
+            "landlines": ["555-9876"]
+        }
     }
 
-    # Clear dictionary and encode
     global hv_dict
     hv_dict = {}
     encoding1 = encode_person(test_person)
 
-    # Clear dictionary and encode again
     hv_dict = {}
     encoding2 = encode_person(test_person)
 
-    # Compare
     are_equal = np.array_equal(encoding1, encoding2)
-    print(f"Same person encoded twice with reset dictionary - Vectors are equal: {are_equal}")
+    print(f"La misma persona codificada dos veces con el diccionario reiniciado - Los vectores son iguales: {are_equal}")
 
     if not are_equal:
         diff_count = np.sum(encoding1 != encoding2)
-        print(f"Number of different elements: {diff_count} out of {DIMENSION}")
+        print(f"Número de elementos diferentes: {diff_count} de {DIMENSION}")
     else:
-        print("\033[92mDeterministic encoding is working correctly!\033[0m")
+        print("\033[92mLa codificación determinista funciona correctamente!\033[0m")
 
-    # Verify that different data produces different encoding_methods
     test_person2 = test_person.copy()
     test_person2["name"] = "Different"
 
-    # Encode different person
     hv_dict = {}
     encoding3 = encode_person(test_person2)
 
-    # Compare
     are_different = not np.array_equal(encoding1, encoding3)
-    print(f"Different people produce different encoding_methods: {are_different}")
+    print(f"Diferentes personas producen diferentes encodings: {are_different}")
 
-    # Return test results for potential assertion
     return are_equal, are_different
 
 
 def test_db_encoding_preservation():
-    """Test that person data can be stored and retrieved from DB with correct encoding"""
-    print("\n--- Testing Database Encoding Preservation ---")
+    """Los datos personales se puedan almacenar y recuperar de Milvus con el encoding preservado."""
+    print("\n--- Testing Milvus Encoding Preservation ---")
 
-    # Create a test person with a proper date object
+    # Test person (las listas las guardo en 'attrs')
     test_person = {
         "name": "John",
         "lastname": "Doe",
-        "dob": "1990-05-15",  # This will be converted to a date object
-        "address": ["456 Main St", "Apt 789"],
+        "dob": "1990-05-15",  # ISO string is fine; normalize() will parse it
         "marital_status": "Married",
-        "akas": ["Johnny", "J.D."],
-        "landlines": ["555-9876"],
         "mobile_number": "555-1111",
         "gender": "Male",
-        "race": "Caucasian"
+        "race": "Caucasian",
+        "attrs": {  # <-- acá viven las listas
+            "address": ["456 Main St", "Apt 789"],
+            "akas": ["Johnny", "J.D."],
+            "landlines": ["555-9876"]
+        }
     }
 
-    # Normalize to convert date string to date object
+    # Normalización ( el string de 'dob' a date, etc.)
     test_person = normalize_person_data(test_person)
 
-    print("Original person data:")
-    for key, value in test_person.items():
-        print(f"  {key}: {value}")
+    print("Datos originales de la persona:")
+    for k, v in test_person.items():
+        print(f"  {k}: {v}")
 
-    # Clear the hv_dict to ensure fresh encoding
     global hv_dict
     hv_dict = {}
 
-    # Encode the person
+    # Encode de manera local (ésta es la referencia)
     original_encoding = encode_person(test_person)
-    print(f"\nOriginal encoding (first 5 elements): {original_encoding[:5]}")
+    print(f"\nEncoding original (primeros 5 elementos): {original_encoding[:5]}")
 
-    # Store the person in the database
+    # Insertar en Milvus (devuelve PK id)
     person_id = store_person(test_person)
-    print(f"\nPerson stored in database with ID: {person_id}")
+    print(f"\nPersona guardada en Milvus con ID: {person_id}")
 
-    # Retrieve the person from the database using the new get_person_details function
-    retrieved_person = get_person_details(person_id)
-
-    if not retrieved_person:
-        print("ERROR: Person not found in database!")
+    # Leer de Milvus (incluyendo hv) la persona que recién guardé
+    stored = _load_person_from_milvus(person_id, with_hv=True)
+    if not stored:
+        print("ERROR: Persona no se encuentra en Milvus!")
         return False
 
-    print("\nRetrieved person data:")
-    for key, value in retrieved_person.items():
-        print(f"  {key}: {value}")
+    print("\nDatos de persona recuperados (escalares):")
+    for key in ["name", "lastname", "dob", "marital_status", "mobile_number", "gender", "race", "attrs"]:
+        print(f"  {key}: {stored.get(key)}")
 
-    # Get the original person keys in their original order
-    original_keys = list(test_person.keys())
-
-    # With standardized lowercase keys, we can now directly use the retrieved data
-    # We'll just maintain the same order as the original keys for consistency
-    normalized_retrieved = {}
-    for key in original_keys:
-        normalized_retrieved[key] = retrieved_person.get(key, None)
+    # Reconstrucción del diccionario de personas exactamente como encode_person() espera
+    attrs = stored.get("attrs") or {}
+    normalized_retrieved = {
+        "name": stored.get("name", ""),
+        "lastname": stored.get("lastname", ""),
+        "dob": parse_date(stored.get("dob")),
+        "marital_status": stored.get("marital_status", ""),
+        "mobile_number": stored.get("mobile_number", ""),
+        "gender": stored.get("gender", ""),
+        "race": stored.get("race", ""),
+        "attrs": attrs,  # pass through as-is; do NOT explode to top-level
+    }
 
     print("\nNormalized retrieved person data:")
-    for key, value in normalized_retrieved.items():
-        print(f"  {key}: {value}")
+    for k, v in normalized_retrieved.items():
+        print(f"  {k}: {v}")
 
-    # Retrieve the encoding from the database
-    cursor.execute("SELECT hdv FROM people_typed WHERE id = %s", (person_id,))
-    hdv_binary = cursor.fetchone()[0]
-    stored_encoding = pickle.loads(hdv_binary)
-    print(f"Retrieved encoding (first 5 elements): {stored_encoding[:5]}")
-
-    # Clear the hv_dict and re-encode the normalized retrieved person
+    # Recalcular encoding a partir del diccionario recuperado (hacer esto ANTES de las comparaciones)
     hv_dict = {}
     recomputed_encoding = encode_person(normalized_retrieved)
-    print(f"\nRecomputed encoding (first 5 elements): {recomputed_encoding[:5]}")
 
-    # Compare encoding_methods
+    # Convertir hv almacenado y comparar apropiadamente
+
+    stored_encoding = _unpack_binary(stored["hv"], DIMENSION)  # {0,1}
+
+    # Ahora stored_encoding está en binario (0/1), directamente comparable a original_encoding
     stored_vs_original = np.array_equal(stored_encoding, original_encoding)
-    print(f"\nStored encoding matches original: {stored_vs_original}")
+    recomputed_vs_stored = np.array_equal(stored_encoding, recomputed_encoding)
 
-    recomputed_vs_stored = np.array_equal(recomputed_encoding, stored_encoding)
-    print(f"Recomputed encoding matches stored: {recomputed_vs_stored}")
+
+    # Ahora original_encoding y recomputed_encoding deberían ser binarios (0/1)
+    # y stored_encoding de Milvus se descomprmió en binario también
+
+    # Comprueba que todos son vectores binarios
+    assert np.all((original_encoding == 0) | (original_encoding == 1)), "Original encoding is not binary"
+    assert np.all((recomputed_encoding == 0) | (recomputed_encoding == 1)), "Recomputed encoding is not binary"
+    assert np.all((stored_encoding == 0) | (stored_encoding == 1)), "Stored encoding is not binary"
+
+    # Ahora podemos compararlos directamente
+    stored_vs_original = np.array_equal(stored_encoding, original_encoding)
+    recomputed_vs_stored = np.array_equal(stored_encoding, recomputed_encoding)
+
+    print(f"\nEncoding del almacenado (primeros 5): {stored_encoding[:5]}")
+    print(f"Encoding original (primeros 5): {original_encoding[:5]}")
+    print(f"Encoding recalculado (primeros 5): {recomputed_encoding[:5]}")
+    print(f"\nEncoding almacenado coincide con el original: {stored_vs_original}")
+    print(f"Encoding recalculado coincide con el almacenado: {recomputed_vs_stored}")
 
     if not stored_vs_original:
         diff_count = np.sum(stored_encoding != original_encoding)
-        print(f"Differences between stored and original: {diff_count} out of {DIMENSION}")
+        print(f"Hay diferencias entre el almacenado y el original: {diff_count} / {DIMENSION}")
 
     if not recomputed_vs_stored:
-        diff_count = np.sum(recomputed_encoding != stored_encoding)
-        print(f"Differences between recomputed and stored: {diff_count} out of {DIMENSION}")
+        diff_count = np.sum(stored_encoding != recomputed_encoding)
+        print(f"Hay diferencias entre el recalculado y el almacenado: {diff_count} / {DIMENSION}")
 
-    # Clean up - delete the test record
-    cursor.execute("DELETE FROM people_typed WHERE id = %s", (person_id,))
-    conn.commit()
+    # Limpiamos la fila insertada
+    _delete_people_from_milvus([person_id])
 
     return stored_vs_original and recomputed_vs_stored
 
 
 def test_search_with_encoded_vector():
-    """Test searching for a person using an encoded vector with slight variations"""
-    print("\n--- Testing Search with Encoded Vector ---")
+    """Búsqueda de persona usando un vector codificado con pequeñas variaciones(Milvus backend)"""
+    print("\n--- Búsqueda con Vector Codificado (Milvus) ---")
 
-    # Create original test person with proper date and lowercase keys
     original_person = {
         "name": "Jane",
         "lastname": "Smith",
-        "dob": date(1985, 8, 23),  # Using a proper date object
-        "address": ["789 Oak Rd", "Suite 456"],
+        "dob": date(1985, 8, 23),
         "marital_status": "Single",
-        "akas": ["J. Smith", "Janie"],
-        "landlines": ["555-4321"],
         "mobile_number": "555-8765",
         "gender": "Female",
-        "race": "Asian"
+        "race": "Asian",
+        "attrs": {
+            "address": ["789 Oak Rd", "Suite 456"],
+            "akas": ["J. Smith", "Janie"],
+            "landlines": ["555-4321"]
+        }
     }
 
-    # Clear the dictionary and store the original person
     global hv_dict
     hv_dict = {}
     person_id = store_person(original_person)
-    print(f"Original person stored in database with ID: {person_id}")
-    for key, value in original_person.items():
-        print(f"  {key}: {value}")
+    print(f"Persona original almacenada en Milvus con ID: {person_id}")
+    for k, v in original_person.items():
+        print(f"  {k}: {v}")
 
-    # Create a similar query with some slight differences and lowercase keys
     query_person = original_person.copy()
-    query_person["name"] = "Jane"  # Same name
-    query_person["lastname"] = "Smyth"  # Slight misspelling
-    query_person["dob"] = date(1985, 8, 25)  # 2 days off
-    query_person["address"] = ["789 Oak Road"]  # Slightly different address
-    query_person["akas"] = ["J. Smith"]  # Subset of AKAs
+    query_person["lastname"] = "Smyth"             # typo
+    query_person["dob"] = date(1985, 8, 25)        # 2 days off
+    query_person["address"] = ["789 Oak Road"]     # slight change
+    query_person["akas"] = ["J. Smith"]            # subset
 
-    print("\nQuery person (with slight variations):")
-    for key, value in query_person.items():
-        print(f"  {key}: {value}")
+    print("\nPersona utilizada para la búsqueda (con pequeñas variaciones:")
+    for k, v in query_person.items():
+        print(f"  {k}: {v}")
 
-    # Search for the person
-    matches = find_closest_match_db(query_person, threshold=0.5)
+    # find_closest_match_db ahora debería buscar en Milvus
+    matches = find_closest_match_db(query_person, threshold=0.5) # experimentar con este threshold para rsultados mas exactos
 
-    print("\nSearch results:")
+    print("\nResultados de búsqueda de persona con vector codificado (Milvus):")
     for match in matches:
-        print(f"Match found: {match}")
+        print(f"Coincidencia encontrada: {match}")
 
-    # Check if the right person was found
-    is_correct_match = any(match["id"] == person_id for match in matches)
-    print(f"Correct person found: {is_correct_match}")
+    is_correct_match = any(match.get("id") == person_id for match in matches)
+    print(f"Persona correcta encontrada: {is_correct_match}")
 
-    # Test with a completely different person that shouldn't match as closely
     different_person = {
         "name": "Bob",
         "lastname": "Johnson",
-        "dob": date(1970, 1, 1),  # Much different date
+        "dob": date(1970, 1, 1),
         "address": ["123 Different St"],
         "marital_status": "Married",
         "akas": ["Robert"],
@@ -230,128 +349,78 @@ def test_search_with_encoded_vector():
         "race": "Caucasian"
     }
 
-    print("\nCompletely different query person:")
-    for key, value in different_person.items():
-        print(f"  {key}: {value}")
+    print("\nBúsqueda con persona completamente distinta:")
+    for k, v in different_person.items():
+        print(f"  {k}: {v}")
 
     different_matches = find_closest_match_db(different_person, threshold=0.5)
 
-    print("\nSearch results for different person:")
+    print("\nResultados para la persona distinta:")
     if different_matches:
         for match in different_matches:
-            print(f"Match found: {match}")
+            print(f"Coincidencia encontrada: {match}")
 
-        # Get the similarity score for our original person (if found)
-        original_similarity = next((match["similarity"] for match in matches
-                                    if match["id"] == person_id), 0)
-
-        # Get the similarity score for the original person in different_matches (if found)
-        different_similarity = next((match["similarity"] for match in different_matches
-                                     if match["id"] == person_id), 0)
-
-        # The similarity should be lower for the different person
+        original_similarity = next((m["similarity"] for m in matches if m.get("id") == person_id), 0)
+        different_similarity = next((m["similarity"] for m in different_matches if m.get("id") == person_id), 0)
         lower_similarity = different_similarity < original_similarity
-        print(f"Different person has lower similarity to original (as expected): {lower_similarity}")
+        print(f"La persona diferente tiene menos similaridad que la original (esperado): {lower_similarity}")
     else:
-        print("No matches found for different person (as expected)")
+        print("No se encontraron coincidencias para la persona distinta (esperado)")
         lower_similarity = True
 
-    # Clean up - delete the test record
-    cursor.execute("DELETE FROM people_typed WHERE id = %s", (person_id,))
-    conn.commit()
+    # Limpiamos DB
+    _delete_people_from_milvus([person_id])
 
-    # Return overall test result
     return is_correct_match and lower_similarity
 
-
 def test_date_encoding_and_search():
-    """Test the special date encoding and date-based search functionality"""
-    print("\n--- Testing Date Encoding and Search ---")
+    """Encoding de fecha y funcionalidad de búsqueda basada en fecha (Milvus backend)"""
+    print("\n--- Encoding y búsqueda de fechas (Milvus) ---")
+    # Limpiamos la base de datos antes de empezar
+    _delete_people_from_milvus([])
 
-    # Create several test people with different dates
     test_people = [
-        {
-            "name": "Person",
-            "lastname": "One",
-            "dob": date(1990, 5, 15),
-            "gender": "Male"
-        },
-        {
-            "name": "Person",
-            "lastname": "Two",
-            "dob": date(1990, 5, 20),  # 5 days difference
-            "gender": "Female"
-        },
-        {
-            "name": "Person",
-            "lastname": "Three",
-            "dob": date(1990, 6, 15),  # 1 month difference
-            "gender": "Other"
-        },
-        {
-            "name": "Person",
-            "lastname": "Four",
-            "dob": date(1991, 5, 15),  # 1 year difference
-            "gender": "Male"
-        }
+        {"name": "Person", "lastname": "One",   "dob": date(1990, 5, 15), "gender": "Male"},
+        {"name": "Person", "lastname": "Two",   "dob": date(1990, 5, 20), "gender": "Female"},
+        {"name": "Person", "lastname": "Three", "dob": date(1990, 6, 15), "gender": "Other"},
+        {"name": "Person", "lastname": "Four",  "dob": date(1991, 5, 15), "gender": "Male"},
     ]
 
-    # Store all test people
     ids = []
-    for person in test_people:
-        person_id = store_person(person)
-        ids.append(person_id)
-        print(f"Stored {person['name']} {person['lastname']} (DOB: {person['dob']}) with ID: {person_id}")
+    for p in test_people:
+        pid = store_person(p)
+        ids.append(pid)
+        print(f"Guardando {p['name']} {p['lastname']} (DOB: {p['dob']}) con ID: {pid}")
 
-    # Test the date range search
-    print("\nSearching for people born in May 1990 (within 15 days of May 15):")
+    print("\nBuscando personas nacidas en mayo de 1990 (dentro de los 15 días del 15 de mayo):")
     matches = find_similar_by_date(date(1990, 5, 15), range_days=15)
-
     for match in matches:
-        print(f"  Found: {match['name']} {match['lastname']} (DOB: {match['dob']})")
+        print(f"  Encontrado: {match['name']} {match['lastname']} (DOB: {match['dob']})")
 
-    # Verify we found the right people
-    found_ids = [match['id'] for match in matches]
-    expected_ids = [ids[0], ids[1]]  # Should find Person One and Person Two
+    found_ids = [m["id"] for m in matches]
+    expected_ids = [ids[0], ids[1]]
+    correct_date_matches = all(i in found_ids for i in expected_ids) and len(found_ids) == len(expected_ids)
+    print(f"Se encontraron coincidencias de fecha correctas: {correct_date_matches}")
 
-    correct_date_matches = all(id in found_ids for id in expected_ids) and len(found_ids) == len(expected_ids)
-    print(f"Found correct date matches: {correct_date_matches}")
+    print("\nPrueba de similitud de encoding de fechas:")
+    enc1 = encode_date(date(1990, 5, 15))
+    enc2 = encode_date(date(1990, 5, 16))  # 1 day
+    enc3 = encode_date(date(1990, 6, 15))  # 1 month
+    enc4 = encode_date(date(1991, 5, 15))  # 1 year
 
-    # Test encoding different dates
-    print("\nTesting date encoding similarity:")
-
-    # Encode some dates
-    date1 = date(1990, 5, 15)
-    date2 = date(1990, 5, 16)  # 1 day difference
-    date3 = date(1990, 6, 15)  # 1 month difference
-    date4 = date(1991, 5, 15)  # 1 year difference
-
-    # Clear the dictionary for clean test
-    hv_dict = {}
-
-    # Encode dates
-    enc1 = encode_date(date1)
-    enc2 = encode_date(date2)
-    enc3 = encode_date(date3)
-    enc4 = encode_date(date4)
-
-    # Calculate similarities
     sim_1_day = cosine_similarity([enc1], [enc2])[0][0]
     sim_1_month = cosine_similarity([enc1], [enc3])[0][0]
     sim_1_year = cosine_similarity([enc1], [enc4])[0][0]
 
-    print(f"Similarity with 1 day difference: {sim_1_day:.4f}")
-    print(f"Similarity with 1 month difference: {sim_1_month:.4f}")
-    print(f"Similarity with 1 year difference: {sim_1_year:.4f}")
+    print(f"Similaridad con 1 día de diferencia: {sim_1_day:.4f}")
+    print(f"Similaridad con 1 mes de diferencia: {sim_1_month:.4f}")
+    print(f"Similaridad con 1 año de diferencia: {sim_1_year:.4f}")
 
-    # Closer dates should have higher similarity
     correct_similarity_order = sim_1_day > sim_1_month > sim_1_year
-    print(f"Correct similarity order (closer dates have higher similarity): {correct_similarity_order}")
+    print(f"Orden de similitud correcto (las fechas más cercanas tienen mayor similitud): {correct_similarity_order}")
 
     # Clean up
-    for person_id in ids:
-        cursor.execute("DELETE FROM people_typed WHERE id = %s", (person_id,))
-    conn.commit()
+    _delete_people_from_milvus(ids)
 
     return correct_date_matches and correct_similarity_order
 
@@ -362,28 +431,30 @@ if __name__ == "__main__":
     search_result = test_search_with_encoded_vector()
     date_result = test_date_encoding_and_search()
 
-    # Simple reporting of test results
-    print("\n--- Test Results Summary ---")
+    print("\n\033[94m--- Resultados de ejecución de tests: ---\033[0m")
+
     if consistency_result and differentiation_result:
-        print("✓ Encoding consistency tests PASSED!")
+        print("\033[92m ✓ Test de consistencia de Encoding: PASS\033[0m")
     else:
-        print("\033[91m✗ Some encoding consistency tests FAILED!\033[0m")
+        print("\033[91m✗ Algunos tests de consistencia de encoding fallaron: \033[0m")
         if not consistency_result:
-            print("  - Consistency test failed: Same data produced different encoding_methods")
+            print("  - Test de consistencia FALLÓ: Los mismos datos produjeron distintos encodings")
         if not differentiation_result:
-            print("  - Differentiation test failed: Different data produced same encoding")
+            print("  - Test de diferenciación FALLÓ: Datos diferentes produjeron el mismo encoding")
 
     if db_preservation_result:
-        print("✓ Database encoding preservation test PASSED!")
+        print("\033[92m ✓ Test de preservación de encoding en la BD: PASS\033[0m")
     else:
-        print("\033[91m✗ Database encoding preservation test FAILED!\033[0m")
+        print("\033[91m✗ Test de preservación de encoding en la BD: FALLÓ\033[0m")
 
     if search_result:
-        print("✓ Vector-based search test PASSED!")
+        print("\033[92m ✓ Búsqueda basada en vector: PASS\033[0m")
     else:
-        print("\033[91m✗ Vector-based search test FAILED!\033[0m")
+        print("\033[91m✗ Búsqueda basada en vector: FALLÓ\033[0m")
+
 
     if date_result:
-        print("✓ Date encoding and search tests PASSED!")
+        print("\033[92m ✓ Tests de Encoding y búsqueda de fechas: PASS\033[0m")
     else:
-        print("\033[91m✗ Date encoding and search tests FAILED!\033[0m")
+        print("\033[91m✗ Tests de Encoding y búsqueda de fechas: FALLÓ\033[0m")
+
