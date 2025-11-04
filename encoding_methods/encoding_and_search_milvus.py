@@ -1,12 +1,14 @@
 # --- Milvus-backed storage/search (replaces psycopg2 bits) ---
 import os
 from datetime import datetime, date
-from typing import Dict, Any, List
+import datetime
+from dateutil.parser import parse as dateutil_parse
 import numpy as np
 import hashlib
 import re
 import ast
 import pandas as pd
+from typing import Any, Dict, List, Optional
 from datetime import datetime, date as date_cls, timedelta
 from configs.settings import HDC_DIM as DIMENSION
 from database_utils.milvus_db_connection import ensure_people_collection, VECTOR_MODE
@@ -58,7 +60,7 @@ def _merge_attrs(person: Dict[str, Any]) -> Dict[str, Any]:
     """Move list-like fields into one JSON bag for Milvus"""
 
     result = {}
-    
+
     # If we already have an attrs dictionary, use it directly
     if "attrs" in person and isinstance(person["attrs"], dict):
         # Just make a copy of the existing attrs dictionary
@@ -75,12 +77,12 @@ def _merge_attrs(person: Dict[str, Any]) -> Dict[str, Any]:
             "akas": person.get("akas", []) or [],
             "landlines": person.get("landlines", []) or [],
         }
-    
+
     # Add more debug info
     print("[_merge_attrs] Result:")
     for key, value in result.items():
         print(f"  {key}: {repr(value)} (type={type(value).__name__})")
-    
+
     return result
 
 def deterministic_hash(key: str) -> int:
@@ -110,12 +112,12 @@ def encode_date(date_obj):
     # Also encode year and month separately
     year_encoding = get_hv(f"year_{date_obj.year}")
     month_encoding = get_hv(f"month_{date_obj.month}") #we used to have weights here?
-    
+
     # Combine using binary operations (logical OR)
     result = np.zeros(DIMENSION, dtype=np.uint8)
     for enc in [base_encoding, year_encoding, month_encoding]:
         result = np.logical_or(result, enc).astype(np.uint8)
-    
+
     return result
 
 def encode_person(person):
@@ -157,32 +159,46 @@ def encode_person(person):
     result = np.zeros(DIMENSION, dtype=np.uint8)
     for comp in components:
         result = np.logical_or(result, comp).astype(np.uint8)
-    
+
     return result
 
 
-def store_person(person) -> int:
-    """Almacena una persona en Milvus con su HV; devuelve el ID generado automáticamente."""
-    col = ensure_people_collection()
-    normalized = normalize_person_data(person)
-    hv = encode_person(normalized)
+def store_person(person, collection_name: str = "people") -> int:
+    """Almacena una persona en Milvus con su HV; devuelve el ID generado automáticamente.
 
-    attrs = _merge_attrs(normalized)
-    dob_val = normalized.get("dob")
+    Args:
+        person: Datos DE LA PERSONA YA NORMALIZADOS a almacenar
+        collection_name: Nombre opcional de la colección (si no se proporciona,
+                         se usa la colección predeterminada)
+
+    Returns:
+        int: ID generado automáticamente de la persona almacenada
+    """
+    # Use the provided collection name or default collection
+    col = ensure_people_collection(collection_name)
+
+    # normalized = normalize_person_data(person)  <-- 1. REMOVE THIS LINE
+
+    hv = encode_person(person)  # <-- 2. Use 'person' instead of 'normalized'
+
+    attrs = _merge_attrs(person)  # <-- 3. Use 'person'
+    dob_val = person.get("dob")  # <-- 4. Use 'person'
+
     # Store dob as ISO string for easy range filtering
     if isinstance(dob_val, (date, datetime)):
         dob_str = dob_val.strftime("%Y-%m-%d")
     else:
+        # This branch will now likely handle None or ""
         dob_str = dob_val if dob_val else ""
 
     entity = {
-        "name": normalized.get("name", ""),
-        "lastname": normalized.get("lastname", ""),
+        "name": person.get("name", ""),  # <-- 5. Use 'person'
+        "lastname": person.get("lastname", ""),  # <-- 6. Use 'person'
         "dob": dob_str,
-        "marital_status": normalized.get("marital_status", ""),
-        "mobile_number": normalized.get("mobile_number", ""),
-        "gender": normalized.get("gender", ""),
-        "race": normalized.get("race", ""),
+        "marital_status": person.get("marital_status", ""),  # <-- 7. Use 'person'
+        "mobile_number": person.get("mobile_number", ""),  # <-- 8. Use 'person'
+        "gender": person.get("gender", ""),  # <-- 9. Use 'person'
+        "race": person.get("race", ""),  # <-- 10. Use 'person'
         "attrs": attrs,
         "hv": _encode_for_milvus(hv),
     }
@@ -190,9 +206,9 @@ def store_person(person) -> int:
     col.flush()
     return int(mr.primary_keys[0])
 
-def get_person_details(person_id: int):
+def get_person_details(person_id: int, collection_name: str = "people"):
     """Get complete details for a person by ID (Milvus)."""
-    col = ensure_people_collection()
+    col = ensure_people_collection(collection_name)
     res = col.query(
         expr=f"id == {person_id}",
         output_fields=["name","lastname","dob","marital_status","mobile_number","gender","race","attrs"],
@@ -281,27 +297,102 @@ def normalize_person_data_db(person: dict) -> dict:
     }
     return allowed
 
-def normalize_person_data(person):
-    """Normalize person data to handle format inconsistencies, convert types, and standardize key case"""
-    normalized = {}
-    for key, value in person.items():
-        # Standardize key to lowercase
-        normalized_key = key.lower()
+'''
+def parse_date(value: Any) -> Optional[date]:
+    if isinstance(value, date) and not isinstance(value, datetime):
+        return value
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, str):
+        try:
+            return date.fromisoformat(value)  # estrictamente 'YYYY-MM-DD'
+        except ValueError:
+            return None
+    return None
+'''
+from typing import Any, List
 
-        # Handle list strings
-        if isinstance(value, str) and value.startswith('[') and value.endswith(']'):
-            normalized[normalized_key] = parse_list_string(value)
-        # Convert date strings to date objects
-        elif normalized_key == 'dob' and value and not isinstance(value, (date, datetime)):
-            normalized[normalized_key] = parse_date(value)
+
+def _as_list_str(x: Any) -> List[str]:
+    """
+    Converts input into a list of strings.
+    - Handles None or "" -> []
+    - Handles a list -> [str(v) for v in x]
+    - Handles a single item -> [str(x)]
+    """
+    # 1. Handle empty cases first
+    if x in (None, ""):
+        return []
+
+    # 2. Handle the list case
+    if isinstance(x, list):
+        # Filter out any potential Nones inside the list
+        return [str(v) for v in x if v not in (None, "")]
+
+    # 3. Handle the single item case (this is the fix)
+    # If it's not a list and not empty, wrap it
+    return [str(x)]
+
+DEFAULT_SCALARS: Dict[str, Any] = {
+    "name": "",
+    "lastname": "",
+    "mobile_number": "",
+    "race": "",
+    "marital_status": "",
+    "gender": "",
+    "dob": None,  # se setea a date si se puede parsear
+}
+
+DEFAULT_ATTRS: Dict[str, List[str]] = {
+    "address": [],
+    "akas": [],
+    "landlines": [],
+}
+
+def normalize_person_data(person: Dict[str, Any]) -> Dict[str, Any]:
+    if not isinstance(person, dict):
+        raise ValueError("person must be a dict")
+
+    out: Dict[str, Any] = {}
+
+    # Inicializa con defaults de escalares
+    out.update(DEFAULT_SCALARS)
+
+    # Procesa claves de entrada
+    for k, v in person.items():
+        lk = k.lower()
+        if lk == "attrs":
+            continue  # se maneja luego
+        if lk == "dob":
+            out["dob"] = parse_date(v)
+        elif lk in ("name", "lastname", "mobile_number", "race"):
+            out[lk] = "" if v in (None, "") else str(v).strip()
+        elif lk in ("marital_status", "gender"):
+            out[lk] = "" if v in (None, "") else str(v).strip().capitalize()
         else:
-            normalized[normalized_key] = value
+            # si aparece otro escalar no-lista, lo guardamos como string
+            if not isinstance(v, list):
+                out[lk] = "" if v in (None, "") else str(v)
 
-    return normalized
+    # Asegura attrs y sus listas conocidas
+    attrs_in = person.get("attrs")
+    attrs: Dict[str, Any] = dict(attrs_in) if isinstance(attrs_in, dict) else {}
 
-def find_closest_match_db(query_person, threshold=0.7, limit=5):
+    # Si address vino al top-level, muévelo a attrs (tu test lo manda así)
+    if "address" in person and "address" not in attrs:
+        attrs["address"] = person.get("address")
+    print(f"[normalize_person_data] attrs: {attrs}")
+    # Normaliza listas conocidas
+    for key, default_list in DEFAULT_ATTRS.items():
+        attrs[key] = _as_list_str(attrs.get(key, default_list))
+
+    out["attrs"] = attrs
+
+    return out
+
+def find_closest_match_db(query_person, threshold=0.7, limit=5, collection_name: str = "people"):
     """Vector search in Milvus; returns top matches with a 'similarity' field."""
-    col = ensure_people_collection()
+    col = ensure_people_collection(collection_name)
     normalized_query = normalize_person_data(query_person)
     qhv = encode_person(normalized_query)
     qpayload = _encode_for_milvus(qhv)
@@ -345,9 +436,9 @@ def find_closest_match_db(query_person, threshold=0.7, limit=5):
     return out[:limit]
 
 
-def find_similar_by_date(target_date, range_days=30, limit=5):
+def find_similar_by_date(target_date, range_days=30, limit=5, collection_name: str = "people"):
     """Scalar filter by date range using dob stored as ISO 'YYYY-MM-DD' strings."""
-    col = ensure_people_collection()
+    col = ensure_people_collection(collection_name)
 
     # Normalize target_date to a datetime.date
     if not isinstance(target_date, (datetime, date_cls)):
@@ -375,7 +466,7 @@ def find_similar_by_date(target_date, range_days=30, limit=5):
     return [{"id": int(r["id"]), "name": r["name"], "lastname": r["lastname"], "dob": r["dob"]}
             for r in res][:limit]
 
-
+'''
 def parse_date(s: str | None) -> date_cls | None:
     """
     Convert ISO 'YYYY-MM-DD' to datetime.date.
@@ -390,3 +481,29 @@ def parse_date(s: str | None) -> date_cls | None:
         return datetime.strptime(s, "%Y-%m-%d").date()
     except ValueError as e:
         raise ValueError("Expected ISO 'YYYY-MM-DD' in 'dob'") from e
+    '''
+
+
+def parse_date(s: str | None) -> date_cls | None:
+    """
+    Convert a date string to datetime.date.
+    Accepts '' or None -> None.
+    Handles various common date formats (ISO, slashes, etc.).
+    Raises ValueError for unparseable input.
+    """
+    if s in (None, ""):
+        return None
+
+    # This was the fix for your previous problem (keep it)
+    if isinstance(s, date_cls):
+        return s
+
+    if not isinstance(s, str):
+        raise TypeError("dob must be a string, '', or None")
+
+    try:
+        # Use dateutil.parse to flexibly handle formats
+        return dateutil_parse(s).date()
+    except (ValueError, OverflowError) as e:
+        # Re-raise with a clear message
+        raise ValueError(f"Could not parse '{s}' as a valid date") from e

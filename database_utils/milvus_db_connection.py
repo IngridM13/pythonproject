@@ -16,16 +16,22 @@ def connect():
     if not connections.has_connection(ALIAS):
         connections.connect(alias=ALIAS, host=HOST, port=PORT)
 
-def ensure_people_collection() -> Collection:
+def ensure_people_collection(collection_name: str = COLLECTION) -> Collection:
     """
-    schema Milvus equivalente a la tabla Postgres previamente definida.
+    Schema Milvus equivalente a la tabla Postgres previamente definida.
     Arrays (address, akas, landlines) van en el JSON 'attrs'.
-    Si existe el collection lo retorne , de lo contrario lo crea con el schema que usamos.
+    Si existe el collection lo retorna, de lo contrario lo crea con el schema que usamos.
+    
+    Args:
+        collection_name: Nombre de la colección a verificar/crear (default: COLLECTION de settings)
+    
+    Returns:
+        Collection: La colección de Milvus
     """
     connect()
 
-    if utility.has_collection(COLLECTION, using=ALIAS):
-        col = Collection(COLLECTION, using=ALIAS)
+    if utility.has_collection(collection_name, using=ALIAS):
+        col = Collection(collection_name, using=ALIAS)
     else:
         fields: List[FieldSchema] = [
             FieldSchema(name="id", dtype=DataType.INT64, is_primary=True, auto_id=True),
@@ -49,16 +55,16 @@ def ensure_people_collection() -> Collection:
             raise ValueError("MILVUS_VECTOR_MODE must be 'binary' or 'float'.")
 
         schema = CollectionSchema(fields=fields, description="People with hypervectors")
-        col = Collection(name=COLLECTION, schema=schema, using=ALIAS)
+        col = Collection(name=collection_name, schema=schema, using=ALIAS)
 
         # Vector index
         if VECTOR_MODE == "binary":
             col.create_index("hv", {"index_type": "BIN_FLAT", "metric_type": "HAMMING", "params": {}})
         else:
             col.create_index("hv", {"index_type": "HNSW", "metric_type": "COSINE",
-                                    "params": {"M": 16, "efConstruction": 200}})
+                                   "params": {"M": 16, "efConstruction": 200}})
 
-        # index escalar (ocional, si hay soporte para ello en el Milvus build)
+        # index escalar (opcional, si hay soporte para ello en el Milvus build)
         try:
             col.create_index("lastname", {"index_type": "INVERTED"})
         except MilvusException:
@@ -66,6 +72,7 @@ def ensure_people_collection() -> Collection:
 
     col.load()
     return col
+
 
 if __name__ == "__main__":
     col = ensure_people_collection()

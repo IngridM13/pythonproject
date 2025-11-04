@@ -166,7 +166,7 @@ def test_encoding_consistency():
         diff_count = np.sum(encoding1 != encoding2)
         print(f"Número de elementos diferentes: {diff_count} de {DIMENSION}")
     else:
-        print("\033[92mLa codificación determinista funciona correctamente!\033[0m")
+        print("La codificación determinista funciona correctamente!")
 
     test_person2 = test_person.copy()
     test_person2["name"] = "Different"
@@ -297,7 +297,7 @@ def test_search_with_encoded_vector():
     original_person = {
         "name": "Jane",
         "lastname": "Smith",
-        "dob": date(1985, 8, 23),
+        "dob": "1985-08-23",
         "marital_status": "Single",
         "mobile_number": "555-8765",
         "gender": "Female",
@@ -318,7 +318,7 @@ def test_search_with_encoded_vector():
 
     query_person = original_person.copy()
     query_person["lastname"] = "Smyth"             # typo
-    query_person["dob"] = date(1985, 8, 25)        # 2 days off
+    query_person["dob"] = "1985-8-25"        # 2 days off
     query_person["address"] = ["789 Oak Road"]     # slight change
     query_person["akas"] = ["J. Smith"]            # subset
 
@@ -339,7 +339,7 @@ def test_search_with_encoded_vector():
     different_person = {
         "name": "Bob",
         "lastname": "Johnson",
-        "dob": date(1970, 1, 1),
+        "dob": "1970-01-01",
         "address": ["123 Different St"],
         "marital_status": "Married",
         "akas": ["Robert"],
@@ -380,10 +380,10 @@ def test_date_encoding_and_search():
     _delete_people_from_milvus([])
 
     test_people = [
-        {"name": "Person", "lastname": "One",   "dob": date(1990, 5, 15), "gender": "Male"},
-        {"name": "Person", "lastname": "Two",   "dob": date(1990, 5, 20), "gender": "Female"},
-        {"name": "Person", "lastname": "Three", "dob": date(1990, 6, 15), "gender": "Other"},
-        {"name": "Person", "lastname": "Four",  "dob": date(1991, 5, 15), "gender": "Male"},
+        {"name": "Person", "lastname": "One", "dob": "1990-05-15", "gender": "Male"},
+        {"name": "Person", "lastname": "Two", "dob": "1990-05-20", "gender": "Female"},
+        {"name": "Person", "lastname": "Three", "dob": "1990-06-15", "gender": "Other"},
+        {"name": "Person", "lastname": "Four", "dob": "1991-05-15", "gender": "Male"},
     ]
 
     ids = []
