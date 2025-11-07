@@ -249,9 +249,19 @@ def test_db_encoding_preservation():
     hv_dict = {}
     recomputed_encoding = encode_person(normalized_retrieved)
 
-    # Convertir hv almacenado y comparar apropiadamente
-
-    stored_encoding = _unpack_binary(stored["hv"], DIMENSION)  # {0,1}
+    if VECTOR_MODE.lower() == "binary":
+        stored_encoding = _unpack_binary(stored["hv"], DIMENSION).astype(np.uint8)
+        # chequeos binarios
+        assert np.all((original_encoding == 0) | (original_encoding == 1))
+        assert np.all((recomputed_encoding == 0) | (recomputed_encoding == 1))
+        assert np.all((stored_encoding == 0) | (stored_encoding == 1))
+    else:  # "bipolar"
+        stored_encoding = np.asarray(stored["hv"]).astype(np.int8)
+        stored_encoding = np.where(stored_encoding > 0, 1, -1)
+        # chequeos bipolares
+        assert np.all((original_encoding == -1) | (original_encoding == 1))
+        assert np.all((recomputed_encoding == -1) | (recomputed_encoding == 1))
+        assert np.all((stored_encoding == -1) | (stored_encoding == 1))
 
     # Ahora stored_encoding está en binario (0/1), directamente comparable a original_encoding
     stored_vs_original = np.array_equal(stored_encoding, original_encoding)
@@ -261,10 +271,25 @@ def test_db_encoding_preservation():
     # Ahora original_encoding y recomputed_encoding deberían ser binarios (0/1)
     # y stored_encoding de Milvus se descomprmió en binario también
 
-    # Comprueba que todos son vectores binarios
-    assert np.all((original_encoding == 0) | (original_encoding == 1)), "Original encoding is not binary"
-    assert np.all((recomputed_encoding == 0) | (recomputed_encoding == 1)), "Recomputed encoding is not binary"
-    assert np.all((stored_encoding == 0) | (stored_encoding == 1)), "Stored encoding is not binary"
+    if VECTOR_MODE.lower() == "binary":
+        # Milvus devuelve hv empaquetado o uint8 -> desempaquetar a {0,1}
+        stored_encoding = _unpack_binary(stored["hv"], DIMENSION).astype(np.uint8)
+
+        # Chequeos binarios
+        assert np.all((original_encoding == 0) | (original_encoding == 1)), "Original encoding is not binary"
+        assert np.all((recomputed_encoding == 0) | (recomputed_encoding == 1)), "Recomputed encoding is not binary"
+        assert np.all((stored_encoding == 0) | (stored_encoding == 1)), "Stored encoding is not binary"
+
+    else:  # "bipolar"
+        # Milvus devolvió lista/array con -1/+1 (floats o ints)
+        stored_encoding = np.asarray(stored["hv"])
+        # Normalizamos a -1/+1 enteros de forma robusta (por si vino como float +-1.0)
+        stored_encoding = np.where(stored_encoding > 0, 1, -1).astype(np.int8)
+
+        # Chequeos bipolares
+        assert np.all((original_encoding == -1) | (original_encoding == 1)), "Original encoding is not bipolar"
+        assert np.all((recomputed_encoding == -1) | (recomputed_encoding == 1)), "Recomputed encoding is not bipolar"
+        assert np.all((stored_encoding == -1) | (stored_encoding == 1)), "Stored encoding is not bipolar"
 
     # Ahora podemos compararlos directamente
     stored_vs_original = np.array_equal(stored_encoding, original_encoding)
@@ -403,10 +428,12 @@ def test_date_encoding_and_search():
     print(f"Se encontraron coincidencias de fecha correctas: {correct_date_matches}")
 
     print("\nPrueba de similitud de encoding de fechas:")
-    enc1 = encode_date(date(1990, 5, 15))
-    enc2 = encode_date(date(1990, 5, 16))  # 1 day
-    enc3 = encode_date(date(1990, 6, 15))  # 1 month
-    enc4 = encode_date(date(1991, 5, 15))  # 1 year
+    mode = VECTOR_MODE.lower()
+
+    enc1 = encode_date(date(1990, 5, 15), mode=mode)
+    enc2 = encode_date(date(1990, 5, 16), mode=mode)  # 1 day
+    enc3 = encode_date(date(1990, 6, 15), mode=mode)  # 1 month
+    enc4 = encode_date(date(1991, 5, 15), mode=mode)  # 1 year
 
     sim_1_day = cosine_similarity([enc1], [enc2])[0][0]
     sim_1_month = cosine_similarity([enc1], [enc3])[0][0]

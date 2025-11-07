@@ -9,8 +9,8 @@ HOST = os.getenv("MILVUS_HOST", "localhost")
 PORT = os.getenv("MILVUS_PORT", "19530")
 COLLECTION = "people"
 
-# Vector mode: "binary" (BINARY_VECTOR + HAMMING) or "float" (FLOAT_VECTOR + COSINE)
-VECTOR_MODE = os.getenv("MILVUS_VECTOR_MODE", "binary").lower()
+# Vector mode: "binary" (BINARY_VECTOR + HAMMING) or "float" (FLOAT_VECTOR + IP)
+VECTOR_MODE = os.getenv("MILVUS_VECTOR_MODE", "float").lower()
 
 def connect():
     if not connections.has_connection(ALIAS):
@@ -46,12 +46,15 @@ def ensure_people_collection(collection_name: str = COLLECTION) -> Collection:
         ]
 
         if VECTOR_MODE == "binary":
+            print(">>> creando collection para vector_mode == binary")
             if HDC_DIM % 8 != 0:
                 raise ValueError("Binary vectors require HDC_DIM to be a multiple of 8.")
             fields.append(FieldSchema(name="hv", dtype=DataType.BINARY_VECTOR, dim=HDC_DIM))
         elif VECTOR_MODE == "float":
+            print(">>> creando collection para vector_mode == float")
             fields.append(FieldSchema(name="hv", dtype=DataType.FLOAT_VECTOR, dim=HDC_DIM))
         else:
+            print(">>> milvus_db_connection.VECTOR_MODE no reconocido")
             raise ValueError("MILVUS_VECTOR_MODE must be 'binary' or 'float'.")
 
         schema = CollectionSchema(fields=fields, description="People with hypervectors")
@@ -59,11 +62,12 @@ def ensure_people_collection(collection_name: str = COLLECTION) -> Collection:
 
         # Vector index
         if VECTOR_MODE == "binary":
-            col.create_index("hv", {"index_type": "BIN_FLAT", "metric_type": "HAMMING", "params": {}})
+            col.create_index("hv", {"index_type": "BIN_IVF_FLAT", "metric_type": "HAMMING", "params": {}})
         else:
-            col.create_index("hv", {"index_type": "HNSW", "metric_type": "COSINE",
+            col.create_index("hv", {"index_type": "HNSW", "metric_type": "IP",
                                    "params": {"M": 16, "efConstruction": 200}})
-
+        # HNSW -> The main drawback is that this graph structure must be held in memory (RAM) to be fast.
+        # It is one of the more memory-intensive index types.
         # index escalar (opcional, si hay soporte para ello en el Milvus build)
         try:
             col.create_index("lastname", {"index_type": "INVERTED"})

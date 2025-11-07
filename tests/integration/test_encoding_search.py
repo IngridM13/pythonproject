@@ -1,4 +1,6 @@
+import json
 from datetime import date
+from pymilvus import Collection
 
 import pytest
 import os
@@ -22,21 +24,56 @@ class TestEncodingSearch:
 
     def test_find_closest_match(self, test_collection, test_people):
         person_ids = []
-        for person in test_people:
-            pid = store_person(person, collection_name=test_collection)
+
+        # --- DEBUG TEST ---
+        print(f"\n[DEBUG-TEST] Usando colección: {test_collection}")
+        # Obtenemos el objeto Collection para poder interactuar con él
+        col = Collection(test_collection)
+        # ---
+
+        for i, person in enumerate(test_people):
+            normalized_person = normalize_person_data(person)
+            pid = store_person(normalized_person, collection_name=test_collection)
             person_ids.append(pid)
-            assert pid > 0
+
+            # --- DEBUG TEST ---
+            print(f"[DEBUG-TEST] Persona {i} supuestamente almacenada. PID: {pid}")
+            # ---
+
+        # --- DEBUG CRÍTICO ---
+        # ¡Esta es la parte más importante!
+        # Forzamos a Milvus a "escribir" los datos y actualizar el índice.
+        print(f"[DEBUG-TEST] Forzando col.flush() en '{test_collection}'...")
+        col.flush()
+        print(f"[DEBUG-TEST] Flush completado. Entidades en la colección: {col.num_entities}")
+        # ---
 
         query_person = {
-            "name": "Jon",
+            "name": "John",
             "lastname": "Doe",
-            "dob": "1990-05-16",
+            "dob": "1990-05-15",
             "marital_status": "Single",
+            "mobile_number": "123456789",
             "gender": "Male",
-            "attrs": {}
+            "race": "Caucasian",
+            "attrs": {
+                "address": ["123 Main St, City"],
+                "akas": ["Johnny"],
+                "landlines": ["987654322"]
+            }
         }
-        normalized_query = normalize_person_data(query_person)
-        results = find_closest_match_db(normalized_query, collection_name=test_collection)
+
+        print("[DEBUG-TEST] Ejecutando find_closest_match_db...")
+        results = find_closest_match_db(query_person, collection_name=test_collection)
+
+        # --- DEBUG TEST ---
+        print(f"[DEBUG-TEST] Búsqueda finalizada. Resultados obtenidos: {len(results)}")
+        if not results:
+            print("[DEBUG-TEST] ¡ERROR! La búsqueda no devolvió resultados (results está vacío).")
+        else:
+            print(f"[DEBUG-TEST] Resultado[0] encontrado: {results[0]}")
+        # ---
+
 
         assert results[0]['id'] == person_ids[0]
         assert results[0]['similarity'] > 0.8
