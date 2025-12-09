@@ -1,0 +1,21 @@
+import uuid
+import pytest
+from pymilvus import MilvusClient
+from database_utils.milvus_db_connection import ensure_people_collection
+
+
+@pytest.fixture
+def with_vector_mode(request):
+    """Fixture para cambiar temporalmente el modo de vector durante una prueba."""
+    import database_utils.milvus_db_connection as milvus_conn
+    original_mode = milvus_conn.VECTOR_MODE
+
+    # Establecer el modo solicitado
+    milvus_conn.VECTOR_MODE = request.param
+
+    yield request.param
+
+    # Restaurar el modo original
+    milvus_conn.VECTOR_MODE = original_mode
+
+

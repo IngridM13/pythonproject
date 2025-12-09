@@ -1,6 +1,7 @@
 import os
 import sys
 from datetime import date
+import pytest
 
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
@@ -131,11 +132,16 @@ def _delete_people_from_milvus(ids):
 
 # -------------------- Tests --------------------
 
-def test_encoding_consistency():
+@pytest.mark.parametrize("with_vector_mode", ["binary", "float"], indirect=True)
+def test_encoding_consistency(with_vector_mode):
     """Verificamos que el encoding es consistente con enfoque determinista"""
 
+    # Verifica que el modo sea el esperado
+    from database_utils.milvus_db_connection import get_vector_mode
+    current_mode = get_vector_mode()
+    assert current_mode == with_vector_mode, f"Expected mode {with_vector_mode}, got {current_mode}"
 
-    print("\n--- Verificación de Consistencia del Encoding ---")
+    print(f"\n--- Verificación de Consistencia del Encoding (modo: {with_vector_mode}) ---")
 
     test_person = {
         "name": "John",

@@ -12,6 +12,11 @@ COLLECTION = "people"
 # Vector mode: "binary" (BINARY_VECTOR + HAMMING) or "float" (FLOAT_VECTOR + IP)
 VECTOR_MODE = os.getenv("MILVUS_VECTOR_MODE", "float").lower()
 
+def get_vector_mode():
+    """Return the current vector mode."""
+    return VECTOR_MODE
+
+
 def connect():
     if not connections.has_connection(ALIAS):
         connections.connect(alias=ALIAS, host=HOST, port=PORT)

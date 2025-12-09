@@ -16,8 +16,9 @@ class HyperDimensionalComputingBinary:
     def __init__(self, dim: int = HDC_DIM, seed: Optional[int] = DEFAULT_SEED):
         self.dim = dim
         self.seed = seed
-        self.rng = np.random.RandomState(seed) if seed is not None else np.random.RandomState()
-        # FIX: Inicializar el caché interno
+        # ✅ API moderna de NumPy: Generator
+        self.rng = np.random.default_rng(seed) if seed is not None else np.random.default_rng()
+        # Inicializar el caché interno
         self._hv_cache: Dict[str, np.ndarray] = {}
 
     def generate_random_hdv(self, n: int = 1) -> np.ndarray:
@@ -50,7 +51,7 @@ class HyperDimensionalComputingBinary:
         if num_components == 0:
             return np.zeros(self.dim, dtype=np.uint8)  # Devuelve el vector nulo
 
-        threshold = num_components / 2
+        threshold = num_components // 2
         return (acc > threshold).astype(np.uint8, copy=False)
 
     def hamming_distance(self, x: np.ndarray, y: np.ndarray) -> int:
@@ -65,8 +66,6 @@ class HyperDimensionalComputingBinary:
     def shifting_hv(self, x: np.ndarray, k: int = 1) -> np.ndarray:
         return shifting(x, k)
 
-    # ... (otros métodos como cosine_similarity, dot_product, etc.) ...
-
     # ---- Deterministic HVs ----
 
     def get_binary_hv(self, key: Any) -> np.ndarray:
@@ -76,15 +75,16 @@ class HyperDimensionalComputingBinary:
         """
         key_str = str(key)
 
-        # FIX: Usar siempre el caché interno
+        # Usar siempre el caché interno
         if key_str in self._hv_cache:
             return self._hv_cache[key_str]
 
         seed = self._deterministic_hash(key_str)
-        temp_rng = np.random.RandomState(seed)
+        # ✅ API moderna: Generator determinista por clave
+        temp_rng = np.random.default_rng(seed)
         hv = binary_random(self.dim, temp_rng)
 
-        # FIX: Guardar en el caché interno
+        # Guardar en el caché interno
         self._hv_cache[key_str] = hv
         return hv
 
@@ -94,12 +94,13 @@ class HyperDimensionalComputingBinary:
         h = hashlib.md5(key_bytes).digest()
         return int.from_bytes(h[:8], "little") % (2 ** 32)
 
-    # ---- ENCODING METHODS (MOVED INSIDE CLASS) ----
+    # ---- ENCODING METHODS  ----
 
     def encode_person_binary(self, person: Dict[str, Any]) -> np.ndarray:
         """Codifica los datos de una persona en un hipervector binario (0/1)."""
+        print(f"[DEBUG-ENCODE] >>> Iniciando 'encode_person_binary'")
 
-        # FIX: Usar los métodos de bundling robustos de la clase
+        # Usar los métodos de bundling robustos de la clase
         bundle_acc = self.bundle_init()
         num_components = 0
 
@@ -116,13 +117,13 @@ class HyperDimensionalComputingBinary:
                 list_acc = self.bundle_init()
                 vectors_to_add = [self.get_binary_hv(str(v)) for v in value]
                 self.bundle_add(list_acc, *vectors_to_add)
-                # FIX: Usar voto mayoritario para la lista
+                # Usar voto mayoritario para la lista
                 encoded_value = self.bundle_finalize(list_acc, num_components=len(vectors_to_add))
 
             elif isinstance(value, (date, datetime)):
                 encoded_value = self.encode_date_binary(value)
             else:
-                # FIX: Usar el 'get_binary_hv' de la clase
+                # Usar el 'get_binary_hv' de la clase
                 encoded_value = self.get_binary_hv(str(value))
 
             # Binding (Binario = XOR)
@@ -140,18 +141,18 @@ class HyperDimensionalComputingBinary:
         """Codificación binaria especial para fechas."""
 
         if not date_obj:
-            # FIX: Usar self.dim
+            # Usar self.dim
             return np.zeros(self.dim, dtype=np.uint8)
 
-        # FIX: Usar los métodos de bundling de la clase
+        # Usar los métodos de bundling de la clase
         bundle_acc = self.bundle_init()
 
-        # FIX: Usar 'self.get_binary_hv'
+        # Usar 'self.get_binary_hv'
         base_encoding = self.get_binary_hv(str(date_obj))
         year_encoding = self.get_binary_hv(f"year_{date_obj.year}")
         month_encoding = self.get_binary_hv(f"month_{date_obj.month}")
 
-        # FIX: Combinar usando bundling de voto mayoritario
+        # Combinar usando bundling de voto mayoritario
         self.bundle_add(bundle_acc, base_encoding, year_encoding, month_encoding)
 
         # Hay 3 componentes en este bundle de fecha

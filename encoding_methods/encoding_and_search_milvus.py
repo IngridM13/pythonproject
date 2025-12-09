@@ -15,6 +15,8 @@ from database_utils.milvus_db_connection import ensure_people_collection, VECTOR
 # from encoding_methods.encoding_and_search_typed import normalize_person_data
 from hdc.bipolar_hdc import HyperDimensionalComputingBipolar
 from hdc.binary_hdc import HyperDimensionalComputingBinary
+from database_utils.milvus_db_connection import get_vector_mode
+
 
 
 # Global dictionary to cache hypervectors
@@ -40,18 +42,22 @@ def _encode_for_milvus(hv: np.ndarray):
         # float mode: convert to float32
         return hv.astype(np.float32)
 '''
+
+
 def _encode_for_milvus(hv: np.ndarray) -> bytes | list[float]:
     """
     Prepares vector for Milvus based on VECTOR_MODE:
     - For binary mode: packs bits into bytes
     - For float mode: converts to a list of float values
     """
-    from database_utils.milvus_db_connection import VECTOR_MODE
+    from database_utils.milvus_db_connection import get_vector_mode
 
-    if VECTOR_MODE == "binary":
+    vector_mode = get_vector_mode()
+
+    if vector_mode == "binary":
         # Use your existing function for bipolar to binary conversion
         return _bipolar_to_binary_bytes(hv)
-    else:  # VECTOR_MODE == "float"
+    else:  # vector_mode == "float"
         # For float vectors, convert to list of floats
         return hv.astype(float).tolist()
 
@@ -153,19 +159,25 @@ def encode_date_binary(date_obj):
     return result
 
 
-
 def encode_person(person, mode="binary"):
     """Factory function that delegates to the appropriate encoding function."""
+    from database_utils.milvus_db_connection import get_vector_mode
+
     hdc_bipolar = HyperDimensionalComputingBipolar(dim=HDC_DIM)
     hdc_binary = HyperDimensionalComputingBinary(dim=HDC_DIM)
-    if VECTOR_MODE == "binary":
+
+    vector_mode = get_vector_mode()
+    print(f">>>>> {vector_mode}")
+
+    if vector_mode == "binary":
         print(">>> [encode_person] encoding binary")
         return hdc_binary.encode_person_binary(person)
-    elif VECTOR_MODE == "float":
+    elif vector_mode == "float":
         print(">>> [encode_person] encoding bipolar")
         return hdc_bipolar.encode_person_bipolar(person)
     else:
-        raise ValueError(f"Invalid vector mode: {VECTOR_MODE}")
+        raise ValueError(f"Invalid vector mode: {vector_mode}")
+
 
 '''
 def encode_person_binary(person):

@@ -53,7 +53,7 @@ def test_collection():
 
 @pytest.fixture(scope="function")
 def milvus_client():
-    """Cliente Milvus (por si lo necesitás en tests)."""
+    """Cliente Milvus (por si lo necesito en tests)."""
     return MilvusClient(uri="http://localhost:19530")
 
 @pytest.fixture(scope="function")

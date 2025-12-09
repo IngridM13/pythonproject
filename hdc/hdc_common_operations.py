@@ -10,21 +10,13 @@ def bipolar_random(d, rng):
 
 def binary_random(d, rng):
     """Devuelve un vector binario {0,1}^d."""
+    # Con np.random.default_rng, rng es un Generator y tiene .integers
     return rng.integers(0, 2, size=d, dtype=np.uint8)
 
 def flip_inplace(v, idx):
     """Invierte el signo en v[idx]."""
     v[idx] = -v[idx]
     return v
-'''
-usamos uno que importamos de sklearn.metrics.pairwise
-def cosine_similarity(a, b):
-    """Calcula la similitud coseno entre dos vectores con manejo de casos especiales."""
-    a = np.asarray(a, dtype=float)
-    b = np.asarray(b, dtype=float)
-    den = np.linalg.norm(a) * np.linalg.norm(b)
-    return float(np.dot(a, b) / den) if den != 0 else 0.0
-'''
 
 
 # Utility functions that can be imported by other modules
@@ -54,4 +46,3 @@ def bipolarize(vector):
 def binarize(vector, threshold=0.5):
     """Convert vector to binary representation using threshold."""
     return np.where(vector >= threshold, 1, 0)
-
