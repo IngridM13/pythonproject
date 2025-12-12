@@ -4,6 +4,7 @@ import numpy as np
 from configs.settings import HDC_DIM
 from ops_bipolar import HyperDimensionalComputingBipolar
 
+
 class HyperDimensionalContext:
     def __init__(self, vectors_dimension: int = HDC_DIM,
                  ops: Optional[HyperDimensionalComputingBipolar] = None):

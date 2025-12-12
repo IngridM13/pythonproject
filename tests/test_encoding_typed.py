@@ -11,9 +11,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # --- Your code (unchanged) ---
 from encoding_methods.encoding_and_search_milvus import (
-    encode_person, encode_date, DIMENSION, store_person,
-    normalize_person_data, find_closest_match_db, parse_date,
-    find_similar_by_date
+    encode_person, encode_date, DIMENSION, store_person, find_closest_match_db, parse_date,
+    find_similar_by_date, normalize_person_data
 )
 
 # --- Milvus glue (new) ---
@@ -191,7 +190,7 @@ def test_db_encoding_preservation():
     print("\n--- Testing Milvus Encoding Preservation ---")
 
     # Test person (las listas las guardo en 'attrs')
-    test_person = {
+    raw_test_person = {
         "name": "John",
         "lastname": "Doe",
         "dob": "1990-05-15",  # ISO string is fine; normalize() will parse it
@@ -207,21 +206,21 @@ def test_db_encoding_preservation():
     }
 
     # Normalización ( el string de 'dob' a date, etc.)
-    test_person = normalize_person_data(test_person)
+    normalized_test_person = normalize_person_data(raw_test_person)
 
     print("Datos originales de la persona:")
-    for k, v in test_person.items():
+    for k, v in raw_test_person.items():
         print(f"  {k}: {v}")
 
     global hv_dict
     hv_dict = {}
 
     # Encode de manera local (ésta es la referencia)
-    original_encoding = encode_person(test_person)
+    original_encoding = encode_person(raw_test_person)
     print(f"\nEncoding original (primeros 5 elementos): {original_encoding[:5]}")
 
     # Insertar en Milvus (devuelve PK id)
-    person_id = store_person(test_person)
+    person_id = store_person(normalized_test_person)
     print(f"\nPersona guardada en Milvus con ID: {person_id}")
 
     # Leer de Milvus (incluyendo hv) la persona que recién guardé
@@ -301,9 +300,6 @@ def test_db_encoding_preservation():
     stored_vs_original = np.array_equal(stored_encoding, original_encoding)
     recomputed_vs_stored = np.array_equal(stored_encoding, recomputed_encoding)
 
-    print(f"\nEncoding del almacenado (primeros 5): {stored_encoding[:5]}")
-    print(f"Encoding original (primeros 5): {original_encoding[:5]}")
-    print(f"Encoding recalculado (primeros 5): {recomputed_encoding[:5]}")
     print(f"\nEncoding almacenado coincide con el original: {stored_vs_original}")
     print(f"Encoding recalculado coincide con el almacenado: {recomputed_vs_stored}")
 
@@ -404,9 +400,9 @@ def test_search_with_encoded_vector():
 
     return is_correct_match and lower_similarity
 
-def test_date_encoding_and_search():
-    """Encoding de fecha y funcionalidad de búsqueda basada en fecha (Milvus backend)"""
-    print("\n--- Encoding y búsqueda de fechas (Milvus) ---")
+def test_date_range_search():
+    """Tests the ability to search for records within a specific date range"""
+    print("\n--- Test: Date Range Search ---")
     # Limpiamos la base de datos antes de empezar
     _delete_people_from_milvus([])
 
@@ -433,9 +429,20 @@ def test_date_encoding_and_search():
     correct_date_matches = all(i in found_ids for i in expected_ids) and len(found_ids) == len(expected_ids)
     print(f"Se encontraron coincidencias de fecha correctas: {correct_date_matches}")
 
-    print("\nPrueba de similitud de encoding de fechas:")
+    # Use an assertion instead of returning the result
+    assert correct_date_matches, "The date matching search failed to find the expected records"
+
+    # Clean up
+    _delete_people_from_milvus(ids)
+
+
+def test_date_similarity_ordering():
+    """Tests that the similarity between date encodings correctly reflects their temporal proximity"""
+    print("\n--- Test: Date Similarity Ordering ---")
+
     mode = VECTOR_MODE.lower()
 
+    print("Prueba de similitud de encoding de fechas:")
     enc1 = encode_date(date(1990, 5, 15), mode=mode)
     enc2 = encode_date(date(1990, 5, 16), mode=mode)  # 1 day
     enc3 = encode_date(date(1990, 6, 15), mode=mode)  # 1 month
@@ -452,17 +459,15 @@ def test_date_encoding_and_search():
     correct_similarity_order = sim_1_day > sim_1_month > sim_1_year
     print(f"Orden de similitud correcto (las fechas más cercanas tienen mayor similitud): {correct_similarity_order}")
 
-    # Clean up
-    _delete_people_from_milvus(ids)
-
-    return correct_date_matches and correct_similarity_order
-
+    # Use an assertion that will cause the test to fail if the order is incorrect
+    assert correct_similarity_order, "El orden de similitud es incorrecto: las fechas más alejadas deberían tener una similitud menor"
 
 if __name__ == "__main__":
     consistency_result, differentiation_result = test_encoding_consistency()
     db_preservation_result = test_db_encoding_preservation()
     search_result = test_search_with_encoded_vector()
-    date_result = test_date_encoding_and_search()
+    date_range_result = test_date_range_search()
+    date_siilarity_result = test_date_similarity_ordering()
 
     print("\n\033[94m--- Resultados de ejecución de tests: ---\033[0m")
 
@@ -486,8 +491,13 @@ if __name__ == "__main__":
         print("\033[91m✗ Búsqueda basada en vector: FALLÓ\033[0m")
 
 
-    if date_result:
-        print("\033[92m ✓ Tests de Encoding y búsqueda de fechas: PASS\033[0m")
+    if date_range_result:
+        print("\033[92m ✓ Test de búsqueda en range de fechas: PASS\033[0m")
     else:
-        print("\033[91m✗ Tests de Encoding y búsqueda de fechas: FALLÓ\033[0m")
+        print("\033[91m✗ Test de búsqueda en range de fechas: FALLÓ\033[0m")
+
+    if date_siilarity_result:
+        print("\033[92m ✓ Test de similitud de fechas: PASS\033[0m")
+    else:
+        print("\033[91m✗ Test de similitud de fechas: FALLÓ\033[0m")
 

@@ -2,9 +2,7 @@ import numpy as np
 from datetime import date, datetime
 from configs.settings import HDC_DIM, DEFAULT_SEED
 from hdc.hdc_common_operations import (
-    cosine_similarity, binary_random,
-    dot_product, elementwise_product, shifting,
-    normalize, binarize
+    binary_random, shifting
 )
 from typing import Optional, Dict, Any, Iterable
 import hashlib

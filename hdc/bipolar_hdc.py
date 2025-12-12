@@ -1,12 +1,21 @@
 import numpy as np
-from datetime import date, datetime
+from datetime import date
 from configs.settings import HDC_DIM, DEFAULT_SEED
 from hdc.hdc_common_operations import (
-    bipolar_random, flip_inplace, dot_product,
-    elementwise_product, shifting, normalize, bipolarize
+    bipolar_random, dot_product,
+    elementwise_product, shifting
 )
 from typing import Optional, Dict, Any, Iterable
 import hashlib
+from hdc.datatype_profiler import DataTypeProfiler
+from utils.person_data_normalization import normalize_person_data
+from hdc.hdc_encoding_strategy import (
+    DefaultEncodingStrategy,
+    DateEncodingStrategy,
+    ListEncodingStrategy,
+    AttrsEncodingStrategy,
+    HDCEncodingStrategyFactory
+)
 
 
 class HyperDimensionalComputingBipolar:
@@ -17,6 +26,25 @@ class HyperDimensionalComputingBipolar:
         self.seed = seed
         self.rng = np.random.RandomState(seed) if seed is not None else np.random.RandomState()
         self._hv_cache: Dict[str, np.ndarray] = {}
+        self._date_thresholds: Optional[np.ndarray] = None
+        self._max_range_days: int = 365 * 200
+
+        # Inicializar el factory de estrategias (nuevo)
+        self.strategy_factory = HDCEncodingStrategyFactory(self)
+        self.register_default_strategies()
+
+    # Nuevo método para registrar estrategias predeterminadas
+    def register_default_strategies(self):
+        """Registra las estrategias de codificación predeterminadas."""
+        factory = self.strategy_factory
+        factory.register_strategy("DATE", DateEncodingStrategy)
+        factory.register_strategy("ATTRS_DICT", AttrsEncodingStrategy)
+        factory.register_strategy("LIST_OF_STR", ListEncodingStrategy)
+
+        # Otras estrategias
+        factory.register_strategy("CATEGORICAL_STR", DefaultEncodingStrategy)
+        factory.register_strategy("TEXT_NAME", DefaultEncodingStrategy)
+        factory.register_strategy("PHONE_STR", DefaultEncodingStrategy)
 
     # ---- Generation ----
     def generate_random_hdv(self, n: int = 1) -> np.ndarray:
@@ -100,98 +128,109 @@ class HyperDimensionalComputingBipolar:
         rng = np.random.RandomState(self._deterministic_hash(f"tb:{key}"))
         return rng.choice([-1, 1], size=dim).astype(np.int8)
 
-    # ---- ENCODING METHODS (MOVED INSIDE CLASS) ----
+    # ------------------------------------------------------------------
+    # 1) Inicialización de thresholds para fechas
+    # ------------------------------------------------------------------
+    def _init_date_thresholds(self):
+        """Inicializa thresholds aleatorios para el encoding escalar de fechas."""
+        if self._date_thresholds is not None:
+            return
 
-    def encode_person_bipolar(self, person: Dict[str, Any]) -> np.ndarray:
-        """Encode a person's data into a bipolar hypervector (-1/+1 representation)."""
+        # Semilla fija para que siempre dé los mismos HV (muy importante para tu tesis)
+        rng = np.random.default_rng(12345)
+
+        # thresholds uniformes en [0, max_range_days]
+        self._date_thresholds = rng.integers(
+            low=0,
+            high=self._max_range_days + 1,
+            size=self.dim,
+            dtype=np.int32,
+        )
+
+    # ------------------------------------------------------------------
+    # 2) Nuevo encode_date_bipolar ESCALAR
+    # ------------------------------------------------------------------
+    def encode_date_bipolar(self, date_obj: Optional[date]) -> np.ndarray:
+        """Encoding bipolar escalar de fechas (sin periodicidad artificial)."""
+        if date_obj is None:
+            # Vec. neutro para binding multiplicativo
+            return np.ones(self.dim, dtype=np.int8)
+
+        self._init_date_thresholds()
+
+        reference_date = date(1900, 1, 1)
+        days_since_reference = (date_obj - reference_date).days
+
+        # Acotar al rango soportado (por seguridad)
+        t = np.int32(
+            max(0, min(days_since_reference, self._max_range_days))
+        )
+
+        thresholds = self._date_thresholds  # shape (dim,)
+
+        # Regla: hv_j = +1 si t >= θ_j, -1 en otro caso
+        hv = np.where(t >= thresholds, 1, -1).astype(np.int8)
+        return hv
+
+    # Método legacy: redirecciona al método generalizado
+    def encode_person_bipolar_datatype(self, raw_person: Dict[str, Any]) -> np.ndarray:
+        """
+        Método legacy - Utilizar encode_person_generalized en su lugar para nuevos desarrollos.
+        Este método se mantiene por compatibilidad con código existente.
+
+        Args:
+            raw_person: Diccionario con los datos de la persona a codificar.
+
+        Returns:
+            Hipervector bipolar que representa a la persona.
+        """
+        print("ADVERTENCIA: Usando método deprecated. Considere migrar a encode_person_generalized")
+        return self.encode_person_generalized(raw_person)
+
+    # Nuevo método generalizado basado en estrategias
+    def encode_person_generalized(self, raw_person: Dict[str, Any]) -> np.ndarray:
+        """
+        Codifica los datos de una persona utilizando estrategias basadas en tipos de datos.
+
+        Args:
+            raw_person: Diccionario con los datos de la persona a codificar.
+
+        Returns:
+            Hipervector bipolar que representa a la persona.
+        """
         bundle_acc = self.bundle_init()
+        person = normalize_person_data(raw_person)
+        profiler = DataTypeProfiler()
+        profiler.profile_record(person)
 
         for key in sorted(person.keys()):
             value = person[key]
 
-            # --- START FIX 1: Catch ALL empty values ---
+            # Información de depuración
+            print(f"Key: {key}, Type: {type(value).__name__}, Value: {repr(value)}")
+
+            # Saltar valores vacíos
             if value is None:
                 continue
-            if isinstance(value, str) and not value:  # Catches ""
+            if isinstance(value, str) and not value:
                 continue
-            if isinstance(value, list) and not value:  # Catches []
+            if isinstance(value, list) and not value:
                 continue
-            # --- END FIX 1 ---
 
-            # Initialize encoded_value here
-            encoded_value = np.empty(self.dim, dtype=np.int8)
+            # Obtener el tipo de dato según el perfilador
+            data_type = profiler.get_type(key)
 
-            # --- INICIO DE LA CORRECCIÓN DE 'attrs' ---
-            if key == "attrs" and isinstance(value, dict):
-                attrs_acc = self.bundle_init()
-                # NOTA: Eliminamos el flag 'has_attrs_data'
+            # Obtener la estrategia adecuada y codificar el valor
+            strategy = self.strategy_factory.get_strategy(key, value, data_type)
+            encoded_value = strategy.encode(key, value, profiler)
 
-                for attr_key in sorted(value.keys()):
-                    attr_value_list = value[attr_key]
-                    if not attr_value_list:
-                        continue  # Skip empty lists like {'akas': []}
-
-                    # Si llegamos aquí, hay datos para esta clave de attr
-                    list_acc = self.bundle_init()
-                    vectors_to_add = [self.get_bipolar_hv(str(v)) for v in attr_value_list]
-                    self.bundle_add(list_acc, *vectors_to_add)
-                    encoded_list_hv = self.bundle_finalize(list_acc, tie_key=f"list:{attr_key}")
-
-                    attr_key_hv = self.get_bipolar_hv(attr_key)
-                    bound_attr_hv = self.bind_hv(attr_key_hv, encoded_list_hv)
-                    self.bundle_add(attrs_acc, bound_attr_hv)
-
-                # Siempre finaliza el bundle 'attrs_acc'.
-                # Si no se encontraron datos, 'attrs_acc' estará en su estado inicial (vacío)
-                # y bundle_finalize() creará el vector "vacío" correcto.
-                # Si se encontraron datos, finalizará el bundle con esos datos.
-                # Esto garantiza que la ESTRUCTURA sea siempre la misma.
-                print(f"[DEBUG-ENCODE] Finalizando 'attrs_bundle' (Datos presentes: {len(value) > 0}).")
-                encoded_value = self.bundle_finalize(attrs_acc, tie_key="attrs_bundle")
-            # --- FIN DE LA CORRECCIÓN DE 'attrs' ---
-
-            elif isinstance(value, list):
-                # This block is now only for *non-attrs* lists
-                list_acc = self.bundle_init()
-                vectors_to_add = [self.get_bipolar_hv(str(v)) for v in value]
-                self.bundle_add(list_acc, *vectors_to_add)
-                encoded_value = self.bundle_finalize(list_acc, tie_key=f"list:{key}")
-
-            elif isinstance(value, (date, datetime)):
-                encoded_value = self.encode_date_bipolar(value)
-
-            else:
-                # This now only runs for non-empty strings/other values
-                encoded_value = self.get_bipolar_hv(str(value))
-
-            # --- Final Bundling ---
+            # Vincular clave y valor codificado
             key_hv = self.get_bipolar_hv(key)
             bound_hv = self.bind_hv(key_hv, encoded_value)
             self.bundle_add(bundle_acc, bound_hv)
 
+        # Mostrar el resumen del perfil
+        profiler.print_summary()
+
+        # Devolver el vector final
         return self.bundle_finalize(bundle_acc, tie_key="person_bundle")
-
-    def encode_date_bipolar(self, date_obj: Optional[date]) -> np.ndarray:
-        """Special BIPOLAR encoding for date objects."""
-
-        bundle_acc = self.bundle_init()
-
-        if date_obj is None:
-            # Devuelve un vector neutro para el binding (multiplicación)
-            # para que no afecte a la clave (Key * 1 = Key)
-            # NOTA: Esto es si decides NO ignorar Nones en el method principal.
-            # Dado que los ignoramos arriba, esta línea es menos crítica,
-            # pero es bueno tenerla por si se llama directamente.
-            return np.ones(self.dim, dtype=np.int8)
-
-            # FIX: Usa get_bipolar_hv
-
-        year_encoding = self.get_bipolar_hv(f"year_{date_obj.year}")
-        month_encoding = self.get_bipolar_hv(f"month_{date_obj.month}")
-        day_encoding = self.get_bipolar_hv(f"day_{date_obj.day}")  # <-- FIX
-
-        # FIX: Combina usando bundling (suma), no logical_or
-        self.bundle_add(bundle_acc, day_encoding, year_encoding, month_encoding)
-
-        # FIX: Finaliza el bundle y devuelve un vector bipolar int8
-        return self.bundle_finalize(bundle_acc, tie_key=f"date:{date_obj}")

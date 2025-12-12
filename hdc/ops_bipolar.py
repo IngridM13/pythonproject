@@ -1,4 +1,3 @@
-# ops_bipolar.py
 from typing import Optional
 import numpy as np
 from configs.settings import HDC_DIM, DEFAULT_SEED
@@ -13,14 +12,7 @@ class HyperDimensionalComputingBipolar:
         # Reemplazamos 0s por -1s para que sea bipolar
         hdv[hdv == 0] = -1
         return hdv[0]
-    '''
-    def add_hv(self, x: np.ndarray, y: np.ndarray) -> np.ndarray:
-        return x + y
-        
-    Una version con clipping inmediato pierde los votos de los vectores que fueron sumados.
-    La version sin clipping conserva esainfomacion pero no estoy segura de cuando deberia
-    hacerse el clipping.
-    '''
+
     def add_hv(self, x, y):
         return np.clip(x + y, -1, 1)
 
