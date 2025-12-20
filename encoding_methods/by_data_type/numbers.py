@@ -1,7 +1,7 @@
 import numpy as np
-from configs.settings import HDC_DIM, DEFAULT_SEED
-from encoding_methods.by_data_type.operaciones_vectoriales import bipolar_random, flip_inplace, cosine_similarity
-
+from configs.settings import HDC_DIM
+from hdc.hdc_common_operations import bipolar_random, flip_inplace
+from sklearn.metrics.pairwise import cosine_similarity
 class IntegerEncoding:
     """
     Linear Mapping para números enteros.
@@ -77,7 +77,18 @@ class IntegerEncoding:
 
     def similarity(self, n1: int, n2: int) -> float:
         """Similitud coseno entre H(n1) y H(n2)."""
-        return cosine_similarity(self.encode(n1), self.encode(n2))
+
+        # 1. Obtener los vectores 1D (shape (D,))
+        v1 = self.encode(n1)
+        v2 = self.encode(n2)
+
+        # 2. Pasarlos como listas de vectores (sklearn los verá como 2D)
+        #    [v1] tiene shape (1, D)
+        #    [v2] tiene shape (1, D)
+        sim_matrix = cosine_similarity([v1], [v2])
+
+        # 3. Extraer el resultado (que es una matriz 1x1, ej: [[1.0]])
+        return sim_matrix[0][0]
 
 class DecimalEncoding:
     """

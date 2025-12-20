@@ -3,7 +3,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 import random
 
 # Set a fixed dimension for hypervectors
-DIMENSION = 10000
+DIMENSION = 10000 # no debería esto ir en el .env?
 
 # Generate a consistent dictionary of random hypervectors
 random.seed(42)

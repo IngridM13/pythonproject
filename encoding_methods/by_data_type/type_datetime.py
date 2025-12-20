@@ -1,8 +1,9 @@
 import numpy as np
 from typing import Iterable, Mapping, Any
 from configs.settings import HDC_DIM, DEFAULT_SEED
-from encoding_methods.by_data_type.operaciones_vectoriales import bipolar_random, cosine_similarity
 from encoding_methods.by_data_type.numbers import DecimalEncoding
+from hdc.ops_bipolar import HyperDimensionalComputingBipolar
+
 
 
 class DatetimeEncoding:
@@ -74,10 +75,12 @@ class DatetimeEncoding:
         # Hipervectores de rol (bipolares, aleatorios y estables por nombre)
         # Generamos una semilla derivada por rol para estabilidad pero sin colisiones obvias
         self._role_hv: dict[str, np.ndarray] = {}
+        hdc = HyperDimensionalComputingBipolar()
+
         for name in self.components:
             role_seed = self._stable_hash_seed(name, base=int(self.rng.integers(0, 2**32 - 1)))
             role_rng = np.random.default_rng(role_seed)
-            self._role_hv[name] = bipolar_random(self.D, role_rng).astype(int)
+            self._role_hv[name] = hdc.generate_random_hdv(self.D, role_rng).astype(int)
 
         # Un FPE dedicado por componente (permite distintas escalas)
         self._fpe: dict[str, DecimalEncoding] = {}
@@ -215,9 +218,10 @@ class DatetimeEncoding:
 
     def similarity(self, a: Any, b: Any) -> float:
         """Similitud coseno entre dos fechas/horas (o representaciones compatibles)."""
+        hdc = HyperDimensionalComputingBipolar()
         va = self.encode(a)
         vb = self.encode(b)
-        return cosine_similarity(va, vb)
+        return hdc.cosine_similarity(va, vb)
 
     # Accesores útiles
     def role_vector(self, component: str) -> np.ndarray:
@@ -232,7 +236,7 @@ class DatetimeEncoding:
 
 if __name__ == "__main__":
     import datetime as dt
-    from config.settings import HDC_DIM, SEED
+    from configs.settings import HDC_DIM, SEED
 
     print("Ejemplo: DatetimeEncoding")
     enc = DatetimeEncoding(
@@ -253,19 +257,19 @@ if __name__ == "__main__":
     h_far = enc.encode(t_far)
 
     # Similitudes (coseno)
-    from utils import cosine_similarity
+    hdc = HyperDimensionalComputingBipolar()
     print("Dimensión HV:", h_ref.shape[0])
-    print("sim(ref, ref)         =", cosine_similarity(h_ref, h_ref))
-    print("sim(ref, mes+1)       =", cosine_similarity(h_ref, h_next))
-    print("sim(ref, mes lejano)  =", cosine_similarity(h_ref, h_far))
+    print("sim(ref, ref)         =", hdc.cosine_similarity(h_ref, h_ref))
+    print("sim(ref, mes+1)       =", hdc.cosine_similarity(h_ref, h_next))
+    print("sim(ref, mes lejano)  =", hdc.cosine_similarity(h_ref, h_far))
 
     # También puedes codificar con diccionarios o tuplas
     # Diccionario explícito de componentes
     h_dict = enc.encode({"year": 2024, "month": 3, "day": 15, "hour": 10})
-    print("sim(ref, dict mismo)  =", cosine_similarity(h_ref, h_dict))
+    print("sim(ref, dict mismo)  =", hdc.cosine_similarity(h_ref, h_dict))
 
     # Tupla (año, mes, día, hora)
     h_tuple = enc.encode((2024, 3, 15, 10))
-    print("sim(ref, tupla misma) =", cosine_similarity(h_ref, h_tuple))
+    print("sim(ref, tupla misma) =", hdc.cosine_similarity(h_ref, h_tuple))
 
 # Me parece que no está quedando bien. No es lo mismo una distancia de 1 dia que de 1 mes.
