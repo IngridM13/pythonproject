@@ -9,12 +9,12 @@ from typing import Optional, Dict, Any, Iterable
 import hashlib
 from hdc.datatype_profiler import DataTypeProfiler
 from utils.person_data_normalization import normalize_person_data
-from hdc.hdc_encoding_strategy import (
+from hdc.bipolar_encoding_strategy import (
     DefaultEncodingStrategy,
     DateEncodingStrategy,
     ListEncodingStrategy,
     AttrsEncodingStrategy,
-    HDCEncodingStrategyFactory
+    BipolarEncodingStrategyFactory
 )
 
 
@@ -30,7 +30,7 @@ class HyperDimensionalComputingBipolar:
         self._max_range_days: int = 365 * 200
 
         # Inicializar el factory de estrategias (nuevo)
-        self.strategy_factory = HDCEncodingStrategyFactory(self)
+        self.strategy_factory = BipolarEncodingStrategyFactory(self)
         self.register_default_strategies()
 
     # Nuevo método para registrar estrategias predeterminadas
@@ -137,7 +137,7 @@ class HyperDimensionalComputingBipolar:
             return
 
         # Semilla fija para que siempre dé los mismos HV (muy importante para tu tesis)
-        rng = np.random.default_rng(12345)
+        rng = np.random.default_rng(54321)
 
         # thresholds uniformes en [0, max_range_days]
         self._date_thresholds = rng.integers(
@@ -158,7 +158,7 @@ class HyperDimensionalComputingBipolar:
 
         self._init_date_thresholds()
 
-        reference_date = date(1900, 1, 1)
+        reference_date = date(1970, 1, 1)
         days_since_reference = (date_obj - reference_date).days
 
         # Acotar al rango soportado (por seguridad)

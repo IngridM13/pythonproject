@@ -1,11 +1,16 @@
 import numpy as np
-from datetime import date, datetime
+from datetime import date
 from configs.settings import HDC_DIM, DEFAULT_SEED
+from hdc.binary_encoding_strategies import BinaryHDCEncodingStrategyFactory, DateBinaryEncodingStrategy, \
+    AttrsBinaryEncodingStrategy, ListBinaryEncodingStrategy, DefaultBinaryEncodingStrategy
+from hdc.datatype_profiler import DataTypeProfiler
 from hdc.hdc_common_operations import (
     binary_random, shifting
 )
 from typing import Optional, Dict, Any, Iterable
 import hashlib
+
+from utils.person_data_normalization import normalize_person_data
 
 
 class HyperDimensionalComputingBinary:
@@ -18,6 +23,45 @@ class HyperDimensionalComputingBinary:
         self.rng = np.random.default_rng(seed) if seed is not None else np.random.default_rng()
         # Inicializar el caché interno
         self._hv_cache: Dict[str, np.ndarray] = {}
+
+        # Atributos para codificación escalar de fechas (sin periodicidad)
+        self._date_thresholds: Optional[np.ndarray] = None
+        self._max_range_days: int = 365 * 200  # Mismo rango que bipolar
+
+        # Inicializar factory de estrategias
+        self.strategy_factory = BinaryHDCEncodingStrategyFactory(self)
+        self.register_default_strategies()
+
+    def register_default_strategies(self):
+        """Registra las estrategias de codificación binarias predeterminadas."""
+        factory = self.strategy_factory
+        factory.register_strategy("DATE", DateBinaryEncodingStrategy)
+        factory.register_strategy("ATTRS_DICT", AttrsBinaryEncodingStrategy)
+        factory.register_strategy("LIST_OF_STR", ListBinaryEncodingStrategy)
+
+        # Otras estrategias
+        factory.register_strategy("CATEGORICAL_STR", DefaultBinaryEncodingStrategy)
+        factory.register_strategy("TEXT_NAME", DefaultBinaryEncodingStrategy)
+        factory.register_strategy("PHONE_STR", DefaultBinaryEncodingStrategy)
+
+    # ------------------------------------------------------------------
+    # Inicialización de thresholds para fechas (sin periodicidad)
+    # ------------------------------------------------------------------
+    def _init_date_thresholds(self):
+        """Inicializa thresholds aleatorios para el encoding escalar de fechas binarias."""
+        if self._date_thresholds is not None:
+            return
+
+        # Semilla fija para reproducibilidad (igual que en bipolar)
+        rng = np.random.default_rng(54321)
+
+        # thresholds uniformes en [0, max_range_days] (igual que en bipolar)
+        self._date_thresholds = rng.integers(
+            low=0,
+            high=self._max_range_days + 1,
+            size=self.dim,
+            dtype=np.int32
+        )
 
     def generate_random_hdv(self, n: int = 1) -> np.ndarray:
         """Genera 1 o n vectores binarios aleatorios {0,1}, dtype=uint8."""
@@ -94,64 +138,90 @@ class HyperDimensionalComputingBinary:
 
     # ---- ENCODING METHODS  ----
 
-    def encode_person_binary(self, person: Dict[str, Any]) -> np.ndarray:
-        """Codifica los datos de una persona en un hipervector binario (0/1)."""
-        print(f"[DEBUG-ENCODE] >>> Iniciando 'encode_person_binary'")
+    # ------------------------------------------------------------------
+    # Método generalizado para codificar personas (con estrategias)
+    # ------------------------------------------------------------------
+    def encode_person_binary(self, raw_person: Dict[str, Any]) -> np.ndarray:
+        """
+        Codifica los datos de una persona utilizando estrategias basadas en tipos de datos.
 
-        # Usar los métodos de bundling robustos de la clase
+        Args:
+            raw_person: Diccionario con los datos de la persona a codificar.
+
+        Returns:
+            Hipervector binario que representa a la persona.
+        """
         bundle_acc = self.bundle_init()
+        person = normalize_person_data(raw_person)
+        profiler = DataTypeProfiler()
+        profiler.profile_record(person)
+
         num_components = 0
 
         for key in sorted(person.keys()):
             value = person[key]
 
-            # El elemento neutro (cero) se maneja correctamente al no añadir nada
-            if value is None or (isinstance(value, list) and not value):
+            # Información de depuración
+            print(f"Key: {key}, Type: {type(value).__name__}, Value: {repr(value)}")
+
+            # Saltar valores vacíos
+            if value is None:
+                continue
+            if isinstance(value, str) and not value:
+                continue
+            if isinstance(value, list) and not value:
                 continue
 
-            encoded_value: Optional[np.ndarray] = None
+            # Obtener el tipo de dato según el perfilador
+            data_type = profiler.get_type(key)
 
-            if isinstance(value, list):
-                list_acc = self.bundle_init()
-                vectors_to_add = [self.get_binary_hv(str(v)) for v in value]
-                self.bundle_add(list_acc, *vectors_to_add)
-                # Usar voto mayoritario para la lista
-                encoded_value = self.bundle_finalize(list_acc, num_components=len(vectors_to_add))
+            # Obtener la estrategia adecuada y codificar el valor
+            strategy = self.strategy_factory.get_strategy(key, value, data_type)
+            encoded_value = strategy.encode(key, value, profiler)
 
-            elif isinstance(value, (date, datetime)):
-                encoded_value = self.encode_date_binary(value)
-            else:
-                # Usar el 'get_binary_hv' de la clase
-                encoded_value = self.get_binary_hv(str(value))
-
-            # Binding (Binario = XOR)
+            # Vincular clave y valor codificado (XOR para binario)
             key_hv = self.get_binary_hv(key)
             bound_hv = self.bind_hv(key_hv, encoded_value)
-
-            # Añadir al bundle final
             self.bundle_add(bundle_acc, bound_hv)
             num_components += 1
 
-        # Finalizar el vector de la persona
+        # Mostrar el resumen del perfil
+        profiler.print_summary()
+
+        # Devolver el vector final usando voto mayoritario
         return self.bundle_finalize(bundle_acc, num_components=num_components)
 
+    # ------------------------------------------------------------------
+    # Método de encoding escalar para fechas (sin periodicidad)
+    # ------------------------------------------------------------------
     def encode_date_binary(self, date_obj: Optional[date]) -> np.ndarray:
-        """Codificación binaria especial para fechas."""
+        """
+        Encoding binario escalar de fechas (sin periodicidad artificial).
+        Preserva distancias naturales entre fechas.
 
-        if not date_obj:
-            # Usar self.dim
+        Args:
+            date_obj: Objeto de fecha o None
+
+        Returns:
+            Vector binario {0,1} representando la fecha
+        """
+        if date_obj is None:
+            # Vector neutro para binding con XOR
             return np.zeros(self.dim, dtype=np.uint8)
 
-        # Usar los métodos de bundling de la clase
-        bundle_acc = self.bundle_init()
+        self._init_date_thresholds()
 
-        # Usar 'self.get_binary_hv'
-        base_encoding = self.get_binary_hv(str(date_obj))
-        year_encoding = self.get_binary_hv(f"year_{date_obj.year}")
-        month_encoding = self.get_binary_hv(f"month_{date_obj.month}")
+        reference_date = date(1970, 1, 1)  # Misma referencia que bipolar
+        days_since_reference = (date_obj - reference_date).days
 
-        # Combinar usando bundling de voto mayoritario
-        self.bundle_add(bundle_acc, base_encoding, year_encoding, month_encoding)
+        # Acotar al rango soportado
+        t = np.int32(
+            max(0, min(days_since_reference, self._max_range_days))
+        )
 
-        # Hay 3 componentes en este bundle de fecha
-        return self.bundle_finalize(bundle_acc, num_components=3)
+        thresholds = self._date_thresholds  # shape (dim,)
+
+        # Regla: hv_j = 1 si t >= θ_j, 0 en otro caso (versión binaria)
+        hv = np.where(t >= thresholds, 1, 0).astype(np.uint8)
+        return hv
+
