@@ -436,7 +436,73 @@ def test_date_range_search():
     _delete_people_from_milvus(ids)
 
 
-def test_date_similarity_ordering():
+def test_date_similarity_ordering_binary():
+    """Tests that the similarity between binary date encodings correctly reflects their temporal proximity"""
+    from datetime import date
+    from hdc.binary_hdc import HyperDimensionalComputingBinary
+    import pytest
+
+    print("\n--- Test: Binary Date Similarity Ordering ---")
+
+    # Inicializar HDC binario
+    hdc = HyperDimensionalComputingBinary(dim=10000, seed=42)
+
+    print("Prueba de similitud de encoding de fechas binarias:")
+
+    # Fechas de prueba con diferentes intervalos
+    date1 = date(1990, 5, 15)
+    date2 = date(1990, 5, 16)  # 1 día de diferencia
+    date3 = date(1990, 6, 15)  # 1 mes de diferencia
+    date4 = date(1991, 5, 15)  # 1 año de diferencia
+
+    # Codificar las fechas usando el método binario
+    enc1 = hdc.encode_date_binary(date1)
+    print(f">>> Codificando fecha: {date1}")
+
+    enc2 = hdc.encode_date_binary(date2)
+    print(f">>> Codificando fecha: {date2}")
+
+    enc3 = hdc.encode_date_binary(date3)
+    print(f">>> Codificando fecha: {date3}")
+
+    enc4 = hdc.encode_date_binary(date4)
+    print(f">>> Codificando fecha: {date4}")
+
+    # Calcular similitudes usando similitud de Hamming
+    sim_1_day = hdc.hamming_similarity(enc1, enc2)
+    sim_1_month = hdc.hamming_similarity(enc1, enc3)
+    sim_1_year = hdc.hamming_similarity(enc1, enc4)
+
+    print(f"Similitud binaria con 1 día de diferencia:  {sim_1_day:.4f}")
+    print(f"Similitud binaria con 1 mes de diferencia:  {sim_1_month:.4f}")
+    print(f"Similitud binaria con 1 año de diferencia:  {sim_1_year:.4f}")
+
+    # Verificar que la similitud disminuye a medida que aumenta la distancia temporal
+    correct_similarity_order = sim_1_day >= sim_1_month >= sim_1_year
+
+    # Comprobación más granular para diagnóstico
+    day_to_month = sim_1_day >= sim_1_month
+    month_to_year = sim_1_month >= sim_1_year
+
+    print(f"¿Día a mes mantiene orden correcto?   {day_to_month}")
+    print(f"¿Mes a año mantiene orden correcto?   {month_to_year}")
+    print(f"Orden completo de similitud correcto: {correct_similarity_order}")
+
+    # Fallar el test si alguna condición no se cumple
+    if not day_to_month:
+        pytest.fail("La similitud día-a-mes no sigue el orden esperado")
+
+    if not month_to_year:
+        pytest.fail("La similitud mes-a-año no sigue el orden esperado")
+
+    # Verificación adicional: diferencias absolutas para verificar que la caída de similitud es proporcional
+    print("\nDiferencias de similitud:")
+    print(f"Diferencia día-a-mes:  {sim_1_day - sim_1_month:.4f}")
+    print(f"Diferencia mes-a-año:  {sim_1_month - sim_1_year:.4f}")
+
+    return correct_similarity_order
+
+def test_date_similarity_ordering_bipolar():
     """Tests that the similarity between date encodings correctly reflects their temporal proximity"""
     print("\n--- Test: Date Similarity Ordering ---")
 
@@ -462,12 +528,83 @@ def test_date_similarity_ordering():
     # Use an assertion that will cause the test to fail if the order is incorrect
     assert correct_similarity_order, "El orden de similitud es incorrecto: las fechas más alejadas deberían tener una similitud menor"
 
+# Test para validar la codificación escalar de fechas sin periodicidad
+def test_date_encoding_binary():
+    from hdc.binary_hdc import HyperDimensionalComputingBinary
+    from datetime import date, timedelta
+    import pytest
+    
+    # Inicializar el HDC binario
+    hdc = HyperDimensionalComputingBinary(dim=10000, seed=42)
+    
+    # Fecha de referencia
+    ref_date = date(1970, 1, 1)
+    
+    # Codificar fechas con diferentes distancias
+    encodings = []
+    dates = []
+    
+    # Generar fechas de prueba: referencia + intervalos progresivos
+    for days in [0, 1, 7, 30, 90, 180, 365, 730, 1095]:  # 0d, 1d, 1w, 1m, 3m, 6m, 1y, 2y, 3y
+        test_date = ref_date + timedelta(days=days)
+        dates.append(test_date)
+        encodings.append(hdc.encode_date_binary(test_date))
+    
+    # Calcular similitud entre la fecha de referencia y las demás
+    similarities = []
+    for enc in encodings:
+        sim = hdc.hamming_similarity(encodings[0], enc)
+        similarities.append(sim)
+    
+    # Verificar que la similitud disminuye monotónicamente con la distancia temporal
+    is_monotonic = all(similarities[i] >= similarities[i+1] for i in range(len(similarities)-1))
+    print(f"La similitud disminuye monotónicamente: {is_monotonic}")
+    
+    # Imprimir resultados
+    for i, (d, sim) in enumerate(zip(dates, similarities)):
+        days_diff = (d - dates[0]).days
+        print(f"Distancia: {days_diff:4d} días - Similitud: {sim:.4f}")
+    
+    # Comparar con la versión bipolar
+    from hdc.bipolar_hdc import HyperDimensionalComputingBipolar
+    hdc_bipolar = HyperDimensionalComputingBipolar(dim=10000, seed=42)
+    
+    bipolar_encodings = []
+    for d in dates:
+        bipolar_encodings.append(hdc_bipolar.encode_date_bipolar(d))
+    
+    bipolar_similarities = []
+    for enc in bipolar_encodings:
+        sim = hdc_bipolar.cosine_similarity(bipolar_encodings[0], enc)
+        bipolar_similarities.append(sim)
+    
+    # Verificar que la similitud disminuye monotónicamente con la distancia temporal (bipolar)
+    is_monotonic_bipolar = all(bipolar_similarities[i] >= bipolar_similarities[i+1] for i in range(len(bipolar_similarities)-1))
+    print(f"La similitud bipolar disminuye monotónicamente: {is_monotonic_bipolar}")
+    
+    # Comparar curvas de similitud
+    for i, (d, sim_bin, sim_bp) in enumerate(zip(dates, similarities, bipolar_similarities)):
+        days_diff = (d - dates[0]).days
+        print(f"Distancia: {days_diff:4d} días - Similitud binaria: {sim_bin:.4f}, Similitud bipolar: {sim_bp:.4f}")
+    
+    # Verificar ambas condiciones
+    if not is_monotonic:
+        pytest.fail("La similitud binaria no disminuye monotónicamente con la distancia temporal")
+    
+    if not is_monotonic_bipolar:
+        pytest.fail("La similitud bipolar no disminuye monotónicamente con la distancia temporal")
+    
+    return True
+
+
 if __name__ == "__main__":
     consistency_result, differentiation_result = test_encoding_consistency()
     db_preservation_result = test_db_encoding_preservation()
     search_result = test_search_with_encoded_vector()
     date_range_result = test_date_range_search()
-    date_siilarity_result = test_date_similarity_ordering()
+    binary_date_similarity_result = test_date_similarity_ordering_binary()
+    bipolar_date_similarity_result = test_date_similarity_ordering_bipolar()
+    date_encoding_binary_result = test_date_encoding_binary()  # <- Add this line
 
     print("\n\033[94m--- Resultados de ejecución de tests: ---\033[0m")
 
@@ -496,8 +633,17 @@ if __name__ == "__main__":
     else:
         print("\033[91m✗ Test de búsqueda en range de fechas: FALLÓ\033[0m")
 
-    if date_siilarity_result:
+    if binary_date_similarity_result:
         print("\033[92m ✓ Test de similitud de fechas: PASS\033[0m")
     else:
         print("\033[91m✗ Test de similitud de fechas: FALLÓ\033[0m")
 
+    if bipolar_date_similarity_result:
+        print("\033[92m ✓ Test de similitud de fechas: PASS\033[0m")
+    else:
+        print("\033[91m✗ Test de similitud de fechas: FALLÓ\033[0m")
+        
+    if date_encoding_binary_result:
+        print("\033[92m ✓ Test de codificación escalar de fechas (binario): PASS\033[0m")
+    else:
+        print("\033[91m✗ Test de codificación escalar de fechas (binario): FALLÓ\033[0m")
