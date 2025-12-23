@@ -1,227 +1,190 @@
-import numpy as np
-from datetime import date
-from configs.settings import HDC_DIM, DEFAULT_SEED
-from hdc.binary_encoding_strategies import BinaryHDCEncodingStrategyFactory, DateBinaryEncodingStrategy, \
-    AttrsBinaryEncodingStrategy, ListBinaryEncodingStrategy, DefaultBinaryEncodingStrategy
-from hdc.datatype_profiler import DataTypeProfiler
-from hdc.hdc_common_operations import (
-    binary_random, shifting
-)
-from typing import Optional, Dict, Any, Iterable
 import hashlib
+from datetime import date
+from typing import Any, List, Dict
+import numpy as np
 
+# Imports para la codificación generalizada
+from hdc.binary_encoding_strategies import (
+    BinaryHDCEncodingStrategyFactory,
+    DateBinaryEncodingStrategy,
+    AttrsBinaryEncodingStrategy,
+    ListBinaryEncodingStrategy,
+    DefaultBinaryEncodingStrategy,
+)
+from hdc.datatype_profiler import DataTypeProfiler
 from utils.person_data_normalization import normalize_person_data
 
+def binary_random(d, rng):
+    """Devuelve un vector binario {0,1}^d usando la API moderna de NumPy."""
+    return rng.choice(np.array([0, 1], dtype=np.uint8), size=d, replace=True)
+
+# Inicializar el diccionario global para almacenar los hipervectores
+hv_dict = {}
 
 class HyperDimensionalComputingBinary:
-    """Implementa operaciones binarias HDC con vectores en {0,1} (dtype=uint8)."""
-
-    def __init__(self, dim: int = HDC_DIM, seed: Optional[int] = DEFAULT_SEED):
+    def __init__(self, dim=10000, seed=None):
         self.dim = dim
         self.seed = seed
-        # ✅ API moderna de NumPy: Generator
-        self.rng = np.random.default_rng(seed) if seed is not None else np.random.default_rng()
-        # Inicializar el caché interno
-        self._hv_cache: Dict[str, np.ndarray] = {}
+        self.rng = np.random.default_rng(seed)
+        self._hv_cache = {}
 
-        # Atributos para codificación escalar de fechas (sin periodicidad)
-        self._date_thresholds: Optional[np.ndarray] = None
-        self._max_range_days: int = 365 * 200  # Mismo rango que bipolar
-
-        # Inicializar factory de estrategias
+        # Inicializar y registrar las estrategias de codificación
         self.strategy_factory = BinaryHDCEncodingStrategyFactory(self)
         self.register_default_strategies()
 
     def register_default_strategies(self):
-        """Registra las estrategias de codificación binarias predeterminadas."""
+        """Registra las estrategias de codificación binaria predeterminadas."""
         factory = self.strategy_factory
         factory.register_strategy("DATE", DateBinaryEncodingStrategy)
         factory.register_strategy("ATTRS_DICT", AttrsBinaryEncodingStrategy)
         factory.register_strategy("LIST_OF_STR", ListBinaryEncodingStrategy)
-
-        # Otras estrategias
         factory.register_strategy("CATEGORICAL_STR", DefaultBinaryEncodingStrategy)
         factory.register_strategy("TEXT_NAME", DefaultBinaryEncodingStrategy)
         factory.register_strategy("PHONE_STR", DefaultBinaryEncodingStrategy)
+        factory.register_strategy("EMPTY", DefaultBinaryEncodingStrategy)
+        factory.register_strategy("UNKNOWN", DefaultBinaryEncodingStrategy)
 
-    # ------------------------------------------------------------------
-    # Inicialización de thresholds para fechas (sin periodicidad)
-    # ------------------------------------------------------------------
-    def _init_date_thresholds(self):
-        """Inicializa thresholds aleatorios para el encoding escalar de fechas binarias."""
-        if self._date_thresholds is not None:
-            return
+    def _deterministic_hash(self, input_str: str) -> int:
+        """Genera un hash determinista como un entero de 32 bits para usar como semilla."""
+        full_hash = int(hashlib.sha256(input_str.encode('utf-8')).hexdigest(), 16)
+        return full_hash % (2**32)
 
-        # Semilla fija para reproducibilidad (igual que en bipolar)
-        rng = np.random.default_rng(54321)
+    def get_binary_hv(self, key: str) -> np.ndarray:
+        """
+        Genera o recupera un hipervector binario determinista para una clave dada.
+        Utiliza un hash de la clave para sembrar el generador de números aleatorios,
+        asegurando que la misma clave siempre produzca el mismo hipervector.
+        Cachea el resultado en el diccionario global hv_dict.
+        """
+        global hv_dict
+        if key not in hv_dict:
+            # Imprimir un mensaje para confirmar que se está generando un nuevo vector
+            print(f"  [get_binary_hv] Generando nuevo HV determinista para la clave: '{key}'")
+            
+            # Usar un generador de estado aleatorio sembrado con el hash de la clave
+            # Esto asegura que la generación sea determinista.
+            try:
+                # Usar hashlib para un hash más robusto y consistente entre ejecuciones
+                import hashlib
+                # El hash de Python puede variar entre sesiones, hashlib es más estable
+                seed_str = str(key)
+                hash_obj = hashlib.sha256(seed_str.encode('utf-8'))
+                seed = int(hash_obj.hexdigest(), 16) % (2**32 - 1)
+            except Exception:
+                # Fallback al hash de Python si hashlib falla
+                seed = hash(key) % (2**32 - 1)
 
-        # thresholds uniformes en [0, max_range_days] (igual que en bipolar)
-        self._date_thresholds = rng.integers(
-            low=0,
-            high=self._max_range_days + 1,
-            size=self.dim,
-            dtype=np.int32
-        )
-
-    def generate_random_hdv(self, n: int = 1) -> np.ndarray:
-        """Genera 1 o n vectores binarios aleatorios {0,1}, dtype=uint8."""
-        if n == 1:
-            return binary_random(self.dim, self.rng)
-        return np.stack([binary_random(self.dim, self.rng) for _ in range(n)], axis=0)
-
-    # ---- Core ops ----
+            rng = np.random.RandomState(seed)
+            
+            # Generar el hipervector binario
+            hv = rng.randint(0, 2, self.dim, dtype=np.uint8)
+            hv_dict[key] = hv
+        
+        return hv_dict[key]
 
     def bind_hv(self, x: np.ndarray, y: np.ndarray) -> np.ndarray:
         """Binding binario (XOR)."""
         return np.logical_xor(x, y).astype(np.uint8, copy=False)
 
-    def bundle_init(self) -> np.ndarray:
-        """Crea un acumulador int32 para el bundling."""
-        return np.zeros(self.dim, dtype=np.int32)
-
-    def bundle_add(self, acc: np.ndarray, *vectors: Iterable[np.ndarray]) -> np.ndarray:
-        """Suma uno o más vectores binarios en un acumulador int32."""
-        for v in vectors:
-            acc += v.astype(np.int32, copy=False)
-        return acc
-
-    def bundle_finalize(self, acc: np.ndarray, num_components: int) -> np.ndarray:
+    def bundle_hv(self, vectors: List[np.ndarray]) -> np.ndarray:
         """
-        Binariza el acumulador usando el voto mayoritario.
-        El umbral es la mitad del número de vectores sumados.
+        Realiza la operación de bundling sobre una lista de vectores binarios
+        de forma determinista.
         """
-        if num_components == 0:
-            return np.zeros(self.dim, dtype=np.uint8)  # Devuelve el vector nulo
+        if not vectors:
+            return np.zeros(self.dim, dtype=np.uint8)
 
-        threshold = num_components // 2
-        return (acc > threshold).astype(np.uint8, copy=False)
+        # Suma los vectores componente a componente
+        sum_vec = np.sum(vectors, axis=0, dtype=np.int32)
 
-    def hamming_distance(self, x: np.ndarray, y: np.ndarray) -> int:
-        """Calcula la Distancia de Hamming (número de bits diferentes)."""
-        return int(np.sum(np.logical_xor(x, y)))
+        # El umbral para la votación de mayoría
+        threshold = len(vectors) / 2.0
 
-    def hamming_similarity(self, x: np.ndarray, y: np.ndarray) -> float:
-        """Calcula la Similitud de Hamming (1.0 = idénticos, 0.0 = opuestos)."""
-        dist = np.sum(np.logical_xor(x, y))
-        return (self.dim - dist) / self.dim
+        # Compara la suma con el umbral para obtener el resultado.
+        # La comparación `> threshold` asegura que si sum_vec == threshold (un empate),
+        # el resultado será False, que se convierte en 0.
+        # Esto hace que el desempate sea determinista.
+        bundle = (sum_vec > threshold).astype(np.uint8)
 
-    def shifting_hv(self, x: np.ndarray, k: int = 1) -> np.ndarray:
-        return shifting(x, k)
+        return bundle
 
-    # ---- Deterministic HVs ----
+    def hamming_similarity(self, hv1: np.ndarray, hv2: np.ndarray) -> float:
+        """Calcula la similitud de Hamming entre dos vectores binarios."""
+        if hv1.shape != hv2.shape or len(hv1.shape) != 1:
+            raise ValueError("Los vectores deben tener la misma forma y ser 1D.")
+        
+        hamming_dist = np.logical_xor(hv1, hv2).sum()
+        return 1.0 - (hamming_dist / self.dim)
 
-    def get_binary_hv(self, key: Any) -> np.ndarray:
+    def _thermometer(self, name: str, value: float, min_val: float, max_val: float, resolution: int = 100) -> np.ndarray:
+        """Genera un vector de termómetro binario de forma determinista."""
+        seed = self._deterministic_hash(name)
+        rng = np.random.RandomState(seed) # RandomState es necesario para la permutación determinista con semilla
+        permuted_indices = rng.permutation(self.dim)
+        
+        value = max(min_val, min(max_val, value)) # Clamp value
+        
+        proportion = (value - min_val) / (max_val - min_val) if max_val > min_val else 0
+        num_bits_to_set = int(self.dim * proportion)
+
+        vec = np.zeros(self.dim, dtype=np.uint8)
+        vec[permuted_indices[:num_bits_to_set]] = 1
+        return vec
+
+    def encode_date_binary(self, value: date) -> np.ndarray:
         """
-        Obtiene un hipervector binario reproducible para una clave.
-        Usa el caché interno de la clase.
+        Codifica una fecha en un vector hiperdimensional binario utilizando su número ordinal
+        para garantizar la monotonicidad de la similitud.
         """
-        key_str = str(key)
+        if not isinstance(value, date):
+            raise TypeError("El valor debe ser un objeto de tipo date.")
 
-        # Usar siempre el caché interno
-        if key_str in self._hv_cache:
-            return self._hv_cache[key_str]
+        # Usar un rango fijo para las fechas, p.ej., desde el año 1900 al 2100.
+        min_date_ord = date(1900, 1, 1).toordinal()
+        max_date_ord = date(2100, 12, 31).toordinal()
+        
+        value_ord = value.toordinal()
 
-        seed = self._deterministic_hash(key_str)
-        # ✅ API moderna: Generator determinista por clave
-        temp_rng = np.random.default_rng(seed)
-        hv = binary_random(self.dim, temp_rng)
+        # El método del termómetro ahora es monotónico por construcción.
+        date_therm_vec = self._thermometer(
+            name='date_ordinal', 
+            value=value_ord, 
+            min_val=min_date_ord, 
+            max_val=max_date_ord
+        )
 
-        # Guardar en el caché interno
-        self._hv_cache[key_str] = hv
-        return hv
+        date_base_hv = self.get_binary_hv("DATE_ORDINAL_BASE")
+        return self.bind_hv(date_base_hv, date_therm_vec)
 
-    def _deterministic_hash(self, key_str: str) -> int:
-        """Genera un hash determinístico para una clave string."""
-        key_bytes = str(key_str).encode("utf-8")
-        h = hashlib.md5(key_bytes).digest()
-        return int.from_bytes(h[:8], "little") % (2 ** 32)
-
-    # ---- ENCODING METHODS  ----
-
-    # ------------------------------------------------------------------
-    # Método generalizado para codificar personas (con estrategias)
-    # ------------------------------------------------------------------
     def encode_person_binary(self, raw_person: Dict[str, Any]) -> np.ndarray:
         """
-        Codifica los datos de una persona utilizando estrategias basadas en tipos de datos.
-
-        Args:
-            raw_person: Diccionario con los datos de la persona a codificar.
-
-        Returns:
-            Hipervector binario que representa a la persona.
+        Codifica los datos de una persona en un hipervector binario utilizando estrategias
+        basadas en tipos de datos.
         """
-        bundle_acc = self.bundle_init()
         person = normalize_person_data(raw_person)
         profiler = DataTypeProfiler()
         profiler.profile_record(person)
 
-        num_components = 0
+        all_field_vectors = []
 
         for key in sorted(person.keys()):
             value = person[key]
 
-            # Información de depuración
-            print(f"Key: {key}, Type: {type(value).__name__}, Value: {repr(value)}")
-
-            # Saltar valores vacíos
-            if value is None:
+            # Saltar valores vacíos explícitamente, igual que en la versión bipolar
+            if value is None or (isinstance(value, (str, list, dict)) and not value):
                 continue
-            if isinstance(value, str) and not value:
-                continue
-            if isinstance(value, list) and not value:
-                continue
-
-            # Obtener el tipo de dato según el perfilador
+            
             data_type = profiler.get_type(key)
-
-            # Obtener la estrategia adecuada y codificar el valor
+            
             strategy = self.strategy_factory.get_strategy(key, value, data_type)
             encoded_value = strategy.encode(key, value, profiler)
 
-            # Vincular clave y valor codificado (XOR para binario)
-            key_hv = self.get_binary_hv(key)
-            bound_hv = self.bind_hv(key_hv, encoded_value)
-            self.bundle_add(bundle_acc, bound_hv)
-            num_components += 1
+            if encoded_value is not None:
+                key_hv = self.get_binary_hv(key.upper())
+                bound_hv = self.bind_hv(key_hv, encoded_value)
+                all_field_vectors.append(bound_hv)
 
-        # Mostrar el resumen del perfil
-        profiler.print_summary()
-
-        # Devolver el vector final usando voto mayoritario
-        return self.bundle_finalize(bundle_acc, num_components=num_components)
-
-    # ------------------------------------------------------------------
-    # Método de encoding escalar para fechas (sin periodicidad)
-    # ------------------------------------------------------------------
-    def encode_date_binary(self, date_obj: Optional[date]) -> np.ndarray:
-        """
-        Encoding binario escalar de fechas (sin periodicidad artificial).
-        Preserva distancias naturales entre fechas.
-
-        Args:
-            date_obj: Objeto de fecha o None
-
-        Returns:
-            Vector binario {0,1} representando la fecha
-        """
-        if date_obj is None:
-            # Vector neutro para binding con XOR
+        if not all_field_vectors:
             return np.zeros(self.dim, dtype=np.uint8)
 
-        self._init_date_thresholds()
-
-        reference_date = date(1970, 1, 1)  # Misma referencia que bipolar
-        days_since_reference = (date_obj - reference_date).days
-
-        # Acotar al rango soportado
-        t = np.int32(
-            max(0, min(days_since_reference, self._max_range_days))
-        )
-
-        thresholds = self._date_thresholds  # shape (dim,)
-
-        # Regla: hv_j = 1 si t >= θ_j, 0 en otro caso (versión binaria)
-        hv = np.where(t >= thresholds, 1, 0).astype(np.uint8)
-        return hv
-
+        return self.bundle_hv(all_field_vectors)

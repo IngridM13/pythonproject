@@ -1,138 +1,97 @@
-from typing import Any, Dict, Optional
 import numpy as np
-from datetime import date, datetime
+from typing import Any, List, Dict, Type
 from hdc.datatype_profiler import DataTypeProfiler
 
 class BinaryEncodingStrategy:
-    """Estrategia base para codificación binaria."""
+    """Clase base para las estrategias de codificación binaria."""
     def __init__(self, hdc_instance):
         self.hdc = hdc_instance
-    
+
     def encode(self, key: str, value: Any, profiler: DataTypeProfiler) -> np.ndarray:
-        """Método base que debe ser implementado por las clases hijas."""
-        raise NotImplementedError("Las subclases deben implementar este método")
+        raise NotImplementedError
 
 class DefaultBinaryEncodingStrategy(BinaryEncodingStrategy):
-    """Estrategia por defecto para codificación binaria."""
+    """Estrategia de codificación por defecto para cadenas (binario)."""
     def encode(self, key: str, value: Any, profiler: DataTypeProfiler) -> np.ndarray:
+        # Devuelve un vector de ceros si el valor es None o está vacío
+        if value is None or not str(value):
+            return np.zeros(self.hdc.dim, dtype=np.uint8)
         return self.hdc.get_binary_hv(str(value))
 
 class DateBinaryEncodingStrategy(BinaryEncodingStrategy):
-    """Estrategia para codificar fechas en formato binario sin periodicidad."""
+    """Estrategia para codificar fechas en formato binario."""
     def encode(self, key: str, value: Any, profiler: DataTypeProfiler) -> np.ndarray:
-        if isinstance(value, (date, datetime)):
-            return self.hdc.encode_date_binary(value)
-        elif isinstance(value, str):
-            try:
-                # Intentar convertir string a fecha
-                from utils.person_data_normalization import parse_date
-                date_obj = parse_date(value)
-                if date_obj:
-                    return self.hdc.encode_date_binary(date_obj)
-            except:
-                pass
+        if not hasattr(value, 'year'): # No es un objeto date/datetime
+            return np.zeros(self.hdc.dim, dtype=np.uint8)
         
-        # Si no se pudo manejar como fecha, usar codificación por defecto
-        return DefaultBinaryEncodingStrategy(self.hdc).encode(key, value, profiler)
+        return self.hdc.encode_date_binary(value)
 
 class ListBinaryEncodingStrategy(BinaryEncodingStrategy):
-    """Estrategia para codificar listas en formato binario."""
+    """Estrategia para codificar listas de cadenas (binario)."""
     def encode(self, key: str, value: Any, profiler: DataTypeProfiler) -> np.ndarray:
-        if not value:  # Lista vacía
-            return np.zeros(self.hdc.dim, dtype=np.uint8)
-            
-        list_acc = self.hdc.bundle_init()
-        vectors_to_add = [self.hdc.get_binary_hv(str(v)) for v in value if v]
+        if not isinstance(value, list):
+            return DefaultBinaryEncodingStrategy(self.hdc).encode(key, value, profiler)
+
+        item_vectors = []
+        for item in value:
+            # Para cada ítem en la lista, usamos la estrategia por defecto (tratar como string)
+            item_hv = DefaultBinaryEncodingStrategy(self.hdc).encode(key, item, profiler)
+            if item_hv is not None:
+                item_vectors.append(item_hv)
         
-        if not vectors_to_add:
+        if not item_vectors:
             return np.zeros(self.hdc.dim, dtype=np.uint8)
-            
-        self.hdc.bundle_add(list_acc, *vectors_to_add)
-        return self.hdc.bundle_finalize(list_acc, num_components=len(vectors_to_add))
+
+        # Bundling de todos los items de la lista
+        return self.hdc.bundle_hv(item_vectors)
 
 class AttrsBinaryEncodingStrategy(BinaryEncodingStrategy):
-    """Estrategia para codificar diccionarios de atributos en formato binario."""
+    """Estrategia para codificar diccionarios de atributos (binario)."""
     def encode(self, key: str, value: Any, profiler: DataTypeProfiler) -> np.ndarray:
         if not isinstance(value, dict):
             return DefaultBinaryEncodingStrategy(self.hdc).encode(key, value, profiler)
-            
-        attrs_acc = self.hdc.bundle_init()
-        num_components = 0
-        
-        for attr_key, attr_value in sorted(value.items()):
-            if attr_value is None or (isinstance(attr_value, (list, str)) and not attr_value):
+
+        attr_vectors = []
+        for sub_key, sub_value in sorted(value.items()):
+            if not sub_value:
                 continue
-                
-            # Obtener el tipo de dato para este atributo
-            attr_type = profiler.get_type(f"{key}.{attr_key}")
+
+            # La sub-clave se usa para obtener su HV base
+            sub_key_hv = self.hdc.get_binary_hv(sub_key.upper())
+
+            # El sub-valor (generalmente una lista) se codifica con la estrategia de lista
+            encoded_sub_value = ListBinaryEncodingStrategy(self.hdc).encode(sub_key, sub_value, profiler)
             
-            # Obtener la estrategia para este tipo
-            strategy = self.hdc.strategy_factory.get_strategy(attr_key, attr_value, attr_type)
-            encoded_attr = strategy.encode(attr_key, attr_value, profiler)
-            
-            # Vincular clave y valor
-            attr_key_hv = self.hdc.get_binary_hv(attr_key)
-            bound_attr = self.hdc.bind_hv(attr_key_hv, encoded_attr)
-            
-            # Añadir al acumulador
-            self.hdc.bundle_add(attrs_acc, bound_attr)
-            num_components += 1
-            
-        if num_components == 0:
+            if encoded_sub_value is not None:
+                # Bind de la clave del atributo con su valor codificado
+                bound_attr = self.hdc.bind_hv(sub_key_hv, encoded_sub_value)
+                attr_vectors.append(bound_attr)
+
+        if not attr_vectors:
             return np.zeros(self.hdc.dim, dtype=np.uint8)
-            
-        return self.hdc.bundle_finalize(attrs_acc, num_components=num_components)
+
+        # Bundling de todos los atributos
+        return self.hdc.bundle_hv(attr_vectors)
+
 
 class BinaryHDCEncodingStrategyFactory:
-    """Factory para crear estrategias de codificación binaria."""
-    
+    """Factory para crear y gestionar estrategias de codificación binaria."""
     def __init__(self, hdc_instance):
         self.hdc = hdc_instance
-        self.strategies = {}
-        
-    def register_strategy(self, data_type: str, strategy_class) -> None:
-        """Registra una estrategia para un tipo de dato específico."""
-        self.strategies[data_type] = strategy_class
-        
+        self.strategies: Dict[str, Type[BinaryEncodingStrategy]] = {}
+
+    def register_strategy(self, data_type: str, strategy: Type[BinaryEncodingStrategy]):
+        self.strategies[data_type] = strategy
+
     def get_strategy(self, key: str, value: Any, data_type: str) -> BinaryEncodingStrategy:
-        """
-        Obtiene la estrategia apropiada para codificar un valor.
+        strategy_class = self.strategies.get(data_type)
         
-        Args:
-            key: Clave del campo
-            value: Valor a codificar
-            data_type: Tipo de dato según el perfilador
-            
-        Returns:
-            La estrategia apropiada para codificar el valor
-        """
-        strategy_class = self.strategies.get(data_type, DefaultBinaryEncodingStrategy)
-        return strategy_class(self.hdc)
+        # Casos especiales o de fallback
+        if value is None or (isinstance(value, (str, list)) and not value):
+            strategy_class = self.strategies.get("EMPTY")
 
-    # Continúa en binary_encoding_strategy.py
-    class BinaryHDCEncodingStrategyFactory:
-        """Factory para crear estrategias de codificación binaria."""
-
-        def __init__(self, hdc_instance):
-            self.hdc = hdc_instance
-            self.strategies = {}
-
-        def register_strategy(self, data_type: str, strategy_class) -> None:
-            """Registra una estrategia para un tipo de dato específico."""
-            self.strategies[data_type] = strategy_class
-
-        def get_strategy(self, key: str, value: Any, data_type: str) -> BinaryEncodingStrategy:
-            """
-            Obtiene la estrategia apropiada para codificar un valor.
-
-            Args:
-                key: Clave del campo
-                value: Valor a codificar
-                data_type: Tipo de dato según el perfilador
-
-            Returns:
-                La estrategia apropiada para codificar el valor
-            """
-            strategy_class = self.strategies.get(data_type, DefaultBinaryEncodingStrategy)
+        if strategy_class:
             return strategy_class(self.hdc)
-
+        
+        # Fallback a la estrategia por defecto si no se encuentra una específica
+        return DefaultBinaryEncodingStrategy(self.hdc)

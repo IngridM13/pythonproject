@@ -111,6 +111,8 @@ def normalize_person_data(person: Dict[str, Any]) -> Dict[str, Any]:
     for key, default_list in DEFAULT_ATTRS.items():
         attrs[key] = _as_list_str(attrs.get(key, default_list))
 
+    print(f"Datos de persona normalizados:")
+    print(f"  {out}")
     out["attrs"] = attrs
 
     return out

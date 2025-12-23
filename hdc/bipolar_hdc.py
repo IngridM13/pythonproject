@@ -110,13 +110,15 @@ class HyperDimensionalComputingBipolar:
     # ---- Deterministic HVs ----
     def get_bipolar_hv(self, key: Any) -> np.ndarray:
         """Reproducible bipolar HV for a key; uses internal cache."""
-        k = str(key)
-        if k in self._hv_cache:
-            return self._hv_cache[k]
-        seed = self._deterministic_hash(k)
+        key_str = str(key)
+        print(f"  [get_binary_hv] Obteniendo HV para la clave: '{key_str}'")
+
+        if key_str in self._hv_cache:
+            return self._hv_cache[key_str]
+        seed = self._deterministic_hash(key_str)
         temp_rng = np.random.RandomState(seed)
         hv = bipolar_random(self.dim, temp_rng).astype(np.int8, copy=False)
-        self._hv_cache[k] = hv
+        self._hv_cache[key_str] = hv
         return hv
 
     # ---- Internals ----
@@ -132,18 +134,15 @@ class HyperDimensionalComputingBipolar:
     # 1) Inicialización de thresholds para fechas
     # ------------------------------------------------------------------
     def _init_date_thresholds(self):
-        """Inicializa thresholds aleatorios para el encoding escalar de fechas."""
+        """Inicializa thresholds para el encoding escalar de fechas."""
         if self._date_thresholds is not None:
             return
 
-        # Semilla fija para que siempre dé los mismos HV (muy importante para tu tesis)
-        rng = np.random.default_rng(54321)
-
-        # thresholds uniformes en [0, max_range_days]
-        self._date_thresholds = rng.integers(
-            low=0,
-            high=self._max_range_days + 1,
-            size=self.dim,
+        # Usar umbrales espaciados uniformemente para garantizar monotonicidad
+        self._date_thresholds = np.linspace(
+            start=0,
+            stop=self._max_range_days,
+            num=self.dim,
             dtype=np.int32,
         )
 
