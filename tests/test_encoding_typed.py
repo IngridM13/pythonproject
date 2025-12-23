@@ -132,59 +132,68 @@ def _delete_people_from_milvus(ids):
 # -------------------- Tests --------------------
 
 @pytest.mark.parametrize("with_vector_mode", ["binary", "float"], indirect=True)
-def test_encoding_consistency(with_vector_mode):
-    """Verificamos que el encoding es consistente con enfoque determinista"""
-
-    # Verifica que el modo sea el esperado
+def test_same_person_encoding_is_consistent(with_vector_mode):
+    """Verifies that encoding the same person twice yields the same vector."""
     from database_utils.milvus_db_connection import get_vector_mode
     current_mode = get_vector_mode()
     assert current_mode == with_vector_mode, f"Expected mode {with_vector_mode}, got {current_mode}"
 
     print(f"\n--- Verificación de Consistencia del Encoding (modo: {with_vector_mode}) ---")
-
     test_person = {
-        "name": "John",
-        "lastname": "Doe",
-        "dob": "1990-05-15",  # normalize() lo va a parsear
-        "marital_status": "Married",
-        "mobile_number": "555-1111",
-        "gender": "Male",
-        "race": "Caucasian",
-        "attrs": {  # <-- los arrays viven en attrs en Milvus
-            "address": ["456 Main St", "Apt 789"],
-            "akas": ["Johnny", "J.D."],
-            "landlines": ["555-9876"]
-        }
+        "name": "John", "lastname": "Doe", "dob": "1990-05-15",
+        "marital_status": "Married", "mobile_number": "555-1111", "gender": "Male", "race": "Caucasian",
+        "attrs": {"address": ["456 Main St", "Apt 789"], "akas": ["Johnny", "J.D."], "landlines": ["555-9876"]}
     }
 
+    # Encode the same person twice, resetting the cache each time
     global hv_dict
     hv_dict = {}
     encoding1 = encode_person(test_person)
-
     hv_dict = {}
     encoding2 = encode_person(test_person)
 
     are_equal = np.array_equal(encoding1, encoding2)
-    print(f"La misma persona codificada dos veces con el diccionario reiniciado - Los vectores son iguales: {are_equal}")
-    assert np.array_equal(encoding1,
-                          encoding2), "La codificación repetida de la misma persona debería producir el mismo vector"
 
+    # Print diagnostic information before the assertion
+    print(f"La misma persona codificada dos veces con el diccionario reiniciado - Los vectores son iguales: {are_equal}")
     if not are_equal:
         diff_count = np.sum(encoding1 != encoding2)
         print(f"Número de elementos diferentes: {diff_count} de {DIMENSION}")
     else:
         print("La codificación determinista funciona correctamente!")
 
-    test_person2 = test_person.copy()
-    test_person2["name"] = "Different"
+    assert are_equal, "La codificación repetida de la misma persona debería producir el mismo vector"
 
+
+@pytest.mark.parametrize("with_vector_mode", ["binary", "float"], indirect=True)
+def test_different_people_produce_different_encodings(with_vector_mode):
+    """Verifies that encoding two different people produces different vectors."""
+    from database_utils.milvus_db_connection import get_vector_mode
+    current_mode = get_vector_mode()
+    assert current_mode == with_vector_mode, f"Expected mode {with_vector_mode}, got {current_mode}"
+
+    print(f"\n--- Verificación de Diferenciación del Encoding (modo: {with_vector_mode}) ---")
+    person_a = {
+        "name": "John", "lastname": "Doe", "dob": "1990-05-15",
+        "marital_status": "Married", "mobile_number": "555-1111", "gender": "Male", "race": "Caucasian",
+        "attrs": {"address": ["456 Main St", "Apt 789"], "akas": ["Johnny", "J.D."], "landlines": ["555-9876"]}
+    }
+
+    # Create a different person by changing one attribute
+    person_b = person_a.copy()
+    person_b["name"] = "Different"
+
+    # Encode both, resetting the cache each time
+    global hv_dict
     hv_dict = {}
-    encoding3 = encode_person(test_person2)
+    encoding1 = encode_person(person_a)
+    hv_dict = {}
+    encoding2 = encode_person(person_b)
 
-    are_different = not np.array_equal(encoding1, encoding3)
+    are_different = not np.array_equal(encoding1, encoding2)
+
     print(f"Diferentes personas producen diferentes encodings: {are_different}")
-
-    return are_equal, are_different
+    assert are_different, "La codificación de personas diferentes debería producir vectores diferentes"
 
 
 def test_db_encoding_preservation():
@@ -604,7 +613,8 @@ def test_date_encoding_binary():
 
 
 if __name__ == "__main__":
-    consistency_result, differentiation_result = test_encoding_consistency()
+    consistency_result  = test_same_person_encoding_is_consistent()
+    differentiation_result = test_different_people_produce_different_encodings()
     db_preservation_result = test_db_encoding_preservation()
     search_result = test_search_with_encoded_vector()
     date_range_result = test_date_range_search()
@@ -614,14 +624,15 @@ if __name__ == "__main__":
 
     print("\n\033[94m--- Resultados de ejecución de tests: ---\033[0m")
 
-    if consistency_result and differentiation_result:
+    if consistency_result:
         print("\033[92m ✓ Test de consistencia de Encoding: PASS\033[0m")
     else:
-        print("\033[91m✗ Algunos tests de consistencia de encoding fallaron: \033[0m")
-        if not consistency_result:
-            print("  - Test de consistencia FALLÓ: Los mismos datos produjeron distintos encodings")
-        if not differentiation_result:
-            print("  - Test de diferenciación FALLÓ: Datos diferentes produjeron el mismo encoding")
+        print("\033[91m✗ Test de consistencia de Encoding: FALLÓ\033[0m")
+
+    if differentiation_result:
+        print("\033[92m ✓ Test de diferenciación de Encoding: PASS\033[0m")
+    else:
+        print("\033[91m✗ Test de diferenciación de Encoding: FALLÓ\033[0m")
 
     if db_preservation_result:
         print("\033[92m ✓ Test de preservación de encoding en la BD: PASS\033[0m")
@@ -632,7 +643,6 @@ if __name__ == "__main__":
         print("\033[92m ✓ Búsqueda basada en vector: PASS\033[0m")
     else:
         print("\033[91m✗ Búsqueda basada en vector: FALLÓ\033[0m")
-
 
     if date_range_result:
         print("\033[92m ✓ Test de búsqueda en range de fechas: PASS\033[0m")
