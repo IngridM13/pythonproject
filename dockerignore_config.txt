@@ -1,0 +1,13 @@
+# .dockerignore
+# Ignore virtual environment
+.venv/
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore IDE and git files
+.idea/
+.git/

@@ -1,7 +1,9 @@
 numpy
-psycopg2
 psycopg2-binary
 scikit-learn
 pandas
 faker
 tqdm
+pymilvus==2.4.1
+torch
+marshmallow<3.13.0

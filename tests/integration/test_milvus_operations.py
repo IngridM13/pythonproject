@@ -1,19 +1,43 @@
 import pytest
+from unittest.mock import patch, MagicMock
+from database_utils.milvus_db_connection import connect, ensure_people_collection
 import os
 from pymilvus import MilvusClient
-from database_utils.milvus_db_connection import ensure_people_collection
-from encoding_methods.encoding_and_search_milvus import store_person, get_person_details
+
+from encoding_methods.encoding_and_search_milvus import get_person_details, store_person
 
 
-# Esta prueba requiere una instancia de Milvus en ejecución
-# Puedes saltarla si no tienes el entorno configurado
+@pytest.fixture
+def mock_connections():
+    with patch('database_utils.milvus_db_connection.connections') as mock_conn:
+        mock_conn.has_connection.return_value = False
+        yield mock_conn
+
+def test_connect_establishes_connection(mock_connections):
+    connect()
+    mock_connections.connect.assert_called_once()
+
+def test_connect_skips_if_connection_exists(mock_connections):
+    mock_connections.has_connection.return_value = True
+    connect()
+    mock_connections.connect.assert_not_called()
+
+@patch('database_utils.milvus_db_connection.utility')
+@patch('database_utils.milvus_db_connection.Collection')
+def test_ensure_collection_creates_when_missing(mock_collection, mock_utility):
+    mock_utility.has_collection.return_value = False
+    ensure_people_collection()
+    mock_collection.assert_called_once()
+
+
 @pytest.mark.skipif(os.getenv('SKIP_MILVUS_TESTS', 'True') == 'True',
                     reason="Requiere Milvus en ejecución")
 class TestMilvusIntegration:
 
     @pytest.fixture(scope="class")
     def milvus_client(self):
-        client = MilvusClient(uri="http://localhost:19530")
+        milvus_uri = os.getenv("MILVUS_URI", "http://localhost:19530")
+        client = MilvusClient(uri=milvus_uri)
         # Limpiar colección para tests
         try:
             client.drop_collection("test_people")

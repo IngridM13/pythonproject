@@ -4,13 +4,10 @@ services:
   # Servicio para ejecutar los tests
   test:
     build:
-      context: volumes
-      dockerfile: Dockerfile.test
-    volumes:
-      - .:/app
+      context: ..
+      dockerfile: infra/Dockerfile.test
     depends_on:
       - milvus
-      - postgres
     environment:
       - MILVUS_URI=http://milvus:19530
       - SKIP_MILVUS_TESTS=False
@@ -23,14 +20,19 @@ services:
 
   # Servicio de Milvus para tests
   milvus:
-    image: milvusdb/milvus:v2.3.3
+    image: milvusdb/milvus:v2.6.0
     container_name: milvus-test
+    init: true
+    command: ["milvus", "run", "standalone"]
+    security_opt:
+      - seccomp:unconfined
     ports:
       - "19530:19530"
-      - "19531:19531"
+      - "9091:9091"
     environment:
-      - ETCD_ENDPOINTS=etcd:2379
-      - MINIO_ADDRESS=minio:9000
+      ETCD_ENDPOINTS: etcd:2379
+      MINIO_ADDRESS: minio:9000
+      MQ_TYPE: woodpecker
     depends_on:
       - etcd
       - minio
@@ -41,8 +43,9 @@ services:
 
   # Etcd para Milvus
   etcd:
-    image: quay.io/coreos/etcd:v3.5.0
+    image: quay.io/coreos/etcd:v3.5.18
     container_name: etcd-test
+    init: true
     environment:
       - ETCD_AUTO_COMPACTION_MODE=revision
       - ETCD_AUTO_COMPACTION_RETENTION=1000
@@ -52,20 +55,21 @@ services:
       - ./volumes/etcd/data:/etcd/data
     command:
       - etcd
-      - --advertise-client-urls=http://etcd:2379
-      - --listen-client-urls=http://0.0.0.0:2379
+      - -advertise-client-urls=http://etcd:2379
+      - -listen-client-urls=http://0.0.0.0:2379
       - --data-dir=/etcd/data
 
   # MinIO para Milvus
   minio:
-    image: minio/minio:RELEASE.2023-03-20T20-16-18Z
+    image: minio/minio:RELEASE.2024-12-18T13-15-44Z
     container_name: minio-test
+    init: true
     environment:
-      - MINIO_ROOT_USER=minioadmin
-      - MINIO_ROOT_PASSWORD=minioadmin
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
     volumes:
       - ./volumes/minio/data:/data
-    command: minio server /data
+    command: minio server /data --console-address ":9001"
 
 
 volumes:
