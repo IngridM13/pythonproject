@@ -3,6 +3,7 @@ from datetime import date
 from pymilvus import Collection
 
 import pytest
+import torch
 import os
 from encoding_methods.encoding_and_search_milvus import (
     store_person,
@@ -25,11 +26,9 @@ class TestEncodingSearch:
     def test_find_closest_match(self, test_collection, test_people):
         person_ids = []
 
-        # --- DEBUG TEST ---
         print(f"\n[DEBUG-TEST] Usando colección: {test_collection}")
         # Obtenemos el objeto Collection para poder interactuar con él
         col = Collection(test_collection)
-        # ---
 
         for i, person in enumerate(test_people):
             normalized_person = normalize_person_data(person)
@@ -40,13 +39,9 @@ class TestEncodingSearch:
             print(f"[DEBUG-TEST] Persona {i} supuestamente almacenada. PID: {pid}")
             # ---
 
-        # --- DEBUG CRÍTICO ---
-        # ¡Esta es la parte más importante!
-        # Forzamos a Milvus a "escribir" los datos y actualizar el índice.
         print(f"[DEBUG-TEST] Forzando col.flush() en '{test_collection}'...")
         col.flush()
         print(f"[DEBUG-TEST] Flush completado. Entidades en la colección: {col.num_entities}")
-        # ---
 
         query_person = {
             "name": "John",
@@ -66,14 +61,11 @@ class TestEncodingSearch:
         print("[DEBUG-TEST] Ejecutando find_closest_match_db...")
         results = find_closest_match_db(query_person, collection_name=test_collection)
 
-        # --- DEBUG TEST ---
         print(f"[DEBUG-TEST] Búsqueda finalizada. Resultados obtenidos: {len(results)}")
         if not results:
             print("[DEBUG-TEST] ¡ERROR! La búsqueda no devolvió resultados (results está vacío).")
         else:
             print(f"[DEBUG-TEST] Resultado[0] encontrado: {results[0]}")
-        # ---
-
 
         assert results[0]['id'] == person_ids[0]
         assert results[0]['similarity'] > 0.8
@@ -113,3 +105,31 @@ class TestEncodingSearch:
         assert "address" in normalized["attrs"]
         assert isinstance(normalized["attrs"]["address"], list)
         assert normalized["attrs"]["address"][0] == "123 Main St, City"
+
+    def test_normalized_data_to_torch_tensor(self):
+        """Additional test to verify PyTorch tensor conversion"""
+        person_data = {
+            "name": "John",
+            "lastname": "Doe",
+            "dob": "1990-05-15",
+            "mobile_number": "123456789"
+        }
+        
+        normalized = normalize_person_data(person_data)
+        
+        # Convert selected features to torch tensor
+        tensor_features = torch.tensor([
+            hash(normalized['name']),
+            hash(normalized['lastname']),
+            normalized['dob'].year if normalized['dob'] else 0,
+            int(normalized['mobile_number'] or 0)
+        ], dtype=torch.float32)
+        
+        # PyTorch-specific assertions
+        assert isinstance(tensor_features, torch.Tensor)
+        assert tensor_features.dtype == torch.float32
+        assert tensor_features.shape == (4,)
+        
+        # Optional: compute some basic tensor stats
+        assert torch.all(torch.isfinite(tensor_features))
+        assert tensor_features.sum() > 0

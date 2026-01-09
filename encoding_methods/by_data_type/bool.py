@@ -1,12 +1,9 @@
-from encoding_methods.by_data_type.numbers import *
+import torch
+from encoding_methods.by_data_type.numbers import IntegerEncoding
 
 class BoolEncoding:
     """
-    Codificación booleana basada en IntegerEncoding.
-    - False ↔ 0
-    - True  ↔ 1
-    Usa un IntegerEncoding con n0=0 y max_steps=1 para garantizar que sólo existan
-    dos códigos estables sin reuso de índices.
+    Codificación booleana basada en IntegerEncoding con PyTorch.
     """
 
     def __init__(self, D=10000, flips_per_step=5, seed=0):
@@ -40,10 +37,10 @@ class BoolEncoding:
         return self._enc.similarity(self._to_int01(a), self._to_int01(b))
 
     def false(self):
-        return 0
+        return torch.tensor(0)
 
     def true(self):
-        return 1
+        return torch.tensor(1)
 
     def enc_false(self):
         """Hipervector canónico para False."""
@@ -52,29 +49,3 @@ class BoolEncoding:
     def enc_true(self):
         """Hipervector canónico para True."""
         return self._enc.encode(1)
-
-
-if __name__ == "__main__":
-
-    enc = BoolEncoding(D=10000, flips_per_step=5, seed=42)
-
-    # Codificar valores booleanos
-    h_false = enc.encode(False)  # equivalente a enc.encode(0)
-    h_true = enc.encode(True)  # equivalente a enc.encode(1)
-
-    print("Dimensión:", h_false.shape[0])
-    print("Ejemplo de componentes:", h_false[:10])
-    print("Valores posibles:", set(h_false))  # {-1, 1}
-
-    # Similitudes
-    print("sim(False, False) =", enc.similarity(False, False))
-    print("sim(True, True)   =", enc.similarity(True, True))
-    print("sim(False, True)  =", enc.similarity(False, True))
-
-    # También acepta 0/1
-    print("sim(0, 1)         =", enc.similarity(0, 1))
-
-    # Accesores convenientes
-    hv0 = enc.false()  # hipervector canónico para False
-    hv1 = enc.true()  # hipervector canónico para True
-    print("sim(false(), true()) =", enc.similarity(hv0, hv1))

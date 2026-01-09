@@ -1,11 +1,11 @@
 import pytest
+import torch
 from unittest.mock import patch, MagicMock
 from database_utils.milvus_db_connection import connect, ensure_people_collection
 import os
 from pymilvus import MilvusClient
 
 from encoding_methods.encoding_and_search_milvus import get_person_details, store_person
-
 
 @pytest.fixture
 def mock_connections():
@@ -28,7 +28,6 @@ def test_ensure_collection_creates_when_missing(mock_collection, mock_utility):
     mock_utility.has_collection.return_value = False
     ensure_people_collection()
     mock_collection.assert_called_once()
-
 
 @pytest.mark.skipif(os.getenv('SKIP_MILVUS_TESTS', 'True') == 'True',
                     reason="Requiere Milvus en ejecución")
@@ -74,3 +73,69 @@ class TestMilvusIntegration:
         assert retrieved["lastname"] == "Person"
         assert retrieved["dob"] == "1990-01-01"
         assert "Test Address" in retrieved["address"]
+
+    def test_person_data_to_torch_tensor(self, milvus_client):
+        """
+        Test converting person data to PyTorch tensor for potential ML preprocessing
+        """
+        test_person = {
+            "name": "Test",
+            "lastname": "Person",
+            "dob": "1990-01-01",
+            "mobile_number": "123456789",
+            "gender": "Other",
+            "race": "Mixed"
+        }
+
+        # Store person to ensure database interaction
+        person_id = store_person(test_person)
+        
+        # Retrieve person details
+        retrieved = get_person_details(person_id)
+        
+        # Convert selected features to PyTorch tensor
+        tensor_features = torch.tensor([
+            hash(retrieved['name']),
+            hash(retrieved['lastname']),
+            int(retrieved['mobile_number'] or 0),
+            hash(retrieved['gender']),
+            hash(retrieved['race'])
+        ], dtype=torch.float32)
+        
+        # PyTorch-specific assertions
+        assert isinstance(tensor_features, torch.Tensor)
+        assert tensor_features.dtype == torch.float32
+        assert tensor_features.shape == (5,)
+        
+        # Optional: compute some basic tensor stats
+        assert torch.all(torch.isfinite(tensor_features))
+        
+        # Verify non-zero tensor
+        assert tensor_features.sum() > 0
+
+    def test_torch_tensor_to_milvus_embedding(self, milvus_client):
+        """
+        Demonstrate converting a PyTorch tensor to a Milvus-compatible embedding
+        """
+        # Create a sample PyTorch tensor
+        sample_tensor = torch.rand(128)  # Example 128-dimensional embedding
+        
+        # Convert to numpy for Milvus (if needed)
+        milvus_embedding = sample_tensor.numpy().tolist()
+        
+        # Store the embedding
+        test_person = {
+            "name": "TensorTest",
+            "embedding": milvus_embedding
+        }
+        
+        # Store person with tensor-derived embedding
+        person_id = store_person(test_person)
+        
+        # Verify storage
+        assert person_id > 0
+        
+        # Retrieve and validate
+        retrieved = get_person_details(person_id)
+        assert "embedding" in retrieved
+        assert len(retrieved["embedding"]) == 128

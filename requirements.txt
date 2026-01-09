@@ -5,5 +5,5 @@ pandas
 faker
 tqdm
 pymilvus==2.4.1
-torch
+torch>=2.2.0,<2.3.0
 marshmallow<3.13.0

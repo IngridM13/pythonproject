@@ -1,6 +1,6 @@
-
 import pytest
 from unittest.mock import patch, MagicMock
+import torch  # Add torch import
 from database_utils.milvus_db_connection import connect, ensure_people_collection
 
 @pytest.fixture
@@ -24,3 +24,18 @@ def test_ensure_collection_creates_when_missing(mock_collection, mock_utility):
     mock_utility.has_collection.return_value = False
     ensure_people_collection()
     mock_collection.assert_called_once()
+
+# PyTorch-specific test
+def test_torch_tensor_creation():
+    """Verify basic torch tensor operations are working correctly."""
+    # Test tensor creation
+    t = torch.tensor([1, 2, 3])
+    assert isinstance(t, torch.Tensor)
+    
+    # Test tensor type and shape
+    assert t.dtype == torch.int64
+    assert t.shape == (3,)
+    
+    # Test tensor operations
+    result = t * 2
+    assert torch.equal(result, torch.tensor([2, 4, 6]))
