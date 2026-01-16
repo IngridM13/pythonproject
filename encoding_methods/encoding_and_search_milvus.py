@@ -5,15 +5,13 @@ import numpy as np
 import torch
 import re
 import ast
-from typing import Any, Dict
+from typing import Any, Dict, List, Union
 from datetime import datetime, date as date_cls, timedelta
 from configs.settings import HDC_DIM as DIMENSION, HDC_DIM
-from database_utils.milvus_db_connection import ensure_people_collection, VECTOR_MODE
+from database_utils.milvus_db_connection import ensure_people_collection, VECTOR_MODE, get_vector_mode
 from hdc.binary_hdc import HyperDimensionalComputingBinary
 from utils.person_data_normalization import parse_date, normalize_person_data
 from hdc.bipolar_hdc import HyperDimensionalComputingBipolar
-
-
 
 
 # Global dictionary to cache hypervectors
@@ -21,9 +19,17 @@ hv_dict = {}
 
 
 # Helpers to pack/unpack bipolar HVs for Milvus
-def _bipolar_to_binary_bytes(hv: np.ndarray) -> bytes:
-    # hv in {-1,+1} -> bits 0/1 -> bytes
-    bits = (hv > 0).astype(np.uint8)
+def _bipolar_to_binary_bytes(hv: Union[np.ndarray, torch.Tensor]) -> bytes:
+    """
+    Converts a bipolar vector ({-1, 1}) to packed binary bytes.
+    Accepts numpy array or torch tensor.
+    """
+    if isinstance(hv, torch.Tensor):
+        # Ensure it's on CPU and boolean
+        bits = (hv > 0).cpu().numpy().astype(np.uint8)
+    else:
+        bits = (hv > 0).astype(np.uint8)
+        
     return np.packbits(bits, bitorder="big").tobytes()
 
 def _binary_bytes_to_bipolar(b: bytes, dim: int) -> np.ndarray:
@@ -37,28 +43,32 @@ def _encode_for_milvus(hv) -> bytes | list[float]:
     - For binary mode: packs bits into bytes
     - For float mode: converts to a list of float values
     """
-    from database_utils.milvus_db_connection import get_vector_mode
-    import torch
-    import numpy as np
-
     vector_mode = get_vector_mode()
 
     # Handle PyTorch Tensors
     if isinstance(hv, torch.Tensor):
+        # Ensure we detach from graph and move to CPU
         hv = hv.detach().cpu()
+        
         if vector_mode == "float":
             # Direct conversion for float mode
             return hv.float().tolist()
-        else:
-            # For binary mode, convert to numpy in case _bipolar_to_binary_bytes expects it
-            hv = hv.numpy()
-
+        # For binary mode, we pass the tensor to _bipolar_to_binary_bytes
+        # which now handles conversion if needed, or we convert here.
+        # Since _bipolar_to_binary_bytes handles it, we pass it directly.
+    
+    # If it's already numpy or list (and not tensor), continue
+    
     if vector_mode == "binary":
-        # Use your existing function for bipolar to binary conversion
         return _bipolar_to_binary_bytes(hv)
     else:  # vector_mode == "float"
         # For float vectors, convert to list of floats
-        return hv.astype(float).tolist()
+        if isinstance(hv, np.ndarray):
+            return hv.astype(float).tolist()
+        elif isinstance(hv, list):
+             return [float(x) for x in hv]
+        # Should already be returned if it was a tensor
+        return list(hv)
 
 
 def _split_attrs(attrs: Dict[str, Any] | None):
@@ -107,8 +117,7 @@ def encode_date(date_obj, mode="binary"):
 
 def encode_person(person, mode="binary"):
     """Factory function that delegates to the appropriate encoding function."""
-    from database_utils.milvus_db_connection import get_vector_mode
-
+    # Note: get_vector_mode is already imported
     hdc_bipolar = HyperDimensionalComputingBipolar(dim=HDC_DIM)
     hdc_binary = HyperDimensionalComputingBinary(dim=HDC_DIM)
 
@@ -183,7 +192,8 @@ def store_person(person: Dict[str, Any], collection_name: str = "people") -> int
         if isinstance(embedding, np.ndarray):
             embedding = embedding.tolist()
         elif isinstance(embedding, torch.Tensor):
-            embedding = embedding.numpy().tolist()
+            # Safe conversion for tensors on any device
+            embedding = embedding.detach().cpu().numpy().tolist()
 
         if isinstance(embedding, list) and all(isinstance(x, (int, float)) for x in embedding):
             # Ensure embedding has correct dimension
