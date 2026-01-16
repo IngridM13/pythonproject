@@ -1,6 +1,7 @@
 import hashlib
+import torch
 from datetime import date
-from typing import Any, List, Dict
+from typing import Any, List, Dict, Optional
 import numpy as np
 
 # Imports para la codificación generalizada
@@ -25,24 +26,34 @@ class HyperDimensionalComputingBinary:
     def __init__(self, dim=10000, seed=None):
         self.dim = dim
         self.seed = seed
-        self.rng = np.random.default_rng(seed)
-        self._hv_cache = {}
 
-        # Inicializar y registrar las estrategias de codificación
+        if seed is not None:
+            torch.manual_seed(seed)
+        
+        # Use CPU generator explicitly
+        self.rng = torch.Generator(device='cpu')
+
+        # Import the strategy factory from the existing file
+        from hdc.binary_encoding_strategies import (
+            BinaryHDCEncodingStrategyFactory, 
+            DefaultBinaryEncodingStrategy,
+            DateBinaryEncodingStrategy,
+            ListBinaryEncodingStrategy,
+            AttrsBinaryEncodingStrategy
+        )
+        
+        # Initialize the strategy factory
         self.strategy_factory = BinaryHDCEncodingStrategyFactory(self)
-        self.register_default_strategies()
-
-    def register_default_strategies(self):
-        """Registra las estrategias de codificación binaria predeterminadas."""
-        factory = self.strategy_factory
-        factory.register_strategy("DATE", DateBinaryEncodingStrategy)
-        factory.register_strategy("ATTRS_DICT", AttrsBinaryEncodingStrategy)
-        factory.register_strategy("LIST_OF_STR", ListBinaryEncodingStrategy)
-        factory.register_strategy("CATEGORICAL_STR", DefaultBinaryEncodingStrategy)
-        factory.register_strategy("TEXT_NAME", DefaultBinaryEncodingStrategy)
-        factory.register_strategy("PHONE_STR", DefaultBinaryEncodingStrategy)
-        factory.register_strategy("EMPTY", DefaultBinaryEncodingStrategy)
-        factory.register_strategy("UNKNOWN", DefaultBinaryEncodingStrategy)
+        
+        # Register default strategies
+        self.strategy_factory.register_strategy("DATE", DateBinaryEncodingStrategy)
+        self.strategy_factory.register_strategy("ATTRS_DICT", AttrsBinaryEncodingStrategy)
+        self.strategy_factory.register_strategy("LIST_OF_STR", ListBinaryEncodingStrategy)
+        self.strategy_factory.register_strategy("CATEGORICAL_STR", DefaultBinaryEncodingStrategy)
+        self.strategy_factory.register_strategy("TEXT_NAME", DefaultBinaryEncodingStrategy)
+        self.strategy_factory.register_strategy("PHONE_STR", DefaultBinaryEncodingStrategy)
+        self.strategy_factory.register_strategy("EMPTY", DefaultBinaryEncodingStrategy)
+        self.strategy_factory.register_strategy("UNKNOWN", DefaultBinaryEncodingStrategy)
 
     def _deterministic_hash(self, input_str: str) -> int:
         """Genera un hash determinista como un entero de 32 bits para usar como semilla."""

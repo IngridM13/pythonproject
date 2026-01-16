@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 from hdc.hdc_common_operations import bipolar_random, cosine_similarity, binary_random
 
 from hdc.ops_bipolar import HyperDimensionalComputingBipolar
@@ -32,7 +33,7 @@ class StringEncoding:
         self.mode = mode
         self.ngram_n = int(ngram_n)
         self.strategy = strategy.upper()
-        self.rng = np.random.default_rng(seed)
+        self.rng = torch.Generator(seed)
 
         # Permutación base para posiciones (aplicar k veces = desplazar posición k)
         self._perm = self.rng.permutation(self.D)

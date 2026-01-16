@@ -1,9 +1,9 @@
-import numpy as np
+import torch
 from typing import Iterable, Mapping, Any
 from configs.settings import HDC_DIM, DEFAULT_SEED
 from encoding_methods.by_data_type.numbers import DecimalEncoding
-from hdc.ops_bipolar import HyperDimensionalComputingBipolar
-
+# Corrected import path
+from hdc.hdc_common_operations import bipolar_random
 
 
 class DatetimeEncoding:
@@ -52,7 +52,7 @@ class DatetimeEncoding:
         omega_spread: dispersión de frecuencias para todos los FPEs.
         """
         self.D = int(D)
-        self.rng = np.random.default_rng(seed)
+        self.rng = torch.Generator().manual_seed(seed)
         self.components = tuple(components)
 
         # Valores por defecto razonables para FPE por componente
@@ -74,13 +74,16 @@ class DatetimeEncoding:
 
         # Hipervectores de rol (bipolares, aleatorios y estables por nombre)
         # Generamos una semilla derivada por rol para estabilidad pero sin colisiones obvias
-        self._role_hv: dict[str, np.ndarray] = {}
-        hdc = HyperDimensionalComputingBipolar()
+        self._role_hv: dict[str, torch.Tensor] = {}
 
         for name in self.components:
-            role_seed = self._stable_hash_seed(name, base=int(self.rng.integers(0, 2**32 - 1)))
-            role_rng = np.random.default_rng(role_seed)
-            self._role_hv[name] = hdc.generate_random_hdv(self.D, role_rng).astype(int)
+            role_seed = self._stable_hash_seed(name, base=int(torch.randint(0, 2**32 - 1, (1,), generator=self.rng).item()))
+            role_rng = torch.Generator().manual_seed(role_seed)
+            
+            # Use direct deterministic generation with the role_rng
+            raw_hv = bipolar_random(self.D, rng=role_rng)
+            
+            self._role_hv[name] = raw_hv.float() # Use float for compatibility with FPE results
 
         # Un FPE dedicado por componente (permite distintas escalas)
         self._fpe: dict[str, DecimalEncoding] = {}
@@ -108,168 +111,20 @@ class DatetimeEncoding:
             h = (h * 16777619) & 0xFFFFFFFF
         return int((h ^ (base & 0xFFFFFFFF)) & 0xFFFFFFFF)
 
-    def _bind(self, a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    def _bind(self, a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
         """Binding bipolar: multiplicación elemento a elemento."""
-        return (a * b).astype(int)
+        return a * b
 
-    def _superpose(self, vecs: list[np.ndarray]) -> np.ndarray:
+    def _superpose(self, vecs: list[torch.Tensor]) -> torch.Tensor:
         """Superposición con colapso a {-1,+1}."""
         if not vecs:
-            return np.ones(self.D, dtype=int)
-        acc = np.sum(vecs, axis=0, dtype=int)
-        out = np.sign(acc)
-        out[out == 0] = 1
-        return out.astype(int)
-
-    # ----------------------------
-    # Extracción de componentes
-    # ----------------------------
-    @staticmethod
-    def _get_component_value(obj: Any, name: str) -> float | None:
-        """
-        Extrae el valor del componente 'name' desde distintos tipos:
-        - datetime.datetime / datetime.date
-        - dict-like con claves coincidentes
-        Devuelve None si no se puede obtener.
-        """
-        # Lazy import para no forzar dependencia si no se usa
-        import datetime as _dt
-
-        # dict-like
-        if isinstance(obj, Mapping):
-            if name in obj:
-                return float(obj[name])
-
-        # datetime/date
-        if isinstance(obj, (_dt.datetime, _dt.date)):
-            if name == "year":
-                return float(obj.year)
-            if name == "month":
-                return float(obj.month)
-            if name == "day":
-                return float(obj.day)
-            if name == "hour" and isinstance(obj, _dt.datetime):
-                return float(obj.hour)
-            if name == "minute" and isinstance(obj, _dt.datetime):
-                return float(obj.minute)
-            if name == "second" and isinstance(obj, _dt.datetime):
-                return float(obj.second)
-            if name == "weekday":
-                # Monday=0..Sunday=6
-                return float(obj.weekday())
-            if name == "yearday":
-                # 1..366
-                return float(obj.timetuple().tm_yday)
-
-        # Tuplas (año, mes, día[, hora[, minuto[, segundo]]])
-        if isinstance(obj, (tuple, list)):
-            mapping = {}
-            if len(obj) >= 1:
-                mapping["year"] = obj[0]
-            if len(obj) >= 2:
-                mapping["month"] = obj[1]
-            if len(obj) >= 3:
-                mapping["day"] = obj[2]
-            if len(obj) >= 4:
-                mapping["hour"] = obj[3]
-            if len(obj) >= 5:
-                mapping["minute"] = obj[4]
-            if len(obj) >= 6:
-                mapping["second"] = obj[5]
-            if name in mapping:
-                return float(mapping[name])
-
-        return None
-
-    # ----------------------------
-    # API pública
-    # ----------------------------
-    def encode_components(self, values: Mapping[str, float]) -> np.ndarray:
-        """
-        Codifica un dict de componentes explícitos: {"year": 2024, "month": 3, ...}
-        Ignora componentes no presentes en self.components.
-        """
-        parts = []
-        for name in self.components:
-            if name not in values:
-                continue
-            v = float(values[name])
-            role = self._role_hv[name]
-            val_hv = self._fpe[name].encode(v)
-            parts.append(self._bind(role, val_hv))
-        return self._superpose(parts)
-
-    def encode(self, obj: Any) -> np.ndarray:
-        """
-        Codifica objetos de fecha/hora o estructuras equivalentes:
-        - datetime.datetime, datetime.date
-        - dict con claves de componentes
-        - tuplas/listas (año, mes, día[, hora[, minuto[, segundo]]])
-        """
-        parts = []
-        for name in self.components:
-            val = self._get_component_value(obj, name)
-            if val is None:
-                continue
-            role = self._role_hv[name]
-            val_hv = self._fpe[name].encode(val)
-            parts.append(self._bind(role, val_hv))
-        return self._superpose(parts)
-
-    def similarity(self, a: Any, b: Any) -> float:
-        """Similitud coseno entre dos fechas/horas (o representaciones compatibles)."""
-        hdc = HyperDimensionalComputingBipolar()
-        va = self.encode(a)
-        vb = self.encode(b)
-        return hdc.cosine_similarity(va, vb)
-
-    # Accesores útiles
-    def role_vector(self, component: str) -> np.ndarray:
-        return self._role_hv[component]
-
-    def value_encoder(self, component: str) -> DecimalEncoding:
-        return self._fpe[component]
-
-    def components_present(self) -> tuple[str, ...]:
-        return self.components
-
-
-if __name__ == "__main__":
-    import datetime as dt
-    from configs.settings import HDC_DIM, SEED
-
-    print("Ejemplo: DatetimeEncoding")
-    enc = DatetimeEncoding(
-        D=HDC_DIM,
-        seed=SEED,
-        components=("year", "month", "day", "hour"),
-    )
-
-
-    # Fechas de prueba
-    t_ref = dt.datetime(2024, 3, 15, 10, 0, 0)   # 15/03/2024 10:00
-    t_next_month = dt.datetime(2024, 4, 15, 10, 0, 0)  # mes siguiente
-    t_far = dt.datetime(2024, 9, 15, 10, 0, 0)   # varios meses después
-
-    # Codificación
-    h_ref = enc.encode(t_ref)
-    h_next = enc.encode(t_next_month)
-    h_far = enc.encode(t_far)
-
-    # Similitudes (coseno)
-    hdc = HyperDimensionalComputingBipolar()
-    print("Dimensión HV:", h_ref.shape[0])
-    print("sim(ref, ref)         =", hdc.cosine_similarity(h_ref, h_ref))
-    print("sim(ref, mes+1)       =", hdc.cosine_similarity(h_ref, h_next))
-    print("sim(ref, mes lejano)  =", hdc.cosine_similarity(h_ref, h_far))
-
-    # También puedes codificar con diccionarios o tuplas
-    # Diccionario explícito de componentes
-    h_dict = enc.encode({"year": 2024, "month": 3, "day": 15, "hour": 10})
-    print("sim(ref, dict mismo)  =", hdc.cosine_similarity(h_ref, h_dict))
-
-    # Tupla (año, mes, día, hora)
-    h_tuple = enc.encode((2024, 3, 15, 10))
-    print("sim(ref, tupla misma) =", hdc.cosine_similarity(h_ref, h_tuple))
-
-# Me parece que no está quedando bien. No es lo mismo una distancia de 1 dia que de 1 mes.
+            return torch.ones(self.D, dtype=torch.float32)
+        
+        # Stack efficient accumulation
+        stack = torch.stack(vecs)
+        acc = torch.sum(stack, dim=0)
+        
+        # Sign operation (preserve 0 as 1 for stability in bipolar contexts)
+        out = torch.sign(acc)
+        out[out == 0] = 1.0
+        return out

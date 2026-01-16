@@ -37,7 +37,12 @@ class TestMilvusIntegration:
     def milvus_client(self):
         milvus_uri = os.getenv("MILVUS_URI", "http://localhost:19530")
         client = MilvusClient(uri=milvus_uri)
-        # Limpiar colección para tests
+        # Limpiar colección para tests - ensure we drop 'people' which is the default
+        # used by store_person if not specified
+        try:
+            client.drop_collection("people")
+        except:
+            pass
         try:
             client.drop_collection("test_people")
         except:
@@ -94,12 +99,13 @@ class TestMilvusIntegration:
         retrieved = get_person_details(person_id)
         
         # Convert selected features to PyTorch tensor
+        # Use abs() to ensure positive values since hash() can be negative
         tensor_features = torch.tensor([
-            hash(retrieved['name']),
-            hash(retrieved['lastname']),
+            abs(hash(retrieved['name'])),
+            abs(hash(retrieved['lastname'])),
             int(retrieved['mobile_number'] or 0),
-            hash(retrieved['gender']),
-            hash(retrieved['race'])
+            abs(hash(retrieved['gender'])),
+            abs(hash(retrieved['race']))
         ], dtype=torch.float32)
         
         # PyTorch-specific assertions

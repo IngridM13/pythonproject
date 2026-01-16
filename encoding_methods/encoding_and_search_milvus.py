@@ -2,6 +2,7 @@
 from datetime import date
 import datetime
 import numpy as np
+import torch
 import re
 import ast
 from typing import Any, Dict
@@ -30,15 +31,27 @@ def _binary_bytes_to_bipolar(b: bytes, dim: int) -> np.ndarray:
     bits = bits[:dim]
     return np.where(bits == 1, 1, -1).astype(np.int8)
 
-def _encode_for_milvus(hv: np.ndarray) -> bytes | list[float]:
+def _encode_for_milvus(hv) -> bytes | list[float]:
     """
     Prepares vector for Milvus based on VECTOR_MODE:
     - For binary mode: packs bits into bytes
     - For float mode: converts to a list of float values
     """
     from database_utils.milvus_db_connection import get_vector_mode
+    import torch
+    import numpy as np
 
     vector_mode = get_vector_mode()
+
+    # Handle PyTorch Tensors
+    if isinstance(hv, torch.Tensor):
+        hv = hv.detach().cpu()
+        if vector_mode == "float":
+            # Direct conversion for float mode
+            return hv.float().tolist()
+        else:
+            # For binary mode, convert to numpy in case _bipolar_to_binary_bytes expects it
+            hv = hv.numpy()
 
     if vector_mode == "binary":
         # Use your existing function for bipolar to binary conversion
@@ -46,6 +59,7 @@ def _encode_for_milvus(hv: np.ndarray) -> bytes | list[float]:
     else:  # vector_mode == "float"
         # For float vectors, convert to list of floats
         return hv.astype(float).tolist()
+
 
 def _split_attrs(attrs: Dict[str, Any] | None):
     attrs = attrs or {}
@@ -110,74 +124,146 @@ def encode_person(person, mode="binary"):
     else:
         raise ValueError(f"Invalid vector mode: {vector_mode}")
 
-def store_person(person, collection_name: str = "people") -> int:
-    """Almacena una persona en Milvus con su HV; devuelve el ID generado automáticamente.
+
+def store_person(person: Dict[str, Any], collection_name: str = "people") -> int:
+    """
+    Store a person's details in Milvus, handling various input scenarios.
 
     Args:
-        person: Datos DE LA PERSONA YA NORMALIZADOS a almacenar
-        collection_name: Nombre opcional de la colección (si no se proporciona,
-                         se usa la colección predeterminada)
+        person: Dictionary containing person details
+        collection_name: Name of the Milvus collection
 
     Returns:
-        int: ID generado automáticamente de la persona almacenada
+        The ID of the stored person
     """
-    # Use the provided collection name or default collection
+    import datetime  # Import explicitly to be sure
+
+    # Create a copy to avoid modifying the original input
+    person_data = person.copy()
+
+    # Extract embedding if present
+    embedding = person_data.pop('embedding', None)
+
+    # Prepare attributes: ensure 'attrs' exists and move top-level lists into it
+    # This ensures normalize_person_data includes them in the encoding
+    if 'attrs' not in person_data or not isinstance(person_data['attrs'], dict):
+        person_data['attrs'] = {}
+
+    for attr_key in ['address', 'akas', 'landlines']:
+        if attr_key in person_data:
+            person_data['attrs'][attr_key] = person_data.pop(attr_key)
+
+    # Normalize the person data
+    normalized_person = normalize_person_data(person_data)
+
+    # Encode the person
+    hv = encode_person(normalized_person)
+
+    # Prepare the document to insert
+    doc_to_insert = {
+        **normalized_person,
+        "hv": hv.tolist(),  # Convert numpy array to list for Milvus
+    }
+
+    # Ensure dob is a string (YYYY-MM-DD) for Milvus insertion
+    if "dob" in doc_to_insert:
+        d = doc_to_insert["dob"]
+        # Check against standard datetime types
+        if isinstance(d, (datetime.date, datetime.datetime)):
+            doc_to_insert["dob"] = d.strftime("%Y-%m-%d")
+        elif d is None:
+            # Explicitly handle None -> empty string for VARCHAR field
+            doc_to_insert["dob"] = ""
+        elif not isinstance(d, str):
+            # Fallback: force string conversion if it's not None and not a string
+            doc_to_insert["dob"] = str(d)
+
+    # Handle embedding
+    if embedding is not None:
+        if isinstance(embedding, np.ndarray):
+            embedding = embedding.tolist()
+        elif isinstance(embedding, torch.Tensor):
+            embedding = embedding.numpy().tolist()
+
+        if isinstance(embedding, list) and all(isinstance(x, (int, float)) for x in embedding):
+            # Ensure embedding has correct dimension
+            doc_to_insert["embedding"] = embedding[:128]  # Trim to max 128 dimensions
+
+    # Insert into Milvus
     col = ensure_people_collection(collection_name)
 
-    # normalized = normalize_person_data(person)
+    # Check for missing vector fields that are required by schema
+    # Milvus requires vector fields to be populated
+    schema_fields = {f.name: f for f in col.schema.fields}
+    
+    if "embedding" in schema_fields and "embedding" not in doc_to_insert:
+        # We need to fill it with a placeholder (e.g., zero vector)
+        # Try to determine dimension from schema
+        emb_field = schema_fields["embedding"]
+        dim = 128  # Default from our codebase
+        
+        # specific to pymilvus versions, dim might be in params or properties
+        if hasattr(emb_field, 'params') and 'dim' in emb_field.params:
+            dim = int(emb_field.params['dim'])
+            
+        doc_to_insert["embedding"] = [0.0] * dim
 
-    hv = encode_person(person)  # <-- 2. Use 'person' instead of 'normalized'
+    res = col.insert(doc_to_insert)
 
-    attrs = _merge_attrs(person)  # <-- 3. Use 'person'
-    dob_val = person.get("dob")  # <-- 4. Use 'person'
+    # Return the inserted ID (accessing primary_keys if inserted_ids is missing/warned)
+    if hasattr(res, 'primary_keys'):
+        return res.primary_keys[0]
+    return res.inserted_ids[0]
 
-    # Store dob as ISO string for easy range filtering
-    if isinstance(dob_val, (date, datetime)):
-        dob_str = dob_val.strftime("%Y-%m-%d")
-    else:
-        # This branch will now likely handle None or ""
-        dob_str = dob_val if dob_val else ""
 
-    entity = {
-        "name": person.get("name", ""),  # <-- 5. Use 'person'
-        "lastname": person.get("lastname", ""),  # <-- 6. Use 'person'
-        "dob": dob_str,
-        "marital_status": person.get("marital_status", ""),  # <-- 7. Use 'person'
-        "mobile_number": person.get("mobile_number", ""),  # <-- 8. Use 'person'
-        "gender": person.get("gender", ""),  # <-- 9. Use 'person'
-        "race": person.get("race", ""),  # <-- 10. Use 'person'
-        "attrs": attrs,
-        "hv": _encode_for_milvus(hv),
-    }
-    mr = col.insert(entity)
-    col.flush()
-    return int(mr.primary_keys[0])
-
-def get_person_details(person_id: int, collection_name: str = "people"):
+def get_person_details(person_id: int, collection_name: str = "people") -> Dict[str, Any]:
     """Get complete details for a person by ID (Milvus)."""
     col = ensure_people_collection(collection_name)
+
+    # Base output fields that we know exist
+    output_fields = [
+        "name", "lastname", "dob", "marital_status", "mobile_number",
+        "gender", "race", "attrs", "id"
+    ]
+
+    # Check if 'embedding' exists in the collection schema before asking for it
+    schema_fields = {f.name for f in col.schema.fields}
+    if "embedding" in schema_fields:
+        output_fields.append("embedding")
+
     res = col.query(
         expr=f"id == {person_id}",
-        output_fields=["name","lastname","dob","marital_status","mobile_number","gender","race","attrs"],
+        output_fields=output_fields,
         consistency_level="Strong",
     )
+
     if not res:
         return None
+
     r = res[0]
-    address, akas, landlines = _split_attrs(r.get("attrs"))
-    return {
-        "id": person_id,
-        "name": r.get("name",""),
-        "lastname": r.get("lastname",""),
-        "dob": r.get("dob",""),
+    address, akas, landlines = _split_attrs(r.get("attrs", {}))
+
+    # Construct the return dictionary, including embedding if present
+    return_dict = {
+        "id": r.get("id", person_id),
+        "name": r.get("name", ""),
+        "lastname": r.get("lastname", ""),
+        "dob": r.get("dob", ""),
         "address": address,
-        "marital_status": r.get("marital_status",""),
+        "marital_status": r.get("marital_status", ""),
         "akas": akas,
         "landlines": landlines,
-        "mobile_number": r.get("mobile_number",""),
-        "gender": r.get("gender",""),
-        "race": r.get("race",""),
+        "mobile_number": r.get("mobile_number", ""),
+        "gender": r.get("gender", ""),
+        "race": r.get("race", ""),
     }
+
+    # Add embedding to the return dictionary if it exists in the result
+    if "embedding" in r and r.get("embedding") is not None:
+        return_dict["embedding"] = r["embedding"]
+
+    return return_dict
+
 
 def parse_list_string(list_str):
     """Parse list strings from CSV or text field, with debug prints."""

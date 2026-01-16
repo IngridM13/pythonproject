@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 from datetime import date
 from configs.settings import HDC_DIM, DEFAULT_SEED
 from hdc.hdc_common_operations import (
@@ -115,9 +116,11 @@ class HyperDimensionalComputingBipolar:
 
         if key_str in self._hv_cache:
             return self._hv_cache[key_str]
+
         seed = self._deterministic_hash(key_str)
-        temp_rng = np.random.RandomState(seed)
-        hv = bipolar_random(self.dim, temp_rng).astype(np.int8, copy=False)
+        torch.manual_seed(seed)
+        hv = bipolar_random(self.dim).numpy().astype(np.int8)
+
         self._hv_cache[key_str] = hv
         return hv
 

@@ -1,11 +1,12 @@
 from typing import Optional
+import torch
 import numpy as np
 from configs.settings import HDC_DIM, DEFAULT_SEED
 
 class HyperDimensionalComputingBipolar:
     def __init__(self, dim: int = HDC_DIM, seed: Optional[int] = DEFAULT_SEED):
         self.dim = dim
-        self.rng = np.random.default_rng(seed)
+        self.rng = torch.Generator(seed)
 
     def generate_random_hdv(self, n=1):
         hdv = np.random.randint(0, 2, size=(1, self.dim), dtype=np.int8)
