@@ -1,9 +1,7 @@
 import numpy as np
 import torch
-from hdc.hdc_common_operations import bipolar_random, cosine_similarity, binary_random
-
-from hdc.ops_bipolar import HyperDimensionalComputingBipolar
-
+from hdc.hdc_common_operations import bipolar_random, binary_random
+from utils.distance_utils import cosine_similarity
 
 class StringEncoding:
     """
@@ -33,10 +31,14 @@ class StringEncoding:
         self.mode = mode
         self.ngram_n = int(ngram_n)
         self.strategy = strategy.upper()
-        self.rng = torch.Generator(seed)
+        # Use a generator on CPU for compatibility
+        self.rng = torch.Generator().manual_seed(seed)
 
         # Permutación base para posiciones (aplicar k veces = desplazar posición k)
-        self._perm = self.rng.permutation(self.D)
+        # Permutation needs to be numpy array of indices for numpy indexing
+        # torch.randperm returns tensor.
+        perm_tensor = torch.randperm(self.D, generator=self.rng)
+        self._perm = perm_tensor.numpy()
 
         # Diccionarios de base HVs
         self._char_table: dict[str, np.ndarray] = {}
@@ -53,10 +55,19 @@ class StringEncoding:
     # ----------------------------
     def _random_hv(self) -> np.ndarray:
         if self.mode == "bipolar":
-            return bipolar_random(self.D, self.rng).astype(int)
+            hv = bipolar_random(self.D, self.rng)
+            if isinstance(hv, torch.Tensor):
+                hv = hv.detach().cpu().numpy()
+            return hv.astype(int)
         else:
             # Vector binario {0,1}
-            return binary_random(self.D, self.rng)
+            # binary_random from hdc_common_operations might also return Tensor now?
+            # Let's check hdc_common_operations.py from memory/context
+            # It returns torch.randint -> Tensor.
+            hv = binary_random(self.D, self.rng)
+            if isinstance(hv, torch.Tensor):
+                 hv = hv.detach().cpu().numpy()
+            return hv.astype(np.uint8)
 
     def _permute(self, v: np.ndarray, k: int = 1) -> np.ndarray:
         """Aplica la permutación base k veces."""
@@ -199,4 +210,3 @@ class StringEncoding:
         if " " in s:
             return self.encode_text(s)
         return self.encode_word(s)
-
