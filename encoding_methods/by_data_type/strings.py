@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 from hdc.hdc_common_operations import bipolar_random, binary_random
-from hdc.ops_bipolar import HyperDimensionalComputingBipolar
+from hdc.bipolar_hdc import HyperDimensionalComputingBipolar
 from typing import List, Union
 
 # Create a helper instance for cosine similarity

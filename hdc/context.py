@@ -2,7 +2,7 @@
 from typing import Dict, Optional, Tuple
 import numpy as np
 from configs.settings import HDC_DIM
-from ops_bipolar import HyperDimensionalComputingBipolar
+from bipolar_hdc import HyperDimensionalComputingBipolar
 
 
 class HyperDimensionalContext:
