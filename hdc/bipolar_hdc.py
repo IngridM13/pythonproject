@@ -23,10 +23,15 @@ from hdc.bipolar_encoding_strategy import (
 class HyperDimensionalComputingBipolar:
     """Bipolar HDC with vectors in {-1,+1} (dtype=int8)."""
 
-    def __init__(self, dim: int = HDC_DIM, seed: Optional[int] = DEFAULT_SEED):
+    def __init__(self, dim: int = HDC_DIM, seed: Optional[int] = DEFAULT_SEED, device: Optional[str] = None):
         self.dim = dim
         self.seed = seed
+        # Set device - default to CUDA if available
+        self.device = torch.device(device if device is not None else ('cuda' if torch.cuda.is_available() else 'cpu'))
+        print(f"Using device: {self.device}")
+        
         # Use torch Generator for native torch RNG
+        # Note: Generator needs to be on CPU even when using GPU for tensors
         self.rng = torch.Generator()
         if seed is not None:
             self.rng.manual_seed(seed)
@@ -56,22 +61,26 @@ class HyperDimensionalComputingBipolar:
     def generate_random_hdv(self, n: int = 1) -> torch.Tensor:
         """Generate 1 or n random bipolar vectors {-1,+1}, dtype=int8 (Torch Tensor)."""
         if n == 1:
-            return bipolar_random(self.dim, self.rng)
+            return bipolar_random(self.dim, self.rng).to(self.device)
             
         # Generate (n, dim)
         # Check if we can generate in batch directly or stack
         # Using stack for consistency with current RNG usage
-        return torch.stack([bipolar_random(self.dim, self.rng) for _ in range(n)], dim=0)
+        vectors = torch.stack([bipolar_random(self.dim, self.rng) for _ in range(n)], dim=0)
+        return vectors.to(self.device)
 
     # ---- Core ops ----
     def bind_hv(self, x: Union[torch.Tensor, torch.Tensor], y: Union[torch.Tensor, torch.Tensor]) -> torch.Tensor:
         """Bipolar binding (XOR-equivalent): element-wise product. Returns torch.Tensor."""
+        # Ensure both tensors are on the same device
+        x = x.to(self.device)
+        y = y.to(self.device)
         # Element-wise multiplication
         return (x * y).to(dtype=torch.int8)
 
     def bundle_init(self) -> torch.Tensor:
         """Create an int32 accumulator for bundling (Torch Tensor)."""
-        return torch.zeros(self.dim, dtype=torch.int32)
+        return torch.zeros(self.dim, dtype=torch.int32, device=self.device)
 
     def bundle_add(self, acc: torch.Tensor, *vectors: Iterable[torch.Tensor],
                    weights: Optional[Iterable[int]] = None) -> torch.Tensor:
@@ -82,7 +91,9 @@ class HyperDimensionalComputingBipolar:
         for v, w in zip(vectors, weights):
             if w != 0:
                 # acc = acc + w * v
-                acc.add_(v.to(dtype=torch.int32) * int(w))
+                # Ensure vector is on the correct device
+                v_device = v.to(device=self.device, dtype=torch.int32)
+                acc.add_(v_device * int(w))
         return acc
 
     def bundle_finalize(self, acc: torch.Tensor, tie_key: Optional[str] = None) -> torch.Tensor:
@@ -92,13 +103,16 @@ class HyperDimensionalComputingBipolar:
         
         zeros = (res == 0)
         if torch.any(zeros):
-            # Generate tie breaker
+            # Generate tie breaker and ensure it's on the correct device
             tb = self._tie_breaker_bipolar(tie_key or "tb", self.dim).to(device=acc.device)
             res[zeros] = tb[zeros]
             
         return res
 
     def dot_product_hv(self, x: torch.Tensor, y: torch.Tensor) -> int:
+        # Ensure tensors are on the same device
+        x = x.to(self.device)
+        y = y.to(self.device)
         # Use torch.dot only works for 1D. For generalized, use sum(x*y)
         return int(torch.sum(x.float() * y.float()).item())
 
@@ -106,6 +120,10 @@ class HyperDimensionalComputingBipolar:
         """
         Optimized Cosine similarity for bipolar {-1,+1} vectors.
         """
+        # Ensure tensors are on the same device
+        x = x.to(self.device)
+        y = y.to(self.device)
+        
         x_float = x.float()
         y_float = y.float()
 
@@ -127,6 +145,7 @@ class HyperDimensionalComputingBipolar:
         return float(torch.dot(x_float, y_float) / self.dim)
 
     def shifting_hv(self, x: torch.Tensor, k: int = 1) -> torch.Tensor:
+        x = x.to(self.device)
         return torch.roll(x, shifts=k, dims=-1)
 
     # ---- Deterministic HVs ----
@@ -135,15 +154,16 @@ class HyperDimensionalComputingBipolar:
         key_str = str(key)
 
         if key_str in self._hv_cache:
-            return self._hv_cache[key_str]
+            return self._hv_cache[key_str].to(self.device)
 
         seed = self._deterministic_hash(key_str)
         
         # Use torch generator for deterministic creation
+        # Generator must be on CPU
         rng_gen = torch.Generator().manual_seed(seed)
         
-        # Generate as tensor
-        hv_tensor = bipolar_random(self.dim, rng=rng_gen)
+        # Generate as tensor and move to device
+        hv_tensor = bipolar_random(self.dim, rng=rng_gen).to(self.device)
         
         self._hv_cache[key_str] = hv_tensor
         return hv_tensor
@@ -158,7 +178,7 @@ class HyperDimensionalComputingBipolar:
         rng = torch.Generator().manual_seed(seed)
         # Generate random {0, 1} -> convert to {-1, 1}
         # bipolar_random does exactly this
-        return bipolar_random(dim, rng=rng)
+        return bipolar_random(dim, rng=rng).to(self.device)
 
     # ------------------------------------------------------------------
     # 1) Inicialización de thresholds para fechas
@@ -173,7 +193,8 @@ class HyperDimensionalComputingBipolar:
             start=0,
             end=self._max_range_days,
             steps=self.dim,
-            dtype=torch.int32
+            dtype=torch.int32,
+            device=self.device
         )
 
     # ------------------------------------------------------------------
@@ -189,7 +210,7 @@ class HyperDimensionalComputingBipolar:
         """
         # Case: Single None
         if date_obj is None:
-            return torch.ones(self.dim, dtype=torch.int8)
+            return torch.ones(self.dim, dtype=torch.int8, device=self.device)
 
         # Use reference date
         reference_date = date(1970, 1, 1)
@@ -206,8 +227,8 @@ class HyperDimensionalComputingBipolar:
                 else:
                     days_list.append(0)
 
-            # Convert to tensor
-            days_arr = torch.tensor(days_list, dtype=torch.float32)  # (N,)
+            # Convert to tensor and move to device
+            days_arr = torch.tensor(days_list, dtype=torch.float32, device=self.device)  # (N,)
 
             # Clip range (to avoid extremely large values)
             days_arr = torch.clamp(days_arr, 0, self._max_range_days)
@@ -224,9 +245,9 @@ class HyperDimensionalComputingBipolar:
             max_freq = 0.5  # Highest frequency (cycles per day - Nyquist limit)
 
             # Generate frequencies with more components for recent dates
-            freqs = torch.exp(torch.linspace(torch.log(torch.tensor(min_freq)), 
-                                           torch.log(torch.tensor(max_freq)), 
-                                           num_components))
+            freqs = torch.exp(torch.linspace(torch.log(torch.tensor(min_freq, device=self.device)), 
+                                           torch.log(torch.tensor(max_freq, device=self.device)), 
+                                           num_components, device=self.device))
 
             # Reshape for broadcasting - (1, num_components)
             freqs = freqs.unsqueeze(0)
@@ -241,14 +262,14 @@ class HyperDimensionalComputingBipolar:
 
             # Interleave sin and cos components to form the complete vector
             # Shape: (N, dim)
-            components = torch.zeros((days_arr.shape[0], self.dim), dtype=torch.float32)
+            components = torch.zeros((days_arr.shape[0], self.dim), dtype=torch.float32, device=self.device)
             components[:, 0::2] = sin_components
             components[:, 1::2] = cos_components
 
             # Convert to bipolar {-1, 1}
             return torch.where(components >= 0,
-                               torch.tensor(1, dtype=torch.int8),
-                               torch.tensor(-1, dtype=torch.int8))
+                               torch.tensor(1, dtype=torch.int8, device=self.device),
+                               torch.tensor(-1, dtype=torch.int8, device=self.device))
 
         # Case: Single date
         days_since_reference = (date_obj - reference_date).days
@@ -262,9 +283,9 @@ class HyperDimensionalComputingBipolar:
         # Log-spaced frequencies
         min_freq = 1.0 / self._max_range_days
         max_freq = 0.5
-        freqs = torch.exp(torch.linspace(torch.log(torch.tensor(min_freq)), 
-                                       torch.log(torch.tensor(max_freq)), 
-                                       num_components))
+        freqs = torch.exp(torch.linspace(torch.log(torch.tensor(min_freq, device=self.device)), 
+                                       torch.log(torch.tensor(max_freq, device=self.device)), 
+                                       num_components, device=self.device))
 
         # Compute phase angles
         phases = 2 * torch.pi * freqs * t
@@ -274,14 +295,14 @@ class HyperDimensionalComputingBipolar:
         cos_components = torch.cos(phases)
 
         # Interleave sin and cos components
-        components = torch.zeros(self.dim, dtype=torch.float32)
+        components = torch.zeros(self.dim, dtype=torch.float32, device=self.device)
         components[0::2] = sin_components
         components[1::2] = cos_components
 
         # Convert to bipolar
         return torch.where(components >= 0,
-                           torch.tensor(1, dtype=torch.int8),
-                           torch.tensor(-1, dtype=torch.int8))
+                           torch.tensor(1, dtype=torch.int8, device=self.device),
+                           torch.tensor(-1, dtype=torch.int8, device=self.device))
 
     # Método legacy: redirecciona al método generalizado
     def encode_person_bipolar_datatype(self, raw_person: Dict[str, Any]) -> torch.Tensor:
@@ -320,9 +341,11 @@ class HyperDimensionalComputingBipolar:
             strategy = self.strategy_factory.get_strategy(key, value, data_type)
             encoded_value = strategy.encode(key, value, profiler)
 
-            # Ensure encoded_value is a tensor
+            # Ensure encoded_value is a tensor and on correct device
             if not isinstance(encoded_value, torch.Tensor):
-                encoded_value = torch.from_numpy(encoded_value)
+                encoded_value = torch.from_numpy(encoded_value).to(self.device)
+            else:
+                encoded_value = encoded_value.to(self.device)
 
             # Vincular clave y valor codificado
             key_hv = self.get_bipolar_hv(key)
@@ -341,7 +364,7 @@ class HyperDimensionalComputingBipolar:
             torch.Tensor (N, D)
         """
         if not people:
-             return torch.zeros((0, self.dim), dtype=torch.float32)
+             return torch.zeros((0, self.dim), dtype=torch.float32, device=self.device)
 
         # 1. Normalize all inputs
         normalized_people = [normalize_person_data(p) for p in people]
@@ -353,8 +376,8 @@ class HyperDimensionalComputingBipolar:
             all_keys.update(p.keys())
         sorted_keys = sorted(list(all_keys))
         
-        # 3. Accumulator (N, D) - Using Torch
-        acc = torch.zeros((N, self.dim), dtype=torch.int32)
+        # 3. Accumulator (N, D) - Using Torch with GPU support
+        acc = torch.zeros((N, self.dim), dtype=torch.int32, device=self.device)
         
         # 4. Process Column-wise
         profiler = DataTypeProfiler()
@@ -388,11 +411,13 @@ class HyperDimensionalComputingBipolar:
                 col_hvs = []
                 for v in values:
                     if v in (None, "", []):
-                        col_hvs.append(torch.zeros(self.dim, dtype=torch.int8))
+                        col_hvs.append(torch.zeros(self.dim, dtype=torch.int8, device=self.device))
                     else:
                         ev = strategy.encode(key, v, profiler)
                         if not isinstance(ev, torch.Tensor):
-                            ev = torch.from_numpy(ev)
+                            ev = torch.from_numpy(ev).to(self.device)
+                        else:
+                            ev = ev.to(self.device)
                         col_hvs.append(ev)
                         
                 encoded_col = torch.stack(col_hvs)
