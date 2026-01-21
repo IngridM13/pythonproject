@@ -734,8 +734,12 @@ def test_date_similarity_ordering_binary():
     encodings = []
     for i, d in enumerate(dates):
         enc = hdc.encode_date_binary(d)
-        # Convert numpy array to torch tensor and move to device
-        enc_tensor = torch.from_numpy(enc).to(device)
+        # Check if already a tensor and handle accordingly
+        if isinstance(enc, torch.Tensor):
+            enc_tensor = enc.to(device)
+        else:
+            # Fallback for NumPy arrays if needed
+            enc_tensor = torch.from_numpy(enc).to(device)
         encodings.append(enc_tensor)
         print(f">>> Codificando fecha: {d}")
 
@@ -798,7 +802,6 @@ def test_date_similarity_ordering_binary():
         print(f"Diferencia mes-a-año:  {diff_month_year:.4f}")
 
     return correct_similarity_order
-
 
 def test_date_similarity_ordering_bipolar():
     """Tests that the similarity between date encodings correctly reflects their temporal proximity"""
@@ -894,7 +897,6 @@ def test_date_similarity_ordering_bipolar():
 
     return correct_similarity_order
 
-
 def test_date_encoding_binary():
     """Test para validar la codificación escalar de fechas sin periodicidad - monotonía """
     from hdc.binary_hdc import HyperDimensionalComputingBinary
@@ -929,8 +931,14 @@ def test_date_encoding_binary():
             test_date = ref_date + timedelta(days=days)
             dates.append(test_date)
             # Convertir a tensor y mover a GPU si está disponible
-            enc = torch.from_numpy(hdc.encode_date_binary(test_date)).to(device)
-            encodings.append(enc)
+            enc = hdc.encode_date_binary(test_date)
+            # Check if already a tensor and handle accordingly
+            if isinstance(enc, torch.Tensor):
+                enc_tensor = enc.to(device)
+            else:
+                # Fallback for NumPy arrays if needed
+                enc_tensor = torch.from_numpy(enc).to(device)
+            encodings.append(enc_tensor)
 
         # Apilar tensores para procesamiento más eficiente
         encodings_stack = torch.stack(encodings)
@@ -969,7 +977,13 @@ def test_date_encoding_binary():
         bipolar_encodings = []
         for d in dates:
             # Obtener codificación bipolar y convertir a tensor
-            bp_enc = torch.tensor(hdc_bipolar.encode_date_bipolar(d), dtype=torch.float32).to(device)
+            bp_enc = hdc_bipolar.encode_date_bipolar(d)
+            # Check if already a tensor and handle accordingly
+            if not isinstance(bp_enc, torch.Tensor):
+                bp_enc = torch.tensor(bp_enc, dtype=torch.float32).to(device)
+            else:
+                # Make sure it's float tensor for normalization
+                bp_enc = bp_enc.float().to(device)
             bipolar_encodings.append(bp_enc)
 
         # Apilar para procesamiento eficiente
@@ -977,6 +991,10 @@ def test_date_encoding_binary():
 
         # Referencia para similitud (primer encoding)
         ref_bipolar = bipolar_stack[0].unsqueeze(0)  # Shape: (1, dim)
+
+        # Ensure all tensors are float for normalization
+        ref_bipolar = ref_bipolar.float()
+        bipolar_stack = bipolar_stack.float()
 
         # Calcular similitud coseno para todos los vectores de una vez
         # Normalizar vectores para similitud coseno
@@ -991,7 +1009,7 @@ def test_date_encoding_binary():
 
     # Verificar monotonía para versión bipolar
     is_monotonic_bipolar = all(bipolar_similarities_list[i] >= bipolar_similarities_list[i + 1]
-                               for i in range(len(bipolar_similarities_list) - 1))
+                              for i in range(len(bipolar_similarities_list) - 1))
     print(f"La similitud bipolar disminuye monotónicamente: {is_monotonic_bipolar}")
 
     # Comparar curvas de similitud de manera eficiente
@@ -1007,7 +1025,6 @@ def test_date_encoding_binary():
         pytest.fail("La similitud bipolar no disminuye monotónicamente con la distancia temporal")
 
     return True
-
 
 def test_date_encoding_bipolar():
     """Test para validar la codificación escalar de fechas con vectores bipolares - monotonía"""
