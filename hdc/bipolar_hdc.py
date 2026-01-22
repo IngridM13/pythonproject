@@ -1,11 +1,10 @@
 import datetime
 import torch
-import numpy as np
 import hashlib
 from datetime import date
 from typing import Optional, Dict, Any, Iterable, List, Union
 
-# Asumiendo que estas dependencias existen en tu proyecto
+
 from configs.settings import HDC_DIM, DEFAULT_SEED
 from hdc.datatype_profiler import DataTypeProfiler
 from utils.person_data_normalization import normalize_person_data

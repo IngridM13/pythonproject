@@ -1,6 +1,4 @@
-import numpy as np
 import torch
-from hdc.hdc_common_operations import bipolar_random, binary_random
 from hdc.bipolar_hdc import HyperDimensionalComputingBipolar
 from typing import List, Union
 
@@ -56,8 +54,8 @@ class StringEncoding:
             self._perm_cache[i] = self._compute_permutation_tensor(i)
 
         # Diccionarios de base HVs
-        self._char_table: dict[str, Union[np.ndarray, torch.Tensor]] = {}
-        self._word_cache: dict[str, Union[np.ndarray, torch.Tensor]] = {}
+        self._char_table: dict[str, torch.Tensor] = {}
+        self._word_cache: dict[str, torch.Tensor] = {}
 
         # Identidades de binding - store as torch tensor
         if self.mode == "bipolar":
@@ -83,28 +81,25 @@ class StringEncoding:
         return indices
 
     # Replace the permute method with a vectorized version
-    def _permute(self, v: Union[np.ndarray, torch.Tensor], k: int = 1) -> Union[np.ndarray, torch.Tensor]:
+
+    def _permute(self, v: torch.Tensor, k: int = 1) -> torch.Tensor:
         """
         Vectorized permutation using PyTorch.
         Works with both single vectors and batches of vectors.
-        
+
         Args:
-            v: Vector or batch of vectors to permute (numpy or torch)
+            v: Vector or batch of vectors to permute (PyTorch tensor)
             k: Number of shifts to apply
-            
+
         Returns:
-            Permuted vector(s) in the same format as input
+            Permuted vector(s) as a PyTorch tensor
         """
         if k == 0:
             return v
-        
-        # Convert to tensor if numpy
-        is_numpy = isinstance(v, np.ndarray)
-        if is_numpy:
-            v_tensor = torch.from_numpy(v).to(self.device)
-        else:
-            v_tensor = v.to(self.device)
-        
+
+        # Ensure tensor is on the correct device
+        v_tensor = v.to(self.device)
+
         # Get permutation indices
         if k in self._perm_cache:
             indices = self._perm_cache[k]
@@ -113,7 +108,7 @@ class StringEncoding:
             # Cache if it's a reasonable size
             if k < 100:
                 self._perm_cache[k] = indices
-        
+
         # Apply permutation based on dimensionality
         if v_tensor.ndim == 1:
             # Single vector
@@ -123,46 +118,90 @@ class StringEncoding:
             # For batch tensors of shape (batch_size, D), we need to gather
             # Use fancy indexing: v_tensor[:, indices]
             result = v_tensor[:, indices]
-        
-        # Convert back to numpy if input was numpy
-        if is_numpy:
-            return result.cpu().numpy()
-        
+
         return result
 
     # ----------------------------
     # Generación y operaciones base
     # ----------------------------
-    def _random_hv(self) -> np.ndarray:
-        if self.mode == "bipolar":
-            hv = bipolar_random(self.D, self.rng)
-            if isinstance(hv, torch.Tensor):
-                hv = hv.detach().cpu().numpy()
-            return hv.astype(int)
-        else:
-            hv = binary_random(self.D, self.rng)
-            if isinstance(hv, torch.Tensor):
-                hv = hv.detach().cpu().numpy()
-            return hv.astype(np.uint8)
 
-    def _bind(self, a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    def _random_hv(self) -> torch.Tensor:
+        """
+        Genera un vector hiperdimensional aleatorio usando exclusivamente PyTorch.
+
+        Returns:
+            torch.Tensor: Un tensor de PyTorch con valores bipolar {-1, 1} o binario {0, 1}
+                          según el modo configurado.
+
+        Note:
+            Esta versión rompe deliberadamente la compatibilidad con NumPy para
+            forzar la migración completa a PyTorch.
+        """
+        if self.mode == "bipolar":
+            # Generar vector bipolar directamente con PyTorch
+            shape = (self.D,)
+            rand_bits = torch.randint(0, 2, shape, generator=self.rng, device=self.device)
+            # Transformar 0 -> -1, 1 -> 1
+            hv = torch.where(rand_bits == 0,
+                             torch.tensor(-1, dtype=torch.int8, device=self.device),
+                             torch.tensor(1, dtype=torch.int8, device=self.device))
+            return hv
+        else:
+            # Generar vector binario directamente con PyTorch
+            hv = torch.randint(0, 2, (self.D,),
+                               generator=self.rng,
+                               device=self.device,
+                               dtype=torch.uint8)
+            return hv
+
+
+    def _bind(self, a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+        """
+        Binds two PyTorch tensors together using multiplication (for bipolar mode)
+        or XOR (for binary mode).
+
+        Args:
+            a: First tensor (PyTorch tensor)
+            b: Second tensor (PyTorch tensor)
+
+        Returns:
+            Result of binding operation as a PyTorch tensor
+        """
         if self.mode == "bipolar":
             return a * b
         else:
-            return np.bitwise_xor(a, b)
+            return torch.bitwise_xor(a, b)
 
-    def _superpose(self, vecs: list[np.ndarray]) -> np.ndarray:
+    def _superpose(self, vecs: list[torch.Tensor]) -> torch.Tensor:
+        """
+        Realiza la superposición de vectores usando PyTorch.
+        Para modo bipolar: realiza suma y colapsa a {-1,+1} usando sign.
+        Para modo binario: realiza suma y aplica umbral mayoritario.
+
+        Args:
+            vecs: Lista de tensores PyTorch a superponer
+
+        Returns:
+            Tensor PyTorch con el resultado de la superposición
+        """
         if not vecs:
-            return self._bind_identity.copy()
+            return self._bind_identity.clone()
+
+        # Apilar los vectores eficientemente
+        stack = torch.stack(vecs).to(self.device)
+
+        # Realizar la suma a lo largo del eje 0 (a través de los vectores)
+        acc = torch.sum(stack, dim=0)
+
         if self.mode == "bipolar":
-            acc = np.sum(vecs, axis=0, dtype=int)
-            out = np.sign(acc)
+            # Aplicar la función sign y resolver los ceros como 1
+            out = torch.sign(acc)
             out[out == 0] = 1
-            return out.astype(int)
+            return out.to(torch.int8)
         else:
-            acc = np.sum(vecs, axis=0, dtype=int)
+            # Aplicar umbral mayoritario para modo binario
             threshold = (len(vecs) + 1) // 2
-            return (acc >= threshold).astype(np.uint8)
+            return (acc >= threshold).to(torch.uint8)
 
     def _superpose_vectors(self, vectors: torch.Tensor) -> torch.Tensor:
         """
@@ -224,67 +263,177 @@ class StringEncoding:
     # ----------------------------
     # Unidades de codificación
     # ----------------------------
-    def encode_char(self, c: str) -> np.ndarray:
+
+    def encode_char(self, c: str) -> torch.Tensor:
+        """
+        Codifica un único carácter a un vector hiperdimensional.
+
+        Args:
+            c: Un único carácter a codificar
+
+        Returns:
+            Tensor PyTorch representando el hipervector del carácter
+
+        Raises:
+            ValueError: Si se proporciona más de un carácter
+        """
         if len(c) != 1:
             raise ValueError("encode_char espera un único carácter.")
-        if c not in self._char_table:
-            self._char_table[c] = self._random_hv()
-        return self._char_table[c]
 
-    def encode_word(self, word: str) -> np.ndarray:
+        # Verificar si el carácter ya está en la tabla
+        if c not in self._char_table:
+            # Generar un nuevo vector aleatorio para este carácter
+            self._char_table[c] = self._random_hv()
+
+        # Asegurar que el vector está en el dispositivo correcto
+        char_vector = self._char_table[c].to(self.device)
+
+        return char_vector
+
+    def encode_word(self, word: str) -> torch.Tensor:
+        """
+        Codifica una palabra como un hipervector mediante la combinación de los
+        hipervectores de sus caracteres con permutaciones según posición.
+
+        Args:
+            word: Palabra a codificar
+
+        Returns:
+            Tensor de PyTorch con la representación hiperdimensional de la palabra
+        """
+        # Verificar caché primero
         if word in self._word_cache:
-            return self._word_cache[word]
+            cached_hv = self._word_cache[word]
+            # Si está en caché, asegurarse que esté en el dispositivo correcto
+            return cached_hv.to(self.device)
+
+        # Caso de palabra vacía
         if not word:
-            hv = self._bind_identity.copy()
+            hv = self._bind_identity.clone()
             self._word_cache[word] = hv
             return hv
 
+        # Codificar la palabra caracter por caracter
         hv = None
         for i, ch in enumerate(word):
+            # Codificar el caracter y aplicar permutación según posición
             ch_hv = self._permute(self.encode_char(ch), i)
-            hv = ch_hv if hv is None else self._bind(hv, ch_hv)
 
+            # Combinar con el vector acumulado hasta el momento
+            if hv is None:
+                hv = ch_hv
+            else:
+                hv = self._bind(hv, ch_hv)
+
+        # Guardar en caché para uso futuro
         self._word_cache[word] = hv
+
         return hv
 
-    def encode_tokens_ngram(self, tokens: list[str], n: int | None = None) -> np.ndarray:
-        if n is None: n = self.ngram_n
+    def encode_tokens_ngram(self, tokens: list[str], n: int | None = None) -> torch.Tensor:
+        """
+        Codifica una lista de tokens usando técnica de n-gramas.
+        Genera hipervectores para secuencias de n tokens consecutivos y los superpone.
+
+        Args:
+            tokens: Lista de tokens (palabras) a codificar
+            n: Tamaño del n-grama. Si es None, usa el valor configurado en self.ngram_n
+
+        Returns:
+            Tensor de PyTorch que representa el hipervector de los n-gramas
+        """
+        # Configurar tamaño de n-grama
+        if n is None:
+            n = self.ngram_n
         n = int(n)
+
+        # Caso especial: menos tokens que el tamaño del n-grama
         if len(tokens) < n:
+            # Superponemos los vectores de cada token individual
             return self._superpose([self.encode_word(t) for t in tokens])
 
+        # Codificación mediante n-gramas
         ngram_vecs = []
         for i in range(len(tokens) - n + 1):
             hv = None
+            # Para cada n-grama, codificamos cada token con permutación según posición
             for j in range(n):
+                # Codificar palabra y aplicar permutación según posición relativa
                 wv = self._permute(self.encode_word(tokens[i + j]), j)
-                hv = wv if hv is None else self._bind(hv, wv)
+
+                # Acumular mediante binding
+                if hv is None:
+                    hv = wv
+                else:
+                    hv = self._bind(hv, wv)
+
+            # Añadir el hipervector del n-grama a la lista
             ngram_vecs.append(hv)
 
+        # Superponer todos los n-gramas para obtener la representación final
         return self._superpose(ngram_vecs)
 
-    def encode_text(self, text: str | list[str], n: int | None = None, strategy: str | None = None) -> np.ndarray:
+    def encode_text(self, text: str | list[str], n: int | None = None, strategy: str | None = None) -> torch.Tensor:
+        """
+        Codifica un texto o lista de tokens como un hipervector utilizando PyTorch.
+
+        Args:
+            text: Texto (string) o lista de tokens a codificar
+            n: Tamaño del n-grama a utilizar. Si es None, usa el valor configurado (self.ngram_n)
+            strategy: Estrategia de codificación (actualmente no utilizada)
+
+        Returns:
+            Tensor de PyTorch que representa el texto codificado
+
+        Nota:
+            Si se proporciona un string, se dividirá en tokens por espacios.
+            Si se proporciona una lista, se usará directamente como tokens.
+        """
+        # Determinar los tokens a partir del input
         if isinstance(text, str):
+            # Si es una cadena, dividir por espacios y filtrar tokens vacíos
             tokens = [t for t in text.split() if t]
         else:
+            # Si ya es una lista, usarla directamente
             tokens = list(text)
 
+        # Caso especial: sin tokens
         if not tokens:
-            return self._bind_identity.copy()
+            return self._bind_identity.clone()
 
+        # Aplicar codificación n-grama
         return self.encode_tokens_ngram(tokens, n=n)
 
     # ----------------------------
     # Métricas y Batch
     # ----------------------------
-    def similarity(self, a: np.ndarray, b: np.ndarray) -> float:
+
+    def similarity(self, a: torch.Tensor, b: torch.Tensor) -> float:
+        """
+        Calcula la similitud entre dos tensores PyTorch.
+
+        Args:
+            a: Primer tensor PyTorch
+            b: Segundo tensor PyTorch
+
+        Returns:
+            Similitud como valor float entre 0 y 1
+        """
+        # Asegurarse que los vectores estén en el dispositivo correcto
+        a = a.to(self.device)
+        b = b.to(self.device)
+
         if self.mode == "bipolar":
-            return _hdc_ops.cosine_similarity(a, b)
+            # Para vectores bipolares, usar similitud coseno optimizada
+            # a y b deben convertirse a float para operaciones de punto flotante
+            a_f = a.float()
+            b_f = b.float()
+            return float(torch.dot(a_f, b_f) / self.D)
         else:
-            a = np.asarray(a).astype(np.uint8)
-            b = np.asarray(b).astype(np.uint8)
-            eq = np.sum(a == b)
-            return float(eq) / float(a.size)
+            # Para vectores binarios, calcular coincidencia de bits
+            # (1 - distancia Hamming normalizada)
+            eq = torch.sum(a == b).float()
+            return float(eq / a.numel())
 
     def batch_similarity(self, query: torch.Tensor, corpus: torch.Tensor) -> torch.Tensor:
         """
@@ -336,9 +485,19 @@ class StringEncoding:
                     
                 return similarities
 
-    def encode(self, s: str) -> np.ndarray:
+    def encode(self, s: str) -> torch.Tensor:
+        """
+        Codifica una cadena como vector hiperdimensional, detectando automáticamente
+        si es una palabra o un texto completo.
+
+        Args:
+            s: Cadena a codificar
+
+        Returns:
+            Tensor PyTorch con la representación hiperdimensional
+        """
         if " " in s:
-            return self.encode_text(s)
+            return self.encode_text(s)  # Asumiendo que t() es equivalente a encode_text()
         return self.encode_word(s)
 
     def encode_batch(self, strings: List[str]) -> torch.Tensor:
@@ -384,12 +543,19 @@ class StringEncoding:
         return self.encode_batch(items)
 
     # Update _batch_encode_words to use the improved permutation
+
     def _batch_encode_words(self, words: List[str]) -> torch.Tensor:
         """
-        Vectorized encoding of multiple words at once.
+        Vectorized encoding of multiple words at once using PyTorch exclusively.
+
+        Args:
+            words: List of words to encode
+
+        Returns:
+            Tensor of shape (len(words), D) containing encoded word vectors
         """
         batch_size = len(words)
-        
+
         if batch_size == 0:
             return torch.zeros((0, self.D),
                                dtype=torch.int8 if self.mode == "bipolar" else torch.uint8,
@@ -414,10 +580,13 @@ class StringEncoding:
         # Fill in cached results
         for i, orig_idx in enumerate(cached_indices):
             word = words[orig_idx]
-            if isinstance(self._word_cache[word], np.ndarray):
-                result[orig_idx] = torch.from_numpy(self._word_cache[word]).to(self.device)
-            else:
-                result[orig_idx] = self._word_cache[word].to(self.device)
+            # Ensure cache entry is a PyTorch tensor
+            if not isinstance(self._word_cache[word], torch.Tensor):
+                # Convert numpy array to tensor if necessary
+                self._word_cache[word] = torch.tensor(self._word_cache[word], device=self.device)
+
+            # Add to result
+            result[orig_idx] = self._word_cache[word].to(self.device)
 
         # Process uncached words
         if uncached_words:
@@ -428,6 +597,9 @@ class StringEncoding:
             for c in all_chars:
                 if c not in self._char_table:
                     self._char_table[c] = self._random_hv()
+                elif not isinstance(self._char_table[c], torch.Tensor):
+                    # Convert any remaining NumPy arrays in char_table
+                    self._char_table[c] = torch.tensor(self._char_table[c], device=self.device)
 
             for i, word_idx in enumerate(uncached_indices):
                 word = words[word_idx]
@@ -435,19 +607,23 @@ class StringEncoding:
                 if not word:
                     word_hv = self._bind_identity.clone()
                     result[word_idx] = word_hv
-                    # Store in cache as numpy for consistency
-                    self._word_cache[word] = word_hv.cpu().numpy()
+                    # Store in cache as PyTorch tensor
+                    self._word_cache[word] = word_hv
                     continue
 
                 word_vector = None
                 for pos, char in enumerate(word):
+                    # Ensure char vector is a PyTorch tensor
                     char_hv = self._char_table[char]
-                    if isinstance(char_hv, np.ndarray):
-                        char_tensor = torch.from_numpy(char_hv).to(self.device)
-                    else:
-                        char_tensor = char_hv.to(self.device)
+                    if not isinstance(char_hv, torch.Tensor):
+                        # Convert any remaining NumPy arrays
+                        char_hv = torch.tensor(char_hv, device=self.device)
+                        self._char_table[char] = char_hv
 
-                    # Use our improved vectorized permutation
+                    # Make sure it's on the right device
+                    char_tensor = char_hv.to(self.device)
+
+                    # Use vectorized permutation
                     permuted_tensor = self._permute(char_tensor, pos)
 
                     if word_vector is None:
@@ -459,8 +635,8 @@ class StringEncoding:
                             word_vector = torch.bitwise_xor(word_vector, permuted_tensor)
 
                 result[word_idx] = word_vector
-                # Store in cache as numpy for consistency
-                self._word_cache[word] = word_vector.cpu().numpy()
+                # Store in cache as PyTorch tensor
+                self._word_cache[word] = word_vector
 
         return result
 
@@ -531,60 +707,98 @@ class StringEncoding:
     def encode_chars_batch(self, chars: List[str]) -> torch.Tensor:
         """
         Encode multiple characters at once, returning a tensor of shape (len(chars), D)
+
+        Args:
+            chars: List of characters to encode
+
+        Returns:
+            PyTorch tensor of shape (len(chars), D) containing character vectors
         """
         # Create result tensor
-        result = torch.zeros((len(chars), self.D), 
-                            dtype=torch.int8 if self.mode == "bipolar" else torch.uint8,
-                            device=self.device)
-        
-        # Process unique characters
-        unique_chars = set(chars)
+        result = torch.zeros((len(chars), self.D),
+                             dtype=torch.int8 if self.mode == "bipolar" else torch.uint8,
+                             device=self.device)
+
+        # Process characters
         for i, c in enumerate(chars):
             if c not in self._char_table:
-                # Generate random vector for new character
+                # Generate random vector for new character using PyTorch
                 if self.mode == "bipolar":
-                    self._char_table[c] = bipolar_random(self.D, self.rng)
+                    self._char_table[c] = torch.randint(-1, 2, (self.D,),
+                                                        dtype=torch.int8,
+                                                        generator=self.rng,
+                                                        device=self.device)
+                    # Fix zeros to maintain -1/1 distribution
+                    zeros = self._char_table[c] == 0
+                    if zeros.any():
+                        self._char_table[c][zeros] = torch.where(
+                            torch.randint(0, 2, (zeros.sum(),),
+                                          generator=self.rng,
+                                          device=self.device) > 0,
+                            torch.tensor(1, dtype=torch.int8, device=self.device).to(self.device),
+                            torch.tensor(-1, dtype=torch.int8, device=self.device).to(self.device)
+                        )
+
                 else:
-                    self._char_table[c] = binary_random(self.D, self.rng)
-            
-            # Get character vector (convert from numpy if needed)
+                    self._char_table[c] = torch.randint(0, 2, (self.D,),
+                                                        dtype=torch.uint8,
+                                                        generator=self.rng,
+                                                        device=self.device)
+
+            # Get character vector (ensuring it's a PyTorch tensor)
             char_vector = self._char_table[c]
-            if isinstance(char_vector, np.ndarray):
-                char_vector = torch.from_numpy(char_vector).to(self.device)
-                self._char_table[c] = char_vector  # Cache the tensor
-                
+            if not isinstance(char_vector, torch.Tensor):
+                # Convert any remaining NumPy arrays to PyTorch tensors
+                char_vector = torch.tensor(char_vector, device=self.device)
+                self._char_table[c] = char_vector  # Update cache with tensor
+
+            # Ensure it's on the correct device
+            char_vector = char_vector.to(self.device)
+
             # Add to result
             result[i] = char_vector
-        
+
         return result
-    
+
     def encode_word_optimized(self, word: str) -> torch.Tensor:
         """
-        Optimized version of encode_word using vectorized operations
+        Optimized version of encode_word using vectorized operations in PyTorch.
+
+        Args:
+            word: String to encode
+
+        Returns:
+            PyTorch tensor representing the encoded word vector
         """
+        # Check cache first
         if word in self._word_cache:
             vector = self._word_cache[word]
-            if isinstance(vector, np.ndarray):
-                vector = torch.from_numpy(vector).to(self.device)
-                self._word_cache[word] = vector  # Update cache with tensor
-            return vector
-        
+            # Ensure it's a PyTorch tensor
+            if not isinstance(vector, torch.Tensor):
+                # Convert NumPy array to tensor if needed
+                vector = torch.tensor(vector, device=self.device)
+                # Update cache with tensor version
+                self._word_cache[word] = vector
+            # Make sure it's on the right device
+            return vector.to(self.device)
+
+        # Handle empty string case
         if not word:
             return self._bind_identity.clone()
-        
+
         # Encode all characters in batch
         chars = list(word)
         char_vectors = self.encode_chars_batch(chars)
-        
-        # Create position tensor
+
+        # Create position tensor on the appropriate device
         positions = torch.arange(len(chars), device=self.device)
-        
+
         # Perform batch permute and bind
         word_vector = self._batch_permute_and_bind(char_vectors, positions)
-        
-        # Cache the result
+
+        # Cache the result (already as a PyTorch tensor)
         self._word_cache[word] = word_vector
-        
+
         return word_vector
 
     def encode_tokens_ngram_vectorized(self, tokens: List[str], n: int = None) -> torch.Tensor:

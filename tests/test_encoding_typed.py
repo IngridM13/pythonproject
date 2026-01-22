@@ -28,83 +28,154 @@ except Exception:
 hv_dict = {}
 
 # --- Helpers to read/compare hv from Milvus ---
-
-def _unpack_binary_to_bipolar(payload, dim: int) -> torch.Tensor:
+def _unpack_binary_to_bipolar(payload, dim: int, device: str = 'cpu') -> torch.Tensor:
     """
+    Strict PyTorch implementation.
     Accepts:
-      - bytes/bytearray/memoryview of packed bits (0/1)
-      - list with a single bytes object (common from Milvus)
-      - list/ndarray of uint8 values (either packed bytes 0..255 or already-unpacked bits 0/1)
-    Returns bipolar {-1,+1} of length dim as a Torch Tensor.
+      - torch.Tensor (uint8)
+      - bytes / bytearray (packed bits)
+      - list[bytes] (Milvus wrapper)
+      - list[int] (Python list of uint8)
+
+    Raises:
+      - TypeError if input is a NumPy array or unsupported type.
     """
-    # If Milvus gave us a list wrapper, unwrap common cases
+    # --- 1. Strict Type Guard (Catches Legacy NumPy) ---
+    # We check the type name string to avoid importing numpy just for the check.
+    type_str = str(type(payload))
+    if 'numpy' in type_str:
+        raise TypeError(
+            f"Migration Error: NumPy input detected ({type_str}). "
+            "Please convert to torch.Tensor or bytes before calling this function."
+        )
+
+    # --- 2. Normalize Input to Flat uint8 Tensor ---
+
+    # Handle Milvus-style list wrapper: [b'\x12...']
+    if isinstance(payload, list):
+        if len(payload) > 0 and isinstance(payload[0], (bytes, bytearray)):
+            payload = payload[0]
+        # Else: It's likely a plain list of ints, which we handle below.
+
+    if isinstance(payload, (bytes, bytearray, memoryview)):
+        # Zero-copy where possible; explicit copy for immutable bytes
+        payload = torch.frombuffer(bytearray(payload), dtype=torch.uint8)
+    elif isinstance(payload, list):
+        # Handle standard python list of ints
+        payload = torch.tensor(payload, dtype=torch.uint8)
+    elif isinstance(payload, torch.Tensor):
+        # Accept existing tensors (ensure uint8)
+        payload = payload.to(dtype=torch.uint8)
+    else:
+        raise TypeError(f"Unsupported input type: {type(payload)}. Expected bytes, list, or torch.Tensor.")
+
+    # Move to device and flatten
+    payload = payload.to(device).flatten()
+
+    # --- 3. Determine if Unpacking is Needed ---
+
+    # Heuristic: If size matches 'dim' exactly, assume it's already unpacked bits (0/1)
+    if payload.numel() == dim:
+        bits = payload
+    else:
+        # --- 4. Unpack Bits (Big Endian) ---
+        # Create mask: [128, 64, 32, 16, 8, 4, 2, 1]
+        mask = torch.tensor([128, 64, 32, 16, 8, 4, 2, 1], dtype=torch.uint8, device=device)
+
+        # Expand payload (N, 1) and mask (1, 8) -> Result (N, 8)
+        # Perform bitwise AND and check if > 0
+        bits = (payload.unsqueeze(-1) & mask) > 0
+        bits = bits.flatten()
+
+    # --- 5. Slice and Convert to Bipolar ---
+
+    # Ensure we strictly output the requested dimension
+    bits = bits[:dim]
+
+    # Convert {0, 1} -> {-1, 1}
+    # Logic: (x * 2) - 1
+    # 0 -> -1
+    # 1 ->  1
+    return bits.to(torch.int8) * 2 - 1
+
+def _unpack_binary(payload, dim: int, device: str = 'cpu') -> torch.Tensor:
+    """
+    Strict PyTorch implementation.
+    Accepts:
+      - torch.Tensor (uint8)
+      - bytes / bytearray (packed bits)
+      - list[bytes] (Milvus wrapper)
+      - list[int] (Python list of uint8)
+      - list[float] (Milvus may return float32 values like [0.0, 1.0, ...])
+
+    Returns:
+      - torch.Tensor (uint8) containing {0, 1} values.
+
+    Raises:
+      - TypeError if input is a NumPy array or unsupported type.
+    """
+    # --- 1. Strict Type Guard (Catches Legacy NumPy) ---
+    type_str = str(type(payload))
+    if 'numpy' in type_str and not isinstance(payload, list):
+        raise TypeError(
+            f"Migration Error: NumPy input detected ({type_str}). "
+            "Please convert to torch.Tensor or bytes before calling this function."
+        )
+
+    # --- 2. Normalize Input to Flat uint8 Tensor ---
+
+    # Handle Milvus-style list wrapper: [b'\x12...']
     if isinstance(payload, list):
         if len(payload) == 0:
             raise ValueError("Empty hv payload")
+
         first = payload[0]
-        # Case: [b'\x12\x34...']  -> unwrap to bytes
         if isinstance(first, (bytes, bytearray, memoryview)):
             payload = first
-        else:
-            # Treat as numeric uint8 array (could be bits or packed bytes)
-            arr = np.asarray(payload, dtype=np.uint8).ravel()
-            # If already bits of length dim, use directly
-            if arr.size == dim and np.all((arr == 0) | (arr == 1)):
-                bits = arr
-            else:
-                # Assume packed bytes 0..255
-                bits = np.unpackbits(arr, bitorder="big")
-            bits = bits[:dim]
-            res = np.where(bits == 1, 1, -1).astype(np.int8)
-            return torch.from_numpy(res)
+        # Else: It's likely a plain list of ints or floats, handle below.
 
-    # Bytes-like path
     if isinstance(payload, (bytes, bytearray, memoryview)):
-        arr = np.frombuffer(payload, dtype=np.uint8)
+        # Zero-copy conversion (wraps in bytearray to ensure writability/compatibility)
+        payload = torch.frombuffer(bytearray(payload), dtype=torch.uint8)
+    elif isinstance(payload, list):
+        try:
+            # First try the standard way (for integer lists)
+            payload = torch.tensor(payload, dtype=torch.uint8)
+        except TypeError:
+            # Handle float lists (from Milvus) by first converting to float tensor
+            # then rounding and converting to uint8
+            payload = torch.tensor(payload, dtype=torch.float32).round().to(torch.uint8)
+    elif isinstance(payload, torch.Tensor):
+        # If it's already a tensor but not uint8, convert it
+        if payload.dtype != torch.uint8:
+            payload = payload.round().to(torch.uint8)
     else:
-        # Fallback (handles ndarray, lists of ints, etc.)
-        arr = np.asarray(payload, dtype=np.uint8).ravel()
+        raise TypeError(f"Unsupported input type: {type(payload)}. Expected bytes, list, or torch.Tensor.")
 
-    bits = np.unpackbits(arr, bitorder="big")
-    bits = bits[:dim]
-    res = np.where(bits == 1, 1, -1).astype(np.int8)
-    return torch.from_numpy(res)
+    # Move to device and flatten
+    payload = payload.to(device).flatten()
 
-def _unpack_binary(payload, dim: int) -> torch.Tensor:
-    """
-    Similar to _unpack_binary_to_bipolar but returns binary {0,1} values.
-    Returns binary {0,1} of length dim as a Torch Tensor.
-    """
-    # If Milvus gave us a list wrapper, unwrap common cases
-    if isinstance(payload, list):
-        if len(payload) == 0:
-            raise ValueError("Empty hv payload")
-        first = payload[0]
-        # Case: [b'\x12\x34...']  -> unwrap to bytes
-        if isinstance(first, (bytes, bytearray, memoryview)):
-            payload = first
-        else:
-            # Treat as numeric uint8 array (could be bits or packed bytes)
-            arr = np.asarray(payload, dtype=np.uint8).ravel()
-            # If already bits of length dim, use directly
-            if arr.size == dim and np.all((arr == 0) | (arr == 1)):
-                return torch.from_numpy(arr.astype(np.uint8))
-            else:
-                # Assume packed bytes 0..255
-                bits = np.unpackbits(arr, bitorder="big")
-                return torch.from_numpy(bits[:dim].astype(np.uint8))
+    # --- 3. Determine if Unpacking is Needed ---
 
-    # Bytes-like path
-    if isinstance(payload, (bytes, bytearray, memoryview)):
-        arr = np.frombuffer(payload, dtype=np.uint8)
-    else:
-        # Fallback (handles ndarray, lists of ints, etc.)
-        arr = np.asarray(payload, dtype=np.uint8).ravel()
+    # Heuristic: If size matches 'dim' exactly, assume it's already unpacked bits (0/1)
+    if payload.numel() == dim:
+        # Ensure strict 0/1 (optional sanity check, though typically we trust the dimensions)
+        return payload.to(torch.uint8)
 
-    # Now arr is properly defined in all code paths
-    bits = np.unpackbits(arr, bitorder="big")
-    bits = bits[:dim]
-    return torch.from_numpy(bits.astype(np.uint8))
+    # --- 4. Unpack Bits (Big Endian) ---
+
+    # Create mask: [128, 64, 32, 16, 8, 4, 2, 1]
+    mask = torch.tensor([128, 64, 32, 16, 8, 4, 2, 1], dtype=torch.uint8, device=device)
+
+    # Expand payload (N, 1) and mask (1, 8) -> Result (N, 8)
+    # Perform bitwise AND. If result > 0, the bit is set.
+    bits = (payload.unsqueeze(-1) & mask) > 0
+    bits = bits.flatten()
+
+    # --- 5. Slice and Return ---
+
+    # Cut to requested dimension and cast boolean -> uint8 (0 or 1)
+    return bits[:dim].to(torch.uint8)
 
 def _load_person_from_milvus(person_id: int, with_hv: bool = True):
     """
@@ -128,19 +199,12 @@ def _delete_people_from_milvus(ids):
     id_list = ",".join(str(i) for i in ids)
     col.delete(expr=f"id in [{id_list}]")
 
-def _to_tensor(x):
-    """Ensure x is a tensor."""
-    if isinstance(x, torch.Tensor):
-        return x
-    return torch.from_numpy(np.asarray(x))
-
 # -------------------- Tests --------------------
 
 
 @pytest.mark.parametrize("with_vector_mode", ["binary", "float"], indirect=True)
 def test_same_person_encoding_is_consistent(with_vector_mode):
     """Verifies that encoding the same person twice yields the same vector."""
-    import torch.nn.functional as F
     from database_utils.milvus_db_connection import get_vector_mode
 
     # Use GPU if available for improved performance
@@ -166,13 +230,13 @@ def test_same_person_encoding_is_consistent(with_vector_mode):
         hv_dict = {}
 
         # First encoding
-        encoding1 = _to_tensor(encode_person(test_person)).to(device)
+        encoding1 = encode_person(test_person).to(device)
 
         # Reset cache
         hv_dict = {}
 
         # Second encoding
-        encoding2 = _to_tensor(encode_person(test_person)).to(device)
+        encoding2 = encode_person(test_person).to(device)
 
         # Use torch.allclose for robust comparison with floating point values
         if encoding1.dtype.is_floating_point or encoding2.dtype.is_floating_point:
@@ -381,7 +445,7 @@ def test_db_encoding_preservation(with_vector_mode):
     # Use torch.no_grad to reduce memory usage during inference
     with torch.no_grad():
         # Encode de manera local (ésta es la referencia)
-        original_encoding = _to_tensor(encode_person(raw_test_person)).to(device)
+        original_encoding = encode_person(raw_test_person).to(device)
         print(f"\nEncoding original (primeros 5 elementos): {original_encoding[:5]}")
 
         # Insertar en Milvus (devuelve PK id)
@@ -423,7 +487,7 @@ def test_db_encoding_preservation(with_vector_mode):
 
         # Recalcular encoding a partir del diccionario recuperado
         hv_dict = {}
-        recomputed_encoding = _to_tensor(encode_person(normalized_retrieved)).to(device)
+        recomputed_encoding = encode_person(normalized_retrieved).to(device)
 
         # Determine stored encoding based on mode
         if with_vector_mode.lower() == "binary":
@@ -431,6 +495,7 @@ def test_db_encoding_preservation(with_vector_mode):
         else:  # "float" (bipolar)
             # Milvus might return list of floats/ints for float_vector
             raw_hv = stored["hv"]
+            # When querying a vector database, the Python SDK will almost always return the vector as either a Python list or a numpy.ndarray
             if isinstance(raw_hv, (list, np.ndarray)):
                 stored_encoding = torch.tensor(raw_hv, device=device)
                 # Normalize to -1, 1 if they came back as floats or ints
@@ -521,6 +586,7 @@ def test_db_encoding_preservation(with_vector_mode):
         _delete_people_from_milvus(person_ids)
 
     return stored_vs_original and recomputed_vs_stored
+
 
 # TODO: Hay que trabajar en optimizar este test para pytorch!
 def test_search_with_encoded_vector():
