@@ -1,7 +1,6 @@
 from configs.settings import HDC_DIM
 from encoding_methods.by_data_type.bool import BoolEncoding
 from encoding_methods.by_data_type.numbers import IntegerEncoding, DecimalEncoding
-from encoding_methods.by_data_type.type_datetime import DatetimeEncoding
 
 
 def bool_test():
@@ -50,39 +49,35 @@ def integer_test():
 def datetime_test():
     import datetime as dt
     from configs.settings import HDC_DIM, DEFAULT_SEED
+    from hdc.bipolar_hdc import HyperDimensionalComputingBipolar
 
-    print("Ejemplo: DatetimeEncoding")
-    enc = DatetimeEncoding(
-        D=HDC_DIM,
+    print("Ejemplo: DatetimeEncoding (via HyperDimensionalComputingBipolar)")
+    hdc = HyperDimensionalComputingBipolar(
+        dim=HDC_DIM,
         seed=DEFAULT_SEED,
-        components=("year", "month", "day", "hour"),
     )
 
     # Fechas de prueba
-    t_ref = dt.datetime(2024, 3, 15, 10, 0, 0)  # 15/03/2024 10:00
-    t_next_month = dt.datetime(2024, 4, 15, 10, 0, 0)  # mes siguiente
-    t_far = dt.datetime(2024, 9, 15, 10, 0, 0)  # varios meses después
+    t_ref = dt.date(2024, 3, 15)
+    t_next_month = dt.date(2024, 4, 15)
+    t_far = dt.date(2024, 9, 15)
 
     # Codificación
-    h_ref = enc.encode(t_ref)
-    h_next = enc.encode(t_next_month)
-    h_far = enc.encode(t_far)
+    h_ref = hdc.encode_date_bipolar(t_ref)
+    h_next = hdc.encode_date_bipolar(t_next_month)
+    h_far = hdc.encode_date_bipolar(t_far)
 
     # Similitudes (coseno)
-    from encoding_methods.by_data_type.operaciones_vectoriales import cosine_similarity
     print("Dimensión HV:", h_ref.shape[0])
-    print("sim(ref, ref)         =", cosine_similarity(h_ref, h_ref))
-    print("sim(ref, mes+1)       =", cosine_similarity(h_ref, h_next))
-    print("sim(ref, mes lejano)  =", cosine_similarity(h_ref, h_far))
+    print("sim(ref, ref)         =", hdc.cosine_similarity(h_ref, h_ref))
+    print("sim(ref, mes+1)       =", hdc.cosine_similarity(h_ref, h_next))
+    print("sim(ref, mes lejano)  =", hdc.cosine_similarity(h_ref, h_far))
 
-    # También puedes codificar con diccionarios o tuplas
-    # Diccionario explícito de componentes
-    h_dict = enc.encode({"year": 2024, "month": 3, "day": 15, "hour": 10})
-    print("sim(ref, dict mismo)  =", cosine_similarity(h_ref, h_dict))
-
-    # Tupla (año, mes, día, hora)
-    h_tuple = enc.encode((2024, 3, 15, 10))
-    print("sim(ref, tupla misma) =", cosine_similarity(h_ref, h_tuple))
+    # Prueba con lista (batch)
+    batch_dates = [t_ref, t_next_month]
+    h_batch = hdc.encode_date_bipolar(batch_dates)
+    print("Batch encoding shape:", h_batch.shape)
+    print("sim(ref, batch[0])    =", hdc.cosine_similarity(h_ref, h_batch[0]))
 
 def string_test():
     # Ejemplos de codificación de strings: caracteres, palabras y textos (n-grams)
@@ -117,5 +112,3 @@ def string_test():
     hv_w1_bin = enc_bin.encode_word(w1)
     hv_w2_bin = enc_bin.encode_word(w2)
     print("sim_word_bin(casa, caso) =", enc_bin.similarity(hv_w1_bin, hv_w2_bin))
-
-#string_test()

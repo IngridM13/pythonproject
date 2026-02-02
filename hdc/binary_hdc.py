@@ -129,30 +129,58 @@ class HyperDimensionalComputingBinary:
         """
         Realiza la operación de bundling sobre una lista de vectores binarios
         de forma determinista usando PyTorch.
+
+        Implementa votación mayoritaria con manejo seguro de tipos y desempate determinista.
+        Los vectores de entrada deben tener valores en {0,1}.
         """
         if not vectors:
             return torch.zeros(self.dim, dtype=torch.uint8, device=self.device)
 
-        # Convertir cada vector a tensor de PyTorch si no lo es ya
+        # Convertir cada vector a tensor de PyTorch int32 para evitar overflow en la suma
         tensor_vectors = []
         for v in vectors:
             if not isinstance(v, torch.Tensor):
-                tensor_vectors.append(torch.tensor(v, dtype=torch.uint8, device=self.device))
+                tensor_vectors.append(torch.tensor(v, dtype=torch.int32, device=self.device))
             else:
-                tensor_vectors.append(v.to(self.device))
+                # Asegurar conversión a int32 para prevenir overflow
+                tensor_vectors.append(v.to(dtype=torch.int32, device=self.device))
 
-        # Apilar los vectores y sumar a lo largo del eje 0
+        # Apilar los vectores y sumar a lo largo del eje 0 (seguros en int32)
         stacked = torch.stack(tensor_vectors)
         sum_vec = torch.sum(stacked, dim=0, dtype=torch.int32)
 
         # El umbral para la votación de mayoría
         threshold = len(vectors) / 2.0
 
-        # Compara la suma con el umbral para obtener el resultado
-        # La comparación `> threshold` asegura que si sum_vec == threshold (un empate),
-        # el resultado será False, que se convierte en 0.
-        # Esto hace que el desempate sea determinista.
+        # Manejo de empates: en caso de empate exacto, usar un desempate determinista
+        # basado en un hash de las posiciones para evitar sesgo sistemático
+        if torch.any(sum_vec == int(threshold)):
+            # Crear máscara de posiciones con empate
+            ties_mask = (sum_vec == int(threshold))
+
+            # Usar un tensor determinista para desempatar
+            if not hasattr(self, '_tie_breaker'):
+                # Generar un vector de desempate determinista basado en la semilla
+                # Este vector solo se calcula una vez y se reutiliza
+                rng = torch.Generator(device='cpu')
+                rng.manual_seed(self._deterministic_hash("tie_breaker"))
+                self._tie_breaker = torch.randint(0, 2, (self.dim,),
+                                                  dtype=torch.uint8,
+                                                  generator=rng).to(self.device)
+
+            # Resolver los empates usando el vector de desempate
+            # Donde hay empates, usar el tie_breaker
+            sum_vec = sum_vec.to(torch.float32)  # Convertir a float para comparación
+            sum_vec[ties_mask] = threshold + (self._tie_breaker[ties_mask].to(torch.float32) - 0.5)
+
+        # Aplicar votación mayoritaria
         bundle = (sum_vec > threshold).to(torch.uint8)
+
+        # Verificación final: asegurar que el resultado tenga estrictamente valores en {0,1}
+        # Esta verificación es técnicamente innecesaria dada la implementación anterior,
+        # pero se incluye como medida de seguridad adicional
+        if not torch.all((bundle == 0) | (bundle == 1)):
+            raise ValueError("El resultado del bundle_hv contiene valores fuera del rango {0,1}")
 
         return bundle
 
@@ -225,28 +253,6 @@ class HyperDimensionalComputingBinary:
 
         return similarities
 
-    def _thermometer(self, name: str, value: float, min_val: float, max_val: float,
-                     resolution: int = 100) -> torch.Tensor:
-        """Genera un vector de termómetro binario de forma determinista usando PyTorch."""
-        seed = self._deterministic_hash(name)
-        rng = torch.Generator(device='cpu')
-        rng.manual_seed(seed)
-
-        # Crear índices y permutarlos
-        indices = torch.arange(self.dim)
-        perm = torch.randperm(self.dim, generator=rng)
-        permuted_indices = indices[perm]
-
-        value = max(min_val, min(max_val, value))  # Clamp value
-
-        proportion = (value - min_val) / (max_val - min_val) if max_val > min_val else 0
-        num_bits_to_set = int(self.dim * proportion)
-
-        vec = torch.zeros(self.dim, dtype=torch.uint8, device=self.device)
-        if num_bits_to_set > 0:
-            vec[permuted_indices[:num_bits_to_set]] = 1
-        return vec
-
     def _thermometer_batch(self, name: str, values: List[float], min_val: float, max_val: float) -> torch.Tensor:
         """
         Versión por lotes de thermometer para procesar múltiples valores a la vez.
@@ -283,65 +289,133 @@ class HyperDimensionalComputingBinary:
 
         return result
 
-    def encode_date_binary(self, value: Union[date, List[date]]) -> Union[torch.Tensor, torch.Tensor]:
+    def encode_date_binary(self, value: Union[date, List[date]]):
         """
-        Codifica una fecha o lista de fechas en vectores hiperdimensionales binarios.
-        Soporta procesamiento por lotes para mejorar rendimiento.
+        Encode de fecha binario sin periodicidad, descomponiendo en:
+          - year (año absoluto)
+          - abs_month (meses acumulados desde 1970-01)
+          - abs_day (días acumulados desde 1970-01-01)
 
-        Args:
-            value: Una fecha individual o una lista de fechas
-
-        Returns:
-            Un tensor para una sola fecha o un tensor apilado para múltiples fechas
+        Usa termómetros deterministas por componente + binding XOR con roles por componente.
+        Mejora similitud local con pesos discretos (duplicando el canal abs_day).
         """
-        # Caso de lista (procesamiento por lotes)
-        if isinstance(value, list):
+
+        # ---------------------------
+        # 0) Validación entrada
+        # ---------------------------
+        is_list = isinstance(value, list)
+
+        if is_list:
             if not value:
                 return torch.zeros((0, self.dim), dtype=torch.uint8, device=self.device)
-
             if not all(isinstance(d, date) for d in value):
                 raise TypeError("Todas las entradas deben ser objetos de tipo date")
+            dates = value
+        else:
+            if not isinstance(value, date):
+                raise TypeError("El valor debe ser un objeto date o una lista de fechas")
+            dates = [value]
 
-            # Convertir fechas a valores ordinales
-            min_date_ord = date(1900, 1, 1).toordinal()
-            max_date_ord = date(2100, 12, 31).toordinal()
-            date_ords = [d.toordinal() for d in value]
+        # ---------------------------
+        # 1) Cache config (ref + rangos + roles)
+        # ---------------------------
+        if not hasattr(self, "_date_ref"):
+            self._date_ref = date(1970, 1, 1)
 
-            # Generar vectores termómetro en batch
-            date_therm_vecs = self._thermometer_batch(
-                name='date_ordinal',
-                values=date_ords,
-                min_val=min_date_ord,
-                max_val=max_date_ord
-            )
+        # Rango temporal para termómetros
+        # Mantengo 1900-2100 como “safe default”, pero abs_* se computa respecto a 1970.
+        if not hasattr(self, "_date_min_year"):
+            self._date_min_year = 1900
+        if not hasattr(self, "_date_max_year"):
+            self._date_max_year = 2100
 
-            # Obtener base HV y expandir para broadcast
-            date_base_hv = self.get_binary_hv("DATE_ORDINAL_BASE")
-            date_base_hv_expanded = date_base_hv.unsqueeze(0).expand(len(value), -1)
+        if not hasattr(self, "_date_min_abs_month"):
+            # meses desde 1970-01 hasta 1900-01 (negativo)
+            self._date_min_abs_month = (1900 - 1970) * 12 + (1 - 1)  # -840
+        if not hasattr(self, "_date_max_abs_month"):
+            # meses desde 1970-01 hasta 2100-12
+            self._date_max_abs_month = (2100 - 1970) * 12 + (12 - 1)  # 1571
 
-            # Bind en batch
-            return self.bind_batch(date_therm_vecs, date_base_hv_expanded)
+        if not hasattr(self, "_date_min_abs_day"):
+            self._date_min_abs_day = (date(1900, 1, 1) - self._date_ref).days  # negativo
+        if not hasattr(self, "_date_max_abs_day"):
+            self._date_max_abs_day = (date(2100, 12, 31) - self._date_ref).days
 
-        # Caso de fecha única
-        if not isinstance(value, date):
-            raise TypeError("El valor debe ser un objeto de tipo date o una lista de fechas")
+        # Roles por componente (binarios, cacheados)
+        # Si get_binary_hv(key) ya es estable/determinista, esto es suficiente.
+        if not hasattr(self, "_date_role_year"):
+            self._date_role_year = self.get_binary_hv("ROLE::DATE::YEAR").to(self.device)
+        if not hasattr(self, "_date_role_abs_month"):
+            self._date_role_abs_month = self.get_binary_hv("ROLE::DATE::ABS_MONTH").to(self.device)
+        if not hasattr(self, "_date_role_abs_day"):
+            self._date_role_abs_day = self.get_binary_hv("ROLE::DATE::ABS_DAY").to(self.device)
 
-        # Usar un rango fijo para las fechas, p.ej., desde el año 1900 al 2100.
-        min_date_ord = date(1900, 1, 1).toordinal()
-        max_date_ord = date(2100, 12, 31).toordinal()
+        # ---------------------------
+        # 2) Helpers de componentes
+        # ---------------------------
+        def abs_month(d: date) -> int:
+            return (d.year - 1970) * 12 + (d.month - 1)
 
-        value_ord = value.toordinal()
+        def abs_day(d: date) -> int:
+            return (d - self._date_ref).days
 
-        # El método del termómetro ahora es monotónico por construcción.
-        date_therm_vec = self._thermometer(
-            name='date_ordinal',
-            value=value_ord,
-            min_val=min_date_ord,
-            max_val=max_date_ord
+        # ---------------------------
+        # 3) Encode batch (termómetros por componente)
+        # ---------------------------
+        years = [d.year for d in dates]
+        months = [abs_month(d) for d in dates]
+        days = [abs_day(d) for d in dates]
+
+        # Termómetros (cada name => permutación distinta => evita colisiones entre canales)
+        year_vecs = self._thermometer_batch(
+            name="date_year",
+            values=years,
+            min_val=self._date_min_year,
+            max_val=self._date_max_year
         )
 
-        date_base_hv = self.get_binary_hv("DATE_ORDINAL_BASE")
-        return self.bind_hv(date_base_hv, date_therm_vec)
+        month_vecs = self._thermometer_batch(
+            name="date_abs_month",
+            values=months,
+            min_val=self._date_min_abs_month,
+            max_val=self._date_max_abs_month
+        )
+
+        day_vecs = self._thermometer_batch(
+            name="date_abs_day",
+            values=days,
+            min_val=self._date_min_abs_day,
+            max_val=self._date_max_abs_day
+        )
+
+        # Binding XOR con roles
+        # bind_batch maneja broadcast de role (1D) al batch.
+        bound_year = self.bind_batch(year_vecs, self._date_role_year)
+        bound_month = self.bind_batch(month_vecs, self._date_role_abs_month)
+        bound_day = self.bind_batch(day_vecs, self._date_role_abs_day)
+
+        # ---------------------------
+        # 4) Bundling con pesos discretos
+        # ---------------------------
+        # Peso actual:
+        # - abs_day domina similitud local (duplicado para mas peso)
+        # - abs_month contribuye a escalas medias
+        # - year contribuye a escalas largas
+        #
+        # Para más suavidad local aún, se pueden agregar repeticiones de bound_day.
+        out = []
+        for i in range(len(dates)):
+            hv = self.bundle_hv([bound_year[i], bound_month[i], bound_day[i], bound_day[i]])
+            out.append(hv)
+
+        batch_result = torch.stack(out)  # (n, dim)
+
+        # ---------------------------
+        # 5) Retorno
+        # ---------------------------
+        if is_list:
+            return batch_result
+        return batch_result[0]
 
     def encode_person_binary(self, raw_person: Dict[str, Any]) -> torch.Tensor:
         """

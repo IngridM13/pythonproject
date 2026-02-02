@@ -173,52 +173,104 @@ class HyperDimensionalComputingBipolar:
 
     # ---- Codificación Avanzada (Fechas, Personas, Batches) ----
     def encode_date_bipolar(self, date_obj: Union[date, List[date], None]) -> torch.Tensor:
-        """Codificación de fechas basada en frecuencias (FPE)."""
+        """
+        Encoding bipolar de fechas SIN periodicidad, consistente con la versión binaria:
+        - Descompone en year, abs_month, abs_day (absolutos desde 1970-01-01)
+        - Termómetro determinista por componente (permutación por nombre)
+        - Binding con roles (multiplicación)
+        - Bundling con pesos discretos (abs_day duplicado)
+        """
         if date_obj is None:
             return torch.ones(self.dim, dtype=torch.int8, device=self.device)
 
-        reference_date = date(1970, 1, 1)
+        ref = date(1970, 1, 1)
 
-        # Convertir a lista para procesar igual
         is_list = isinstance(date_obj, list)
         dates = date_obj if is_list else [date_obj]
 
-        days_list = []
+        # Roles cacheados
+        if not hasattr(self, "_date_role_year"):
+            self._date_role_year = self.get_bipolar_hv("ROLE::DATE::YEAR")
+            self._date_role_abs_month = self.get_bipolar_hv("ROLE::DATE::ABS_MONTH")
+            self._date_role_abs_day = self.get_bipolar_hv("ROLE::DATE::ABS_DAY")
+
+        # Rangos (ajustables según dataset)
+        # Mantengo 1900-2100 como seguro, pero abs_* es relativo a 1970.
+        years_min, years_max = 1900, 2100
+        min_abs_month = (1900 - 1970) * 12 + (1 - 1)  # -840
+        max_abs_month = (2100 - 1970) * 12 + (12 - 1)  # 1571
+        min_abs_day = (date(1900, 1, 1) - ref).days
+        max_abs_day = (date(2100, 12, 31) - ref).days
+
+        def to_abs_month(d: date) -> int:
+            return (d.year - 1970) * 12 + (d.month - 1)
+
+        def to_abs_day(d: date) -> int:
+            return (d - ref).days
+
+        # Extraer valores (aceptar datetime.date y datetime.datetime)
+        years, abs_months, abs_days = [], [], []
         for d in dates:
             if d is None:
-                days_list.append(0)
-            elif isinstance(d, (date, datetime.datetime)):
-                days_list.append((d - reference_date).days)
+                years.append(years_min)  # o 0, pero mejor clamp al rango
+                abs_months.append(0)
+                abs_days.append(0)
+                continue
+            if isinstance(d, (date, datetime.datetime)):
+                dd = d.date() if isinstance(d, datetime.datetime) else d
+                years.append(dd.year)
+                abs_months.append(to_abs_month(dd))
+                abs_days.append(to_abs_day(dd))
             else:
-                days_list.append(0)
+                years.append(years_min)
+                abs_months.append(0)
+                abs_days.append(0)
 
-        days_arr = torch.tensor(days_list, dtype=torch.float32, device=self.device).clamp(0, self._max_range_days)
-        if not is_list:
-            days_arr = days_arr.squeeze()
-        else:
-            days_arr = days_arr.unsqueeze(1)
+        # Termómetro bipolar determinista (usando hashing interno de esta clase)
+        # y conversión a bipolar {-1, +1}
+        def thermometer_bipolar_batch(name: str, vals: List[int], vmin: int, vmax: int) -> torch.Tensor:
+            seed = self._deterministic_hash(name)
+            rng = torch.Generator(device="cpu").manual_seed(seed)
+            perm = torch.randperm(self.dim, generator=rng, device="cpu").to(self.device)
 
-        num_components = self.dim // 2
-        min_freq, max_freq = 1.0 / self._max_range_days, 0.5
-        freqs = torch.exp(torch.linspace(torch.log(torch.tensor(min_freq, device=self.device)),
-                                         torch.log(torch.tensor(max_freq, device=self.device)),
-                                         num_components, device=self.device))
+            vals_t = torch.tensor(vals, dtype=torch.int32, device=self.device)
+            vals_t = torch.clamp(vals_t, vmin, vmax)
+            denom = float(vmax - vmin) if vmax > vmin else 1.0
+            prop = (vals_t - vmin).float() / denom
+            nbits = (prop * self.dim).to(torch.int32)
 
-        phases = 2 * torch.pi * freqs * (days_arr if not is_list else days_arr)
-        sin_c, cos_c = torch.sin(phases), torch.cos(phases)
+            out = torch.zeros((len(vals), self.dim), dtype=torch.int8, device=self.device)
+            # Set bits por fila (loop; optimizable luego)
+            for i, n in enumerate(nbits.tolist()):
+                if n > 0:
+                    out[i, perm[:n]] = 1
 
-        if is_list:
-            components = torch.zeros((len(dates), self.dim), dtype=torch.float32, device=self.device)
-            components[:, 0::2] = sin_c
-            components[:, 1::2] = cos_c
-        else:
-            components = torch.zeros(self.dim, dtype=torch.float32, device=self.device)
-            components[0::2] = sin_c
-            components[1::2] = cos_c
+            return (out * 2 - 1).to(torch.int8)
 
-        return torch.where(components >= 0,
-                           torch.tensor(1, dtype=torch.int8, device=self.device),
-                           torch.tensor(-1, dtype=torch.int8, device=self.device))
+        # Batch encode componentes
+        year_vecs = thermometer_bipolar_batch("date_year", years, years_min, years_max)
+        month_vecs = thermometer_bipolar_batch("date_abs_month", abs_months, min_abs_month, max_abs_month)
+        day_vecs = thermometer_bipolar_batch("date_abs_day", abs_days, min_abs_day, max_abs_day)
+
+        # Binding bipolar (multiplicación)
+        bound_year = self.bind_hv(year_vecs, self._date_role_year.unsqueeze(0).expand(len(dates), -1))
+        bound_month = self.bind_hv(month_vecs, self._date_role_abs_month.unsqueeze(0).expand(len(dates), -1))
+        bound_day = self.bind_hv(day_vecs, self._date_role_abs_day.unsqueeze(0).expand(len(dates), -1))
+
+        # Bundling con pesos discretos: abs_day duplicado para similitud local
+        acc = torch.zeros((len(dates), self.dim), dtype=torch.int32, device=self.device)
+        acc += bound_year.to(torch.int32)
+        acc += bound_month.to(torch.int32)
+        acc += bound_day.to(torch.int32)
+        acc += bound_day.to(torch.int32)  # peso x2
+
+        res = torch.sign(acc).to(torch.int8)
+        zeros = (res == 0)
+        if torch.any(zeros):
+            tb = self._tie_breaker_bipolar("date_bundle", self.dim).to(device=self.device)
+            res[zeros] = tb.unsqueeze(0).expand(len(dates), -1)[zeros]
+
+        return res if is_list else res[0]
 
     def encode_person_generalized(self, raw_person: Dict[str, Any]) -> torch.Tensor:
         """Codifica una persona usando el sistema de estrategias."""
