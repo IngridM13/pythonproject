@@ -93,14 +93,18 @@ class DecimalEncoding:
     """
     Fractional Power Encoding (FPE) para valores decimales/reales.
     v_i(x) = sign( cos( ω_i * (x - x0) + φ_i ) ), con ω_i y φ_i aleatorios por dimensión.
+
+    Soporta representaciones binarias {0,1} o bipolares {-1,1} según el parámetro output_mode.
     """
-    def __init__(self, D=10000, seed=0, x0=0.0, smoothness=10.0, omega_spread=4.0):
+
+    def __init__(self, D=10000, seed=0, x0=0.0, smoothness=10.0, omega_spread=4.0, output_mode="bipolar"):
         """
         D: dimensión del hipervector
         seed: semilla
         x0: centro del contexto
         smoothness: escala típica de variación
         omega_spread: factor de dispersión de frecuencias
+        output_mode: "bipolar" para vectores {-1,1} o "binary" para vectores {0,1}
         """
         # Set seed for reproducibility
         torch.manual_seed(seed)
@@ -109,38 +113,61 @@ class DecimalEncoding:
             raise ValueError("smoothness debe ser > 0")
         if omega_spread < 1.0:
             raise ValueError("omega_spread debe ser >= 1.0")
+        if output_mode not in ["binary", "bipolar"]:
+            raise ValueError("output_mode debe ser 'binary' o 'bipolar'")
 
         self.D = int(D)
         self.x0 = float(x0)
+        self.output_mode = output_mode
 
-        # Frecuencia base
-        omega_base = torch.pi / smoothness
+        # Frecuencia base - aseguramos que sea un tensor
+        omega_base = torch.tensor(float(torch.pi / smoothness))
 
-        # Distribuimos ω_i log-uniformemente
-        log_min = torch.log(omega_base / omega_spread)
+        # Distribuimos ω_i log-uniformemente usando tensores para todos los cálculos
+        log_min = torch.log(omega_base / torch.tensor(float(omega_spread)))
         log_max = torch.log(omega_base)
 
-        self.omega = torch.exp(torch.empty(self.D).uniform_(log_min, log_max))
-        self.phi = torch.empty(self.D).uniform_(0, 2*torch.pi)
+        self.omega = torch.exp(torch.empty(self.D).uniform_(log_min.item(), log_max.item()))
+        self.phi = torch.empty(self.D).uniform_(0, 2 * torch.pi)
 
     def encode(self, x: float) -> torch.Tensor:
         """
-        Devuelve un hipervector bipolar para el real x.
+        Devuelve un hipervector para el real x en el formato especificado (binary o bipolar).
         """
         x = float(x)
         arg = self.omega * (x - self.x0) + self.phi
-        v = torch.sign(torch.cos(arg))
-        
-        # Reemplazar 0 por +1 para estabilidad
-        v[v == 0] = 1
-        return v.float()
+
+        # Calcular valores del coseno
+        cos_values = torch.cos(arg)
+
+        if self.output_mode == "bipolar":
+            # Producir vector bipolar {-1, 1}
+            v = torch.sign(cos_values)
+            # Reemplazar 0 por +1 para estabilidad
+            v[v == 0] = 1
+            return v.to(torch.int8)
+        else:  # binary mode
+            # Producir vector binario {0, 1}
+            # Esta operación es estable y equivalente matemáticamente
+            # a (cos_values > 0) pero con manejo explícito de ceros
+            v = (cos_values >= 0).to(torch.uint8)
+            return v
 
     def similarity(self, x1: float, x2: float) -> float:
-        """Similitud coseno entre H(x1) y H(x2)."""
+        """
+        Calcula similitud entre H(x1) y H(x2) usando la métrica apropiada
+        según el modo de salida.
+        """
         v1 = self.encode(x1)
         v2 = self.encode(x2)
 
-        return torch.dot(v1, v2) / self.D
+        if self.output_mode == "bipolar":
+            # Similitud coseno para vectores bipolares
+            return torch.dot(v1.float(), v2.float()) / self.D
+        else:
+            # Similitud Hamming para vectores binarios
+            return 1.0 - (torch.logical_xor(v1, v2).sum().item() / self.D)
+
 
 
 if __name__ == "__main__":
@@ -153,10 +180,22 @@ if __name__ == "__main__":
     print("cos(H0,H2) =", int_enc.similarity(0, 2))
     print("cos(H1,H2) =", int_enc.similarity(1, 2))
 
-    # Decimal Encoding testing
-    dec_enc = DecimalEncoding(D=HDC_DIM, seed=123, x0=0.0, smoothness=10.0, omega_spread=4.0)
-    a = dec_enc.encode(2.5)
-    b = dec_enc.encode(2.6)
-    c = dec_enc.encode(9.5)
-    print("cos(2.5,2.6) =", dec_enc.similarity(2.5, 2.6))
-    print("cos(2.5,9.5) =", dec_enc.similarity(2.5, 9.5))
+    # Decimal Encoding testing (bipolar)
+    dec_enc_bipolar = DecimalEncoding(D=HDC_DIM, seed=123, x0=0.0, smoothness=10.0, omega_spread=4.0,
+                                      output_mode="bipolar")
+    a_bipolar = dec_enc_bipolar.encode(2.5)
+    b_bipolar = dec_enc_bipolar.encode(2.6)
+    c_bipolar = dec_enc_bipolar.encode(9.5)
+    print("Bipolar mode:")
+    print("cos(2.5,2.6) =", dec_enc_bipolar.similarity(2.5, 2.6))
+    print("cos(2.5,9.5) =", dec_enc_bipolar.similarity(2.5, 9.5))
+
+    # Decimal Encoding testing (binary)
+    dec_enc_binary = DecimalEncoding(D=HDC_DIM, seed=123, x0=0.0, smoothness=10.0, omega_spread=4.0,
+                                     output_mode="binary")
+    a_binary = dec_enc_binary.encode(2.5)
+    b_binary = dec_enc_binary.encode(2.6)
+    c_binary = dec_enc_binary.encode(9.5)
+    print("Binary mode:")
+    print("hamming_sim(2.5,2.6) =", dec_enc_binary.similarity(2.5, 2.6))
+    print("hamming_sim(2.5,9.5) =", dec_enc_binary.similarity(2.5, 9.5))
