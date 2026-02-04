@@ -1,7 +1,18 @@
+import sys
+import os
 import uuid
+from pathlib import Path
+from datetime import datetime
+
 import pytest
 from pymilvus import MilvusClient
 from database_utils.milvus_db_connection import ensure_people_collection
+
+# Asegurar path para imports
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+from tests.metrics.TestMetricsCollector import metrics_collector
+
 
 @pytest.fixture(scope="function")
 def test_collection():
@@ -20,7 +31,7 @@ def test_collection():
     print("[DEBUG-FIXTURE] Entregando nombre al test...")
     # --- FIN DEBUG ---
 
-    yield name  # <--- AQUÍ CORRE TU TEST
+    yield name
 
     # --- DEBUG TEARDOWN ---
     print(f"\n[DEBUG-FIXTURE] Test finalizado. Iniciando Teardown para: {name}")
@@ -51,10 +62,12 @@ def test_collection():
     print("[DEBUG-FIXTURE] ----------------------------------\n")
     # --- FIN DEBUG ---
 
+
 @pytest.fixture(scope="function")
 def milvus_client():
     """Cliente Milvus (por si lo necesito en tests)."""
     return MilvusClient(uri="http://localhost:19530")
+
 
 @pytest.fixture(scope="function")
 def test_people():
@@ -103,3 +116,36 @@ def test_people():
             }
         }
     ]
+
+
+@pytest.fixture(scope="session")
+def test_metrics():
+    return metrics_collector
+
+
+@pytest.fixture(scope="session", autouse=True)
+def save_test_metrics(request):
+    """
+    Fixture que se ejecuta automáticamente al final de la sesión de prueba
+    para guardar las métricas recopiladas.
+    """
+    yield  # Espera a que terminen los tests
+
+    print("\n[DEBUG-METRICS] Iniciando guardado de métricas...")
+
+    # Obtenemos la ruta absoluta de la raíz del proyecto
+    # Este archivo está en tests/integration/conftest.py (3 niveles abajo)
+    project_root = Path(__file__).resolve().parents[2]
+    output_dir = project_root / "test_results"
+
+    print(f"[DEBUG-METRICS] Ruta destino: {output_dir}")
+
+    try:
+        output_dir.mkdir(exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_path = output_dir / f"test_metrics_integration_{timestamp}.json"
+
+        metrics_collector.save_metrics(str(output_path))
+        print(f"[DEBUG-METRICS] Archivo guardado EXITOSAMENTE en: {output_path}")
+    except Exception as e:
+        print(f"[DEBUG-METRICS] ERROR al guardar métricas: {e}")

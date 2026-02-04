@@ -23,21 +23,32 @@ class TestEncodingSearch:
         # si la colección expone .name:
         assert getattr(col, "name", test_collection) == test_collection
 
-    def test_find_closest_match(self, test_collection, test_people):
+    def test_find_closest_match(self, test_collection, test_people, test_metrics):
         person_ids = []
 
         print(f"\n[DEBUG-TEST] Usando colección: {test_collection}")
         # Obtenemos el objeto Collection para poder interactuar con él
         col = Collection(test_collection)
 
-        for i, person in enumerate(test_people):
-            normalized_person = normalize_person_data(person)
-            pid = store_person(normalized_person, collection_name=test_collection)
-            person_ids.append(pid)
+        # --- MEDIR TIEMPO DE ENCODING E INSERCIÓN ---
+        # Usamos el context manager para medir todo el bloque de inserción
+        with test_metrics.measure_insertion_time():
+            # Nota: Si tuvieras separado el encoding del store, usarías measure_encoding_time
+            # Como store_person hace ambas cosas, medimos la "inserción" completa aquí,
+            # o podrías medir encoding por separado si separaras la lógica.
 
-            # --- DEBUG TEST ---
-            print(f"[DEBUG-TEST] Persona {i} supuestamente almacenada. PID: {pid}")
-            # ---
+            for i, person in enumerate(test_people):
+                # Opcional: Si quieres medir SOLO el encoding (si normalizar fuera pesado)
+                # with test_metrics.measure_encoding_time():
+                #    normalized_person = normalize_person_data(person)
+
+                normalized_person = normalize_person_data(person)
+                pid = store_person(normalized_person, collection_name=test_collection)
+                person_ids.append(pid)
+
+                # --- DEBUG TEST ---
+                print(f"[DEBUG-TEST] Persona {i} supuestamente almacenada. PID: {pid}")
+                # ---
 
         print(f"[DEBUG-TEST] Forzando col.flush() en '{test_collection}'...")
         col.flush()
@@ -59,7 +70,17 @@ class TestEncodingSearch:
         }
 
         print("[DEBUG-TEST] Ejecutando find_closest_match_db...")
+
+        # --- MEDIR LATENCIA DE BÚSQUEDA ---
+        import time
+        start_time = time.perf_counter()  # Inicio manual para latencia
+
         results = find_closest_match_db(query_person, collection_name=test_collection)
+
+        end_time = time.perf_counter()
+        latency_ms = (end_time - start_time) * 1000
+        test_metrics.add_query_latency(latency_ms)  # <--- Guardamos la métrica
+        # -------------------------------------
 
         print(f"[DEBUG-TEST] Búsqueda finalizada. Resultados obtenidos: {len(results)}")
         if not results:
