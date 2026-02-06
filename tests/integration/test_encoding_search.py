@@ -13,6 +13,9 @@ from encoding_methods.encoding_and_search_milvus import (
     normalize_person_data,
     ensure_people_collection
 )
+from configs import settings
+from database_utils.milvus_db_connection import get_vector_mode
+
 
 @pytest.mark.skipif(os.getenv('SKIP_MILVUS_TESTS', 'True') == 'True',
                     reason="Requiere Milvus en ejecución")
@@ -24,6 +27,17 @@ class TestEncodingSearch:
         assert getattr(col, "name", test_collection) == test_collection
 
     def test_find_closest_match(self, test_collection, test_people, test_metrics):
+        vector_mode = get_vector_mode()
+
+        # Registramos los parámetros de configuración al inicio del test
+        test_metrics.set_config(
+            encoding=vector_mode, # O el nombre de tu codificación actual
+            dimension=settings.HDC_DIM,
+            seed = settings.DEFAULT_SEED
+
+        )
+        # --------------------------------------
+
         person_ids = []
 
         print(f"\n[DEBUG-TEST] Usando colección: {test_collection}")

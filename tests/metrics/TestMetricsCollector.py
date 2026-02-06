@@ -16,8 +16,7 @@ class TestMetricsCollector:
             "configuracion": {
                 "encoding": None,
                 "dimension": None,
-                "seed": None,
-                "regla_bundling": None
+                "seed": None
             },
             "build": {
                 "tiempo_encoding_total": 0.0,  # Inicializar en 0.0 para acumular
@@ -34,12 +33,11 @@ class TestMetricsCollector:
         }
         self._query_latencies = []
 
-    def set_config(self, encoding: str, dimension: int, seed: int, regla_bundling: str):
+    def set_config(self, encoding: str, dimension: int, seed: int):
         self.metrics["configuracion"].update({
             "encoding": encoding,
             "dimension": dimension,
-            "seed": seed,
-            "regla_bundling": regla_bundling
+            "seed": seed
         })
 
     @contextmanager
