@@ -33,7 +33,7 @@ class TestEncodingSearch:
         assert getattr(col, "name", test_collection) == test_collection
 
     def test_find_closest_match(self, with_vector_mode, test_collection, test_people, test_metrics):
-        vector_mode = get_vector_mode()
+        vector_mode = with_vector_mode
 
         # Registramos los parámetros de configuración al inicio del test
         test_metrics.set_config(

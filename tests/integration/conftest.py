@@ -131,34 +131,23 @@ def test_people():
     ]
 
 
-@pytest.fixture(scope="session")
-def test_metrics():
-    return metrics_collector
-
-
-@pytest.fixture(scope="session", autouse=True)
-def save_test_metrics(request):
+@pytest.fixture(scope="function")
+def test_metrics(with_vector_mode):
     """
-    Fixture que se ejecuta automáticamente al final de la sesión de prueba
-    para guardar las métricas recopiladas.
+    Prepara el collector para cada modo y guarda el JSON al terminar.
     """
-    yield  # Espera a que terminen los tests
+    metrics_collector.reset()
 
-    print("\n[DEBUG-METRICS] Iniciando guardado de métricas...")
+    yield metrics_collector
 
-    # Obtenemos la ruta absoluta de la raíz del proyecto
-    # Este archivo está en tests/integration/conftest.py (3 niveles abajo)
     project_root = Path(__file__).resolve().parents[2]
     output_dir = project_root / "test_results"
+    output_dir.mkdir(exist_ok=True)
 
-    print(f"[DEBUG-METRICS] Ruta destino: {output_dir}")
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    # Este genera: test_metrics_binary_...json y test_metrics_bipolar_...json
+    filename = f"test_metrics_{with_vector_mode}_{timestamp}.json"
+    output_path = output_dir / filename
 
-    try:
-        output_dir.mkdir(exist_ok=True)
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_path = output_dir / f"test_metrics_integration_{timestamp}.json"
-
-        metrics_collector.save_metrics(str(output_path))
-        print(f"[DEBUG-METRICS] Archivo guardado EXITOSAMENTE en: {output_path}")
-    except Exception as e:
-        print(f"[DEBUG-METRICS] ERROR al guardar métricas: {e}")
+    metrics_collector.save_metrics(str(output_path))
+    print(f"\n[FIXTURE-INFO] Métricas de modo '{with_vector_mode}' guardadas en {filename}")

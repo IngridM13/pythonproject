@@ -80,22 +80,21 @@ class TestMetricsCollector:
         self.metrics["query"]["latencia_p95"] = round(sorted_latencies[int(n * 0.95)], 4)
         self.metrics["query"]["latencia_p99"] = round(sorted_latencies[min(int(n * 0.99), n - 1)], 4)
 
-    def save_metrics(self, output_path: Optional[str] = None):
+    def reset(self):
+        """Limpia las métricas para una nueva ejecución."""
+        self.__init__()
+
+    def save_metrics(self, output_path: str):
         self.calculate_latency_percentiles()
 
-        # Redondear tiempos finales acumulados para limpieza visual
+        # Redondear tiempos
         self.metrics["build"]["tiempo_encoding_total"] = round(self.metrics["build"]["tiempo_encoding_total"], 4)
         self.metrics["build"]["tiempo_insercion_bd"] = round(self.metrics["build"]["tiempo_insercion_bd"], 4)
-
-        if output_path is None:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            output_path = f"test_metrics_{timestamp}.json"
 
         with open(output_path, 'w') as f:
             json.dump(self.metrics, f, indent=2, ensure_ascii=False)
 
         print(f"[{self.__class__.__name__}] Métricas guardadas en: {output_path}")
-        return output_path
 
 
 # Singleton
