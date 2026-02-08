@@ -130,7 +130,6 @@ def encode_person(person, mode="binary"):
 
 
 # --- Database Operations ---
-
 def store_person(person: Dict[str, Any], collection_name: str = "people") -> int:
     person_data = person.copy()
     embedding = person_data.pop('embedding', None)
@@ -144,10 +143,13 @@ def store_person(person: Dict[str, Any], collection_name: str = "people") -> int
 
     normalized_person = normalize_person_data(person_data)
     hv = encode_person(normalized_person)
-
+    
+    # Usar _encode_for_milvus para preparar el vector en el formato correcto
+    milvus_vector = _encode_for_milvus(hv)
+    
     doc_to_insert = {
         **normalized_person,
-        "hv": hv.tolist() if isinstance(hv, torch.Tensor) else list(hv),
+        "hv": milvus_vector,
     }
 
     if "dob" in doc_to_insert:
@@ -211,10 +213,11 @@ def get_person_details(person_id: int, collection_name: str = "people") -> Dict[
 def find_closest_match_db(query_person, threshold=0.7, limit=5, collection_name: str = "people"):
     col = ensure_people_collection(collection_name)
     normalized_query = normalize_person_data(query_person)
+    current_mode = get_vector_mode()
     qhv = encode_person(normalized_query)
     qpayload = _encode_for_milvus(qhv)
 
-    if VECTOR_MODE == "binary":
+    if current_mode == "binary":
         search_params = {"metric_type": "HAMMING", "params": {}}
         metric = "HAMMING"
     else:

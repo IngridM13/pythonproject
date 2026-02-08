@@ -13,20 +13,26 @@ from encoding_methods.encoding_and_search_milvus import (
     normalize_person_data,
     ensure_people_collection
 )
+import pytest
+import os
+import torch
+from datetime import date
+from pymilvus import Collection
 from configs import settings
 from database_utils.milvus_db_connection import get_vector_mode
 
 
 @pytest.mark.skipif(os.getenv('SKIP_MILVUS_TESTS', 'True') == 'True',
                     reason="Requiere Milvus en ejecución")
+@pytest.mark.parametrize("with_vector_mode", ["binary", "float"], indirect=True)
 class TestEncodingSearch:
 
-    def test_collection_name_matches_fixture(self, test_collection):
+    def test_collection_name_matches_fixture(self, with_vector_mode, test_collection):
         col = ensure_people_collection(test_collection)
         # si la colección expone .name:
         assert getattr(col, "name", test_collection) == test_collection
 
-    def test_find_closest_match(self, test_collection, test_people, test_metrics):
+    def test_find_closest_match(self, with_vector_mode, test_collection, test_people, test_metrics):
         vector_mode = get_vector_mode()
 
         # Registramos los parámetros de configuración al inicio del test
@@ -45,7 +51,7 @@ class TestEncodingSearch:
         col = Collection(test_collection)
 
         # --- MEDIR TIEMPO DE ENCODING E INSERCIÓN ---
-        # Usamos el context manager para medir todo el bloque de inserción
+        # Usamos el context manager para medir el bloque de inserción completo
         with test_metrics.measure_insertion_time():
             # Nota: Si tuvieras separado el encoding del store, usarías measure_encoding_time
             # Como store_person hace ambas cosas, medimos la "inserción" completa aquí,
@@ -105,7 +111,7 @@ class TestEncodingSearch:
         assert results[0]['id'] == person_ids[0]
         assert results[0]['similarity'] > 0.8
 
-    def test_find_similar_by_date(self, test_collection, test_people):
+    def test_find_similar_by_date(self, with_vector_mode, test_collection, test_people):
         person_ids = []
         for person in test_people:
             pid = store_person(person, collection_name=test_collection)
@@ -120,7 +126,7 @@ class TestEncodingSearch:
         assert person_ids[2] not in result_ids  # Juan (1992-05-17)
         assert person_ids[1] not in result_ids  # Jane (1985-10-20)
 
-    def test_normalization(self):
+    def test_normalization(self, with_vector_mode):
         person_data = {
             "name": "John",
             "lastname": "Doe",
@@ -141,7 +147,7 @@ class TestEncodingSearch:
         assert isinstance(normalized["attrs"]["address"], list)
         assert normalized["attrs"]["address"][0] == "123 Main St, City"
 
-    def test_normalized_data_to_torch_tensor(self):
+    def test_normalized_data_to_torch_tensor(self, with_vector_mode):
         """Additional test to verify PyTorch tensor conversion"""
         person_data = {
             "name": "John",
