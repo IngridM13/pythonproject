@@ -25,42 +25,18 @@ class TestEncodingSearch:
         # si la colección expone .name:
         assert getattr(col, "name", test_collection) == test_collection
 
-    def test_find_closest_match(self, with_vector_mode, test_collection, test_people, test_metrics):
+    def test_find_closest_match(self, with_vector_mode, test_collection, test_people):
         vector_mode = with_vector_mode
-
-        # Registramos los parámetros de configuración al inicio del test
-        test_metrics.set_config(
-            encoding=vector_mode, # O el nombre de tu codificación actual
-            dimension=settings.HDC_DIM,
-            seed = settings.DEFAULT_SEED
-
-        )
-        # --------------------------------------
-
         person_ids = []
 
         print(f"\n[DEBUG-TEST] Usando colección: {test_collection}")
-        # Obtenemos el objeto Collection para poder interactuar con él
         col = Collection(test_collection)
 
-        # --- MEDIR TIEMPO DE ENCODING E INSERCIÓN ---
-        # Usamos el context manager para medir el bloque de inserción completo
-        with test_metrics.measure_insertion_time():
-            # Nota: Si tuvieras separado el encoding del store, usarías measure_encoding_time
-            # Como store_person hace ambas cosas, medimos la "inserción" completa aquí,
-            # o podrías medir encoding por separado si separaras la lógica.
-
-            for i, person in enumerate(test_people):
-                # Opcional: Si quieres medir SOLO el encoding (si normalizar fuera pesado)
-                # with test_metrics.measure_encoding_time():
-                #    normalized_person = normalize_person_data(person)
-
-                pid = store_person(person, collection_name=test_collection)
-                person_ids.append(pid)
-
-                # --- DEBUG TEST ---
-                print(f"[DEBUG-TEST] Persona {i} supuestamente almacenada. PID: {pid}")
-                # ---
+        # Inserción de personas
+        for i, person in enumerate(test_people):
+            pid = store_person(person, collection_name=test_collection)
+            person_ids.append(pid)
+            print(f"[DEBUG-TEST] Persona {i} supuestamente almacenada. PID: {pid}")
 
         print(f"[DEBUG-TEST] Forzando col.flush() en '{test_collection}'...")
         col.flush()
@@ -83,26 +59,20 @@ class TestEncodingSearch:
 
         print("[DEBUG-TEST] Ejecutando find_closest_match_db...")
 
-        # --- MEDIR LATENCIA DE BÚSQUEDA ---
-        import time
-        start_time = time.perf_counter()  # Inicio manual para latencia
-
+        # Ejecución de la búsqueda
         results = find_closest_match_db(query_person, collection_name=test_collection)
 
-        end_time = time.perf_counter()
-        latency_ms = (end_time - start_time) * 1000
-        test_metrics.add_query_latency(latency_ms)  # <--- Guardamos la métrica
-        # -------------------------------------
-
         print(f"[DEBUG-TEST] Búsqueda finalizada. Resultados obtenidos: {len(results)}")
+
         if not results:
             print("[DEBUG-TEST] ¡ERROR! La búsqueda no devolvió resultados (results está vacío).")
         else:
             print(f"[DEBUG-TEST] Resultado[0] encontrado: {results[0]}")
 
+        # Aserciones funcionales
+        assert len(results) > 0
         assert results[0]['id'] == person_ids[0]
         assert results[0]['similarity'] > 0.8
-
     def test_find_similar_by_date(self, with_vector_mode, test_collection, test_people):
         person_ids = []
         for person in test_people:

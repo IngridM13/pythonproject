@@ -151,3 +151,5 @@ def test_metrics(with_vector_mode):
 
     metrics_collector.save_metrics(str(output_path))
     print(f"\n[FIXTURE-INFO] Métricas de modo '{with_vector_mode}' guardadas en {filename}")
+
+

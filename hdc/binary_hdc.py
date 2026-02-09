@@ -82,7 +82,7 @@ class HyperDimensionalComputingBinary:
             return self._hv_cache[key_str].to(self.device)
 
         # Imprimir un mensaje para confirmar que se está generando un nuevo vector
-        print(f"  [get_binary_hv] Generando nuevo HV determinista para la clave: '{key_str}'")
+        # print(f"  [get_binary_hv] Generando nuevo HV determinista para la clave: '{key_str}'")
 
         # Generar semilla determinista
         seed = self._deterministic_hash(key_str)
