@@ -1,10 +1,4 @@
-import json
-from datetime import date
-from pymilvus import Collection
 
-import pytest
-import torch
-import os
 from encoding_methods.encoding_and_search_milvus import (
     store_person,
     get_person_details,
@@ -19,7 +13,6 @@ import torch
 from datetime import date
 from pymilvus import Collection
 from configs import settings
-from database_utils.milvus_db_connection import get_vector_mode
 
 
 @pytest.mark.skipif(os.getenv('SKIP_MILVUS_TESTS', 'True') == 'True',
@@ -62,8 +55,7 @@ class TestEncodingSearch:
                 # with test_metrics.measure_encoding_time():
                 #    normalized_person = normalize_person_data(person)
 
-                normalized_person = normalize_person_data(person)
-                pid = store_person(normalized_person, collection_name=test_collection)
+                pid = store_person(person, collection_name=test_collection)
                 person_ids.append(pid)
 
                 # --- DEBUG TEST ---

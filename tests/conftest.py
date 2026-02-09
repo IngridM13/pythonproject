@@ -1,8 +1,5 @@
 import pytest
-from pathlib import Path
-from datetime import datetime
 
-from tests.metrics.TestMetricsCollector import metrics_collector
 
 
 @pytest.fixture
