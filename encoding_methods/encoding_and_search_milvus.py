@@ -76,9 +76,40 @@ def _encode_for_milvus(hv: torch.Tensor) -> Union[bytes, List[float]]:
     hv = hv.detach().cpu()
 
     if vector_mode == "binary":
-        return _bipolar_to_binary_bytes(hv)
+        # Para vectores binarios, asegurarse de que estamos mandando bits
+        # Verificar dimensionalidad
+        if hv.numel() != DIMENSION:
+            print(f"[WARNING] Vector dimensión incorrecta: {hv.numel()}, esperado: {DIMENSION}")
+            # Ajustar dimensión si es necesario
+            if hv.numel() < DIMENSION:
+                # Padding
+                padding = DIMENSION - hv.numel()
+                hv = torch.cat([hv, torch.zeros(padding, dtype=hv.dtype)])
+            else:
+                # Truncar
+                hv = hv[:DIMENSION]
+
+        # Convertir a bits (0/1)
+        binary_hv = (hv > 0).to(torch.uint8)
+        return _bipolar_to_binary_bytes(binary_hv)
     else:  # vector_mode == "float"
-        return hv.float().tolist()
+        # Para vectores float, asegurarse de que sean float32
+        float_hv = hv.float()
+
+        # Verificar dimensionalidad
+        if float_hv.numel() != DIMENSION:
+            print(f"[WARNING] Vector dimensión incorrecta: {float_hv.numel()}, esperado: {DIMENSION}")
+            # Ajustar dimensión si es necesario
+            if float_hv.numel() < DIMENSION:
+                # Padding
+                padding = DIMENSION - float_hv.numel()
+                float_hv = torch.cat([float_hv, torch.zeros(padding, dtype=torch.float32)])
+            else:
+                # Truncar
+                float_hv = float_hv[:DIMENSION]
+
+        # Asegurarse de que el tipo sea correcto (float32)
+        return float_hv.tolist()
 
 
 # --- Attribute Helpers ---
