@@ -24,7 +24,7 @@ class DefaultEncodingStrategy(BipolarEncodingStrategy):
     """Estrategia de codificación por defecto (string)."""
 
     def encode(self, key: str, value: Any, profiler: DataTypeProfiler) -> torch.Tensor:
-        self._debug_log(f"Usando codificación por defecto para {key} (tipo: {type(value).__name__})")
+        # self._debug_log(f"Usando codificación por defecto para {key} (tipo: {type(value).__name__})")
         return self.encoder.get_bipolar_hv(str(value))
 
 
@@ -32,7 +32,7 @@ class DateEncodingStrategy(BipolarEncodingStrategy):
     """Estrategia de codificación para fechas."""
 
     def encode(self, key: str, value: Any, profiler: DataTypeProfiler) -> torch.Tensor:
-        self._debug_log(f"Procesando fecha para {key}: {value}")
+        # self._debug_log(f"Procesando fecha para {key}: {value}")
         return self.encoder.encode_date_bipolar(value)
 
 
@@ -58,7 +58,7 @@ class AttrsEncodingStrategy(BipolarEncodingStrategy):
             if not attr_value_list:
                 continue  # Skip empty lists
 
-            self._debug_log(f"Attr: {attr_key}, Type: {type(attr_value_list).__name__}, Value: {repr(attr_value_list)}")
+            # self._debug_log(f"Attr: {attr_key}, Type: {type(attr_value_list).__name__}, Value: {repr(attr_value_list)}")
 
             # Procesar la lista de valores para este atributo
             list_acc = self.encoder.bundle_init()
