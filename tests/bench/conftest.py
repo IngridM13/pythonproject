@@ -1,9 +1,10 @@
 import os
 import uuid
 import sys
+import re
+import pytest
 from pathlib import Path
 from datetime import datetime
-import pytest
 
 # Ensure path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -29,29 +30,58 @@ def with_vector_mode(request):
     # Restore original
     milvus_conn.VECTOR_MODE = original_mode
 
+def _sanitize_filename_part(s: str, max_len: int = 80) -> str:
+    # deja letras, números, guión y guión bajo; el resto a "_"
+    s = re.sub(r"[^A-Za-z0-9_-]+", "_", s)
+    s = re.sub(r"_+", "_", s).strip("_")
+    return s[:max_len] if len(s) > max_len else s
+
+def _infer_metrics_tag(node) -> str:
+    """
+    Inferí un tag estable (search/insert/encoding/...) a partir del nombre/nodeid
+    sin tener que modificar cada test.
+    """
+    haystack = f"{node.name} {node.nodeid}".lower()
+
+    # Ajustá estos heurísticos a tus nombres reales
+    if "search" in haystack:
+        return "search"
+    if "insert" in haystack and "batch" in haystack:
+        return "insert_batch"
+    if "insert" in haystack:
+        return "insert"
+    if "encode" in haystack :
+        return "encoding"
+
+    # fallback: usa el nombre del test (más específico)
+    return _sanitize_filename_part(node.name)
 
 @pytest.fixture(scope="function")
-def test_metrics(with_vector_mode):
+def test_metrics(with_vector_mode, request):
     """
-    Fixture that creates a TestMetricsCollector for benchmarking
-    and saves metrics to a file after test completes.
+    Fixture que crea un TestMetricsCollector y guarda métricas a un archivo
+    cuyo nombre incluye el "tipo" de test (search/insert/encoding/...).
     """
     from tests.metrics.TestMetricsCollector import TestMetricsCollector
+
     metrics = TestMetricsCollector()
     yield metrics
-    
-    # Generate output path for metrics
+
     project_root = Path(__file__).resolve().parents[2]
     output_dir = project_root / "test_results"
     output_dir.mkdir(exist_ok=True)
-    
+
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"test_metrics_{with_vector_mode}_{timestamp}.json"
+
+    test_tag = _infer_metrics_tag(request.node)
+    test_tag = _sanitize_filename_part(test_tag)
+
+    filename = f"test_metrics_{with_vector_mode}_{test_tag}_{timestamp}.json"
     output_path = str(output_dir / filename)
-    
-    # Save metrics to the generated path
+
     metrics.save_metrics(output_path)
-    print(f"\n[FIXTURE-INFO] Métricas de modo '{with_vector_mode}' guardadas en {filename}")
+    print(f"\n[FIXTURE-INFO] Métricas modo='{with_vector_mode}' tag='{test_tag}' guardadas en {filename}")
+
 
 
 @pytest.fixture(scope="function")
