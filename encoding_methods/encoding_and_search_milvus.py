@@ -76,9 +76,40 @@ def _encode_for_milvus(hv: torch.Tensor) -> Union[bytes, List[float]]:
     hv = hv.detach().cpu()
 
     if vector_mode == "binary":
-        return _bipolar_to_binary_bytes(hv)
+        # Para vectores binarios, asegurarse de que estamos mandando bits
+        # Verificar dimensionalidad
+        if hv.numel() != DIMENSION:
+            print(f"[WARNING] Vector dimensión incorrecta: {hv.numel()}, esperado: {DIMENSION}")
+            # Ajustar dimensión si es necesario
+            if hv.numel() < DIMENSION:
+                # Padding
+                padding = DIMENSION - hv.numel()
+                hv = torch.cat([hv, torch.zeros(padding, dtype=hv.dtype)])
+            else:
+                # Truncar
+                hv = hv[:DIMENSION]
+
+        # Convertir a bits (0/1)
+        binary_hv = (hv > 0).to(torch.uint8)
+        return _bipolar_to_binary_bytes(binary_hv)
     else:  # vector_mode == "float"
-        return hv.float().tolist()
+        # Para vectores float, asegurarse de que sean float32
+        float_hv = hv.float()
+
+        # Verificar dimensionalidad
+        if float_hv.numel() != DIMENSION:
+            print(f"[WARNING] Vector dimensión incorrecta: {float_hv.numel()}, esperado: {DIMENSION}")
+            # Ajustar dimensión si es necesario
+            if float_hv.numel() < DIMENSION:
+                # Padding
+                padding = DIMENSION - float_hv.numel()
+                float_hv = torch.cat([float_hv, torch.zeros(padding, dtype=torch.float32)])
+            else:
+                # Truncar
+                float_hv = float_hv[:DIMENSION]
+
+        # Asegurarse de que el tipo sea correcto (float32)
+        return float_hv.tolist()
 
 
 # --- Attribute Helpers ---
@@ -130,7 +161,6 @@ def encode_person(person, mode="binary"):
 
 
 # --- Database Operations ---
-
 def store_person(person: Dict[str, Any], collection_name: str = "people") -> int:
     person_data = person.copy()
     embedding = person_data.pop('embedding', None)
@@ -144,10 +174,13 @@ def store_person(person: Dict[str, Any], collection_name: str = "people") -> int
 
     normalized_person = normalize_person_data(person_data)
     hv = encode_person(normalized_person)
-
+    
+    # Usar _encode_for_milvus para preparar el vector en el formato correcto
+    milvus_vector = _encode_for_milvus(hv)
+    
     doc_to_insert = {
         **normalized_person,
-        "hv": hv.tolist() if isinstance(hv, torch.Tensor) else list(hv),
+        "hv": milvus_vector,
     }
 
     if "dob" in doc_to_insert:
@@ -211,10 +244,11 @@ def get_person_details(person_id: int, collection_name: str = "people") -> Dict[
 def find_closest_match_db(query_person, threshold=0.7, limit=5, collection_name: str = "people"):
     col = ensure_people_collection(collection_name)
     normalized_query = normalize_person_data(query_person)
+    current_mode = get_vector_mode()
     qhv = encode_person(normalized_query)
     qpayload = _encode_for_milvus(qhv)
 
-    if VECTOR_MODE == "binary":
+    if current_mode == "binary":
         search_params = {"metric_type": "HAMMING", "params": {}}
         metric = "HAMMING"
     else:

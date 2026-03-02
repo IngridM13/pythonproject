@@ -1,7 +1,5 @@
-import uuid
 import pytest
-from pymilvus import MilvusClient
-from database_utils.milvus_db_connection import ensure_people_collection
+
 
 
 @pytest.fixture
@@ -17,5 +15,6 @@ def with_vector_mode(request):
 
     # Restaurar el modo original
     milvus_conn.VECTOR_MODE = original_mode
+
 
 

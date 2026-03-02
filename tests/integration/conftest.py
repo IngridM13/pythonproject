@@ -1,7 +1,18 @@
+import sys
+import os
 import uuid
+from pathlib import Path
+from datetime import datetime
+
 import pytest
 from pymilvus import MilvusClient
 from database_utils.milvus_db_connection import ensure_people_collection
+
+# Asegurar path para imports
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+from tests.metrics.TestMetricsCollector import metrics_collector
+
 
 @pytest.fixture(scope="function")
 def test_collection():
@@ -20,7 +31,7 @@ def test_collection():
     print("[DEBUG-FIXTURE] Entregando nombre al test...")
     # --- FIN DEBUG ---
 
-    yield name  # <--- AQUÍ CORRE TU TEST
+    yield name
 
     # --- DEBUG TEARDOWN ---
     print(f"\n[DEBUG-FIXTURE] Test finalizado. Iniciando Teardown para: {name}")
@@ -51,10 +62,25 @@ def test_collection():
     print("[DEBUG-FIXTURE] ----------------------------------\n")
     # --- FIN DEBUG ---
 
+
 @pytest.fixture(scope="function")
 def milvus_client():
     """Cliente Milvus (por si lo necesito en tests)."""
     return MilvusClient(uri="http://localhost:19530")
+
+@pytest.fixture
+def with_vector_mode(request):
+    """Fixture para cambiar temporalmente el modo de vector durante una prueba."""
+    import database_utils.milvus_db_connection as milvus_conn
+    original_mode = milvus_conn.VECTOR_MODE
+
+    # Establecer el modo solicitado
+    milvus_conn.VECTOR_MODE = request.param
+
+    yield request.param
+
+    # Restaurar el modo original
+    milvus_conn.VECTOR_MODE = original_mode
 
 @pytest.fixture(scope="function")
 def test_people():
@@ -103,3 +129,27 @@ def test_people():
             }
         }
     ]
+
+
+@pytest.fixture(scope="function")
+def test_metrics(with_vector_mode):
+    """
+    Prepara el collector para cada modo y guarda el JSON al terminar.
+    """
+    metrics_collector.reset()
+
+    yield metrics_collector
+
+    project_root = Path(__file__).resolve().parents[2]
+    output_dir = project_root / "test_results"
+    output_dir.mkdir(exist_ok=True)
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    # Este genera: test_metrics_binary_...json y test_metrics_bipolar_...json
+    filename = f"test_metrics_{with_vector_mode}_{timestamp}.json"
+    output_path = output_dir / filename
+
+    metrics_collector.save_metrics(str(output_path))
+    print(f"\n[FIXTURE-INFO] Métricas de modo '{with_vector_mode}' guardadas en {filename}")
+
+

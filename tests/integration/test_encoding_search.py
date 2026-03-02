@@ -1,10 +1,4 @@
-import json
-from datetime import date
-from pymilvus import Collection
 
-import pytest
-import torch
-import os
 from encoding_methods.encoding_and_search_milvus import (
     store_person,
     get_person_details,
@@ -13,31 +7,36 @@ from encoding_methods.encoding_and_search_milvus import (
     normalize_person_data,
     ensure_people_collection
 )
+import pytest
+import os
+import torch
+from datetime import date
+from pymilvus import Collection
+from configs import settings
+
 
 @pytest.mark.skipif(os.getenv('SKIP_MILVUS_TESTS', 'True') == 'True',
                     reason="Requiere Milvus en ejecución")
+@pytest.mark.parametrize("with_vector_mode", ["binary", "float"], indirect=True)
 class TestEncodingSearch:
 
-    def test_collection_name_matches_fixture(self, test_collection):
+    def test_collection_name_matches_fixture(self, with_vector_mode, test_collection):
         col = ensure_people_collection(test_collection)
         # si la colección expone .name:
         assert getattr(col, "name", test_collection) == test_collection
 
-    def test_find_closest_match(self, test_collection, test_people):
+    def test_find_closest_match(self, with_vector_mode, test_collection, test_people):
+        vector_mode = with_vector_mode
         person_ids = []
 
         print(f"\n[DEBUG-TEST] Usando colección: {test_collection}")
-        # Obtenemos el objeto Collection para poder interactuar con él
         col = Collection(test_collection)
 
+        # Inserción de personas
         for i, person in enumerate(test_people):
-            normalized_person = normalize_person_data(person)
-            pid = store_person(normalized_person, collection_name=test_collection)
+            pid = store_person(person, collection_name=test_collection)
             person_ids.append(pid)
-
-            # --- DEBUG TEST ---
             print(f"[DEBUG-TEST] Persona {i} supuestamente almacenada. PID: {pid}")
-            # ---
 
         print(f"[DEBUG-TEST] Forzando col.flush() en '{test_collection}'...")
         col.flush()
@@ -59,18 +58,22 @@ class TestEncodingSearch:
         }
 
         print("[DEBUG-TEST] Ejecutando find_closest_match_db...")
+
+        # Ejecución de la búsqueda
         results = find_closest_match_db(query_person, collection_name=test_collection)
 
         print(f"[DEBUG-TEST] Búsqueda finalizada. Resultados obtenidos: {len(results)}")
+
         if not results:
             print("[DEBUG-TEST] ¡ERROR! La búsqueda no devolvió resultados (results está vacío).")
         else:
             print(f"[DEBUG-TEST] Resultado[0] encontrado: {results[0]}")
 
+        # Aserciones funcionales
+        assert len(results) > 0
         assert results[0]['id'] == person_ids[0]
         assert results[0]['similarity'] > 0.8
-
-    def test_find_similar_by_date(self, test_collection, test_people):
+    def test_find_similar_by_date(self, with_vector_mode, test_collection, test_people):
         person_ids = []
         for person in test_people:
             pid = store_person(person, collection_name=test_collection)
@@ -85,7 +88,7 @@ class TestEncodingSearch:
         assert person_ids[2] not in result_ids  # Juan (1992-05-17)
         assert person_ids[1] not in result_ids  # Jane (1985-10-20)
 
-    def test_normalization(self):
+    def test_normalization(self, with_vector_mode):
         person_data = {
             "name": "John",
             "lastname": "Doe",
@@ -106,7 +109,7 @@ class TestEncodingSearch:
         assert isinstance(normalized["attrs"]["address"], list)
         assert normalized["attrs"]["address"][0] == "123 Main St, City"
 
-    def test_normalized_data_to_torch_tensor(self):
+    def test_normalized_data_to_torch_tensor(self, with_vector_mode):
         """Additional test to verify PyTorch tensor conversion"""
         person_data = {
             "name": "John",
