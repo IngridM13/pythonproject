@@ -106,11 +106,11 @@ def ensure_people_collection(collection_name: str = COLLECTION) -> Collection:
                     col.release()
                     utility.drop_collection(collection_name)
                     # La colección se creará más adelante
-        except Exception as e:
+        except MilvusException as e:
             print(f">>> Error al procesar colección existente: {e}")
             try:
                 utility.drop_collection(collection_name)
-            except:
+            except MilvusException:
                 pass
             # La colección se creará más adelante
 
