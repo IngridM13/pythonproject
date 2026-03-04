@@ -15,16 +15,11 @@ class BipolarEncodingStrategy:
         """Método abstracto para codificar un valor basado en su tipo."""
         raise NotImplementedError("Las subclases deben implementar este método")
 
-    def _debug_log(self, message: str):
-        """Método auxiliar para mostrar mensajes de depuración."""
-        print(f"  {message}")
-
 
 class DefaultEncodingStrategy(BipolarEncodingStrategy):
     """Estrategia de codificación por defecto (string)."""
 
     def encode(self, key: str, value: Any, profiler: DataTypeProfiler) -> torch.Tensor:
-        # self._debug_log(f"Usando codificación por defecto para {key} (tipo: {type(value).__name__})")
         return self.encoder.get_bipolar_hv(str(value))
 
 
@@ -32,7 +27,6 @@ class DateEncodingStrategy(BipolarEncodingStrategy):
     """Estrategia de codificación para fechas."""
 
     def encode(self, key: str, value: Any, profiler: DataTypeProfiler) -> torch.Tensor:
-        # self._debug_log(f"Procesando fecha para {key}: {value}")
         return self.encoder.encode_date_bipolar(value)
 
 
@@ -40,7 +34,6 @@ class ListEncodingStrategy(BipolarEncodingStrategy):
     """Estrategia de codificación para listas."""
 
     def encode(self, key: str, value: List[Any], profiler: DataTypeProfiler) -> torch.Tensor:
-        self._debug_log(f"Procesando lista para {key}, longitud: {len(value)}")
         list_acc = self.encoder.bundle_init()
         vectors_to_add = [self.encoder.get_bipolar_hv(str(v)) for v in value]
         self.encoder.bundle_add(list_acc, *vectors_to_add)
@@ -58,8 +51,6 @@ class AttrsEncodingStrategy(BipolarEncodingStrategy):
             if not attr_value_list:
                 continue  # Skip empty lists
 
-            # self._debug_log(f"Attr: {attr_key}, Type: {type(attr_value_list).__name__}, Value: {repr(attr_value_list)}")
-
             # Procesar la lista de valores para este atributo
             list_acc = self.encoder.bundle_init()
             vectors_to_add = [self.encoder.get_bipolar_hv(str(v)) for v in attr_value_list]
@@ -71,7 +62,6 @@ class AttrsEncodingStrategy(BipolarEncodingStrategy):
             bound_attr_hv = self.encoder.bind_hv(attr_key_hv, encoded_list_hv)
             self.encoder.bundle_add(attrs_acc, bound_attr_hv)
 
-        print(f"[DEBUG-ENCODE] Finalizando 'attrs_bundle' (Datos presentes: {len(value) > 0}).")
         return self.encoder.bundle_finalize(attrs_acc, tie_key="attrs_bundle")
 
 

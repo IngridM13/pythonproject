@@ -30,7 +30,6 @@ class HyperDimensionalComputingBinary:
 
         # Set device - default to CUDA if available
         self.device = torch.device(device if device is not None else ('cuda' if torch.cuda.is_available() else 'cpu'))
-        print(f"Using device: {self.device}")
 
         if seed is not None:
             torch.manual_seed(seed)
@@ -80,9 +79,6 @@ class HyperDimensionalComputingBinary:
 
         if key_str in self._hv_cache:
             return self._hv_cache[key_str].to(self.device)
-
-        # Imprimir un mensaje para confirmar que se está generando un nuevo vector
-        # print(f"  [get_binary_hv] Generando nuevo HV determinista para la clave: '{key_str}'")
 
         # Generar semilla determinista
         seed = self._deterministic_hash(key_str)
