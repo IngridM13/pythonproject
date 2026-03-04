@@ -77,6 +77,9 @@ A `Makefile` is provided for convenience:
 | `make test-bench` | Benchmarks only |
 | `make test-functional` | Functional tests only |
 | `make experiment` | Run the recall-under-noise experiment |
+| `make results` | Show latest experiment results |
+| `make results-float` | Show latest float mode results |
+| `make results-binary` | Show latest binary mode results |
 
 ## Running Tests
 
@@ -120,3 +123,14 @@ Configuration via environment variables:
 | `RECALL_SEED` | `DEFAULT_SEED` | RNG seed for reproducibility |
 
 Results are saved as JSON to `test_results/recall_under_noise_<mode>_<timestamp>.json`.
+
+To view results in a human-readable format:
+
+```bash
+make results          # latest result file (any mode)
+make results-float    # latest float mode result
+make results-binary   # latest binary mode result
+
+# or for a specific file:
+python scripts/show_results.py test_results/recall_under_noise_float_<timestamp>.json
+```

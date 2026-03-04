@@ -21,3 +21,12 @@ test-functional:
 
 experiment:
 	pytest tests/experiments/test_recall_under_noise.py -v -s
+
+results:
+	python scripts/show_results.py
+
+results-float:
+	python scripts/show_results.py $(shell ls -t test_results/recall_under_noise_float_*.json | head -1)
+
+results-binary:
+	python scripts/show_results.py $(shell ls -t test_results/recall_under_noise_binary_*.json | head -1)
