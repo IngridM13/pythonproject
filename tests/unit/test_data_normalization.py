@@ -3,6 +3,77 @@ import torch
 from datetime import date
 from encoding_methods.encoding_and_search_milvus import normalize_person_data
 
+
+# ---------------------------------------------------------------------------
+# Error paths
+# ---------------------------------------------------------------------------
+
+def test_normalize_rejects_non_dict():
+    with pytest.raises(ValueError):
+        normalize_person_data("not a dict")
+
+def test_normalize_rejects_none():
+    with pytest.raises(ValueError):
+        normalize_person_data(None)
+
+def test_normalize_rejects_invalid_date():
+    with pytest.raises(ValueError):
+        normalize_person_data({"dob": "not-a-date"})
+
+def test_normalize_rejects_garbage_date():
+    with pytest.raises(ValueError):
+        normalize_person_data({"dob": "99-99-9999"})
+
+
+# ---------------------------------------------------------------------------
+# Empty / null inputs
+# ---------------------------------------------------------------------------
+
+def test_normalize_empty_dict_returns_defaults():
+    result = normalize_person_data({})
+    assert result["name"] == ""
+    assert result["lastname"] == ""
+    assert result["dob"] is None
+    assert result["gender"] == ""
+    assert result["marital_status"] == ""
+    assert result["mobile_number"] == ""
+    assert result["race"] == ""
+    assert result["attrs"]["address"] == []
+    assert result["attrs"]["akas"] == []
+    assert result["attrs"]["landlines"] == []
+
+def test_normalize_none_scalar_fields_become_empty_string():
+    result = normalize_person_data({
+        "name": None,
+        "lastname": None,
+        "mobile_number": None,
+        "race": None,
+    })
+    assert result["name"] == ""
+    assert result["lastname"] == ""
+    assert result["mobile_number"] == ""
+    assert result["race"] == ""
+
+def test_normalize_none_dob_stays_none():
+    result = normalize_person_data({"dob": None})
+    assert result["dob"] is None
+
+def test_normalize_empty_string_dob_stays_none():
+    result = normalize_person_data({"dob": ""})
+    assert result["dob"] is None
+
+def test_normalize_attrs_filters_none_items():
+    result = normalize_person_data({
+        "attrs": {
+            "address": [None, "123 Main St", None],
+            "akas": [None],
+            "landlines": [],
+        }
+    })
+    assert result["attrs"]["address"] == ["123 Main St"]
+    assert result["attrs"]["akas"] == []
+    assert result["attrs"]["landlines"] == []
+
 def test_normalize_person_data_standardizes_keys():
     input_data = {
         "Name": "John",
