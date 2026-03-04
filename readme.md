@@ -61,6 +61,7 @@ tests/
   experiments/        Research experiments (see below)
 infra/                Docker configurations for dev and test environments
 test_results/         JSON output from bench and experiment runs
+scripts/              Utility scripts (e.g. show_results.py)
 ```
 
 ## Common Commands
