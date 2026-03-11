@@ -9,10 +9,16 @@ Run:
     pytest tests/experiments/test_recall_under_noise.py -v -s
 
 Environment variables:
-    RECALL_N_PEOPLE      Number of persons to insert (default: 100)
-    RECALL_NOISE_LEVELS  Comma-separated floats (default: 0,0.1,...,1.0)
-    RECALL_THRESHOLD     find_closest_match_db threshold (default: 0.0)
-    RECALL_SEED          RNG seed (default: DEFAULT_SEED from settings)
+    RECALL_N_PEOPLE           Number of persons to insert (default: 1000)
+    RECALL_NOISE_LEVELS       Comma-separated floats (default: 0,0.1,...,1.0)
+    RECALL_THRESHOLD          find_closest_match_db threshold (default: 0.0)
+    RECALL_SEED               RNG seed (default: DEFAULT_SEED from settings)
+    RECALL_NEAR_DUPE_FRACTION Fraction of extra confuser records to insert as
+                              near-duplicates (default: 0.0). For example, 0.2
+                              adds floor(n_people * 0.2) near-duplicate records
+                              to the collection. These records are NOT query
+                              targets — they exist solely to make the search
+                              problem harder and more realistic.
 """
 
 import json
@@ -32,6 +38,8 @@ from dummy_data.generacion_base_de_datos import generate_data_chunk
 from encoding_methods.encoding_and_search_milvus import find_closest_match_db, store_person
 from utils.person_data_normalization import normalize_person_data
 from tests.experiments.noise_injection import inject_noise
+from tests.experiments.near_duplicates import generate_near_duplicates
+from tests.experiments.conftest import dataframe_row_to_person_dict
 
 
 # ---------------------------------------------------------------------------
@@ -40,43 +48,6 @@ from tests.experiments.noise_injection import inject_noise
 
 def _parse_noise_levels(env_value: str) -> list:
     return [float(x.strip()) for x in env_value.split(",") if x.strip()]
-
-
-def dataframe_row_to_person_dict(row) -> dict:
-    """
-    Convert a pandas Series (row from generate_data_chunk DataFrame) to the
-    person dict format expected by normalize_person_data / store_person.
-
-    generate_data_chunk columns:
-        name, lastname, dob, addresses (JSON str), addresses_count,
-        marital_status, akas (JSON str), akas_count, landlines (JSON str),
-        landlines_count, mobile_number, gender, race
-    """
-    def _parse_json_list(v):
-        if v is None:
-            return []
-        if isinstance(v, list):
-            return v
-        try:
-            parsed = json.loads(v)
-            return parsed if isinstance(parsed, list) else []
-        except (json.JSONDecodeError, TypeError):
-            return []
-
-    return {
-        "name": row.get("name", ""),
-        "lastname": row.get("lastname", ""),
-        "dob": row.get("dob", None),
-        "marital_status": row.get("marital_status", ""),
-        "mobile_number": row.get("mobile_number", ""),
-        "gender": row.get("gender", ""),
-        "race": row.get("race", ""),
-        "attrs": {
-            "address": _parse_json_list(row.get("addresses")),
-            "akas": _parse_json_list(row.get("akas")),
-            "landlines": _parse_json_list(row.get("landlines")),
-        },
-    }
 
 
 # ---------------------------------------------------------------------------
@@ -96,9 +67,10 @@ class TestRecallUnderNoise:
         threshold = float(os.environ.get("RECALL_THRESHOLD", 0.0))
         seed = int(os.environ.get("RECALL_SEED", DEFAULT_SEED))
         noise_levels = _parse_noise_levels(noise_levels_str)
+        near_dupe_fraction = float(os.environ.get("RECALL_NEAR_DUPE_FRACTION", 0.0))
 
         mode = with_vector_mode
-        print(f"\n[EXPERIMENT] mode={mode}, n_people={n_people}, seed={seed}")
+        print(f"\n[EXPERIMENT] mode={mode}, n_people={n_people}, seed={seed}, near_dupe_fraction={near_dupe_fraction}")
         print(f"[EXPERIMENT] noise_levels={noise_levels}, threshold={threshold}")
 
         # --- 1. Generate & insert persons ---
@@ -111,6 +83,17 @@ class TestRecallUnderNoise:
             normalized = normalize_person_data(raw)
             milvus_id = store_person(normalized, collection_name=test_collection)
             id_to_person[milvus_id] = normalized
+
+        # --- 1b. Generate & insert near-duplicate confusers (optional) ---
+        n_near_dupes = math.floor(n_people * near_dupe_fraction)
+        if n_near_dupes > 0:
+            dupe_rng = random.Random(seed + 1)  # isolated RNG stream
+            near_dupes = generate_near_duplicates(
+                list(id_to_person.values()), n_near_dupes, dupe_rng
+            )
+            for nd in near_dupes:
+                store_person(nd, collection_name=test_collection)
+            print(f"[EXPERIMENT] Inserted {n_near_dupes} near-duplicate confusers.")
 
         # --- 2. Flush to make records searchable ---
         from database_utils.milvus_db_connection import ensure_people_collection
@@ -166,6 +149,8 @@ class TestRecallUnderNoise:
                 "seed": seed,
                 "noise_levels": noise_levels,
                 "threshold": threshold,
+                "near_dupe_fraction": near_dupe_fraction,
+                "n_near_dupes": n_near_dupes,
             },
             "results": results,
         }

@@ -1,3 +1,4 @@
+import json
 import os
 import uuid
 import sys
@@ -7,6 +8,46 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 
 from database_utils.milvus_db_connection import ensure_people_collection, _collection_cache
 
+
+# ---------------------------------------------------------------------------
+# Shared helpers
+# ---------------------------------------------------------------------------
+
+def dataframe_row_to_person_dict(row) -> dict:
+    """
+    Convert a pandas Series (row from generate_data_chunk DataFrame) to the
+    person dict format expected by normalize_person_data / store_person.
+    """
+    def _parse_json_list(v):
+        if v is None:
+            return []
+        if isinstance(v, list):
+            return v
+        try:
+            parsed = json.loads(v)
+            return parsed if isinstance(parsed, list) else []
+        except (json.JSONDecodeError, TypeError):
+            return []
+
+    return {
+        "name": row.get("name", ""),
+        "lastname": row.get("lastname", ""),
+        "dob": row.get("dob", None),
+        "marital_status": row.get("marital_status", ""),
+        "mobile_number": row.get("mobile_number", ""),
+        "gender": row.get("gender", ""),
+        "race": row.get("race", ""),
+        "attrs": {
+            "address": _parse_json_list(row.get("addresses")),
+            "akas": _parse_json_list(row.get("akas")),
+            "landlines": _parse_json_list(row.get("landlines")),
+        },
+    }
+
+
+# ---------------------------------------------------------------------------
+# Fixtures
+# ---------------------------------------------------------------------------
 
 @pytest.fixture(scope="class", params=["binary", "float"])
 def with_vector_mode(request):
@@ -30,6 +71,11 @@ def test_collection(with_vector_mode):
     print(f"[FIXTURE] Collection '{col.name}' ready. Entities before: {col.num_entities}")
 
     yield name
+
+    if os.environ.get("KEEP_COLLECTION", "").lower() in ("1", "true", "yes"):
+        print(f"\n[FIXTURE] KEEP_COLLECTION set — skipping teardown for '{name}'.")
+        print(f"[FIXTURE] Collection has {col.num_entities} entities. Inspect it, then drop manually.")
+        return
 
     print(f"\n[FIXTURE] Teardown: dropping {name}. Entities after: {col.num_entities}")
     _collection_cache.pop(name, None)

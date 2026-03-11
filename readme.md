@@ -122,8 +122,110 @@ Configuration via environment variables:
 | `RECALL_NOISE_LEVELS` | `0.0,0.1,...,1.0` | Comma-separated noise levels to evaluate |
 | `RECALL_THRESHOLD` | `0.0` | Similarity threshold for `find_closest_match_db` |
 | `RECALL_SEED` | `DEFAULT_SEED` | RNG seed for reproducibility |
+| `RECALL_NEAR_DUPE_FRACTION` | `0.0` | Fraction of extra confuser records to insert as near-duplicates (e.g. `0.2` adds 200 confusers to a 1000-person run) |
+| `KEEP_COLLECTION` | — | Set to `1` to skip teardown and keep the Milvus collection alive for inspection |
+
+#### Inspecting the collection after an experiment run
+
+By default the test collection is dropped after the experiment. To keep it alive:
+
+```bash
+KEEP_COLLECTION=1 pytest tests/experiments/test_recall_under_noise.py -v -s
+```
+
+The fixture will print the collection name at the end of the run, e.g.:
+
+```
+[FIXTURE] KEEP_COLLECTION set — skipping teardown for 'people_test_a3f8c1b2'.
+[FIXTURE] Collection has 1000 entities. Inspect it, then drop manually.
+```
+
+Query it with a Python shell:
+
+```python
+from pymilvus import Collection, connections
+connections.connect(uri="http://localhost:19530")
+
+col = Collection("people_test_a3f8c1b2")  # use the name printed above
+col.load()
+rows = col.query(expr="id >= 0", output_fields=["id", "name", "lastname", "dob"], limit=10)
+for r in rows:
+    print(r)
+```
+
+When done, drop the collection manually:
+
+```python
+Collection("people_test_a3f8c1b2").drop()
+```
 
 Results are saved as JSON to `test_results/recall_under_noise_<mode>_<timestamp>.json`.
+
+### Deduplication Recall
+
+Measures how well the system surfaces same-person candidates when multiple
+noisy variants of each identity are stored alongside each other — simulating
+records for the same person arriving from different data sources.
+
+**Setup**: Generates N canonical synthetic identities. For each identity,
+produces V noisy variants using `inject_noise()`. All N×V records are inserted
+into Milvus with distinct IDs. For each stored record, the experiment queries
+its top-(K+1) neighbours, excludes self, and checks whether any of the top-K
+results belongs to the same identity.
+
+**Metric**: `recall@K = hits / (N×V)` — a result is a hit if at least one
+neighbour in the top-K comes from the same canonical identity.
+
+```bash
+make experiment-dedup
+# or: pytest tests/experiments/test_dedup_recall.py -v -s
+```
+
+Configuration via environment variables:
+
+| Variable | Default | Description |
+|---|---|---|
+| `DEDUP_N_IDENTITIES` | `200` | Number of canonical identities to generate |
+| `DEDUP_VARIANTS_PER_IDENTITY` | `3` | Noisy variants per identity (total records = N×V) |
+| `DEDUP_NOISE_FRACTION` | `0.3` | Fraction of fields corrupted per variant |
+| `DEDUP_TOP_K` | `5` | K for recall@K |
+| `DEDUP_SEED` | `DEFAULT_SEED` | RNG seed for reproducibility |
+| `KEEP_COLLECTION` | — | Set to `1` to keep the Milvus collection alive after the run |
+
+Results are saved as JSON to `test_results/dedup_recall_<mode>_<timestamp>.json`.
+
+```bash
+make results-dedup
+```
+
+### Deduplication Showcase
+
+A visual, record-level experiment. Creates N identities with V noisy variants
+each, picks a random sample of records, searches for each one, and prints the
+full content of both the query record and its top-K results — labelling each
+result as `[MATCH]` (same identity) or `[DIFF]` (different identity).
+
+Designed for manual inspection: useful for verifying that the system retrieves
+plausible candidates and for understanding failure cases.
+
+```bash
+make experiment-showcase
+# or: pytest tests/experiments/test_dedup_showcase.py -v -s
+```
+
+Configuration via environment variables:
+
+| Variable | Default | Description |
+|---|---|---|
+| `SHOWCASE_N_IDENTITIES` | `100` | Number of canonical identities to generate |
+| `SHOWCASE_VARIANTS_PER_IDENTITY` | `3` | Noisy variants per identity |
+| `SHOWCASE_NOISE_FRACTION` | `0.3` | Fraction of fields corrupted per variant |
+| `SHOWCASE_N_SAMPLES` | `5` | Number of records to query |
+| `SHOWCASE_TOP_K` | `2` | Top results to retrieve per query |
+| `SHOWCASE_SEED` | `DEFAULT_SEED` | RNG seed for reproducibility |
+| `KEEP_COLLECTION` | — | Set to `1` to keep the Milvus collection alive after the run |
+
+Results are saved as JSON to `test_results/dedup_showcase_<mode>_<timestamp>.json`.
 
 To view results in a human-readable format:
 

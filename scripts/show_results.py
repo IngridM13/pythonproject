@@ -157,10 +157,47 @@ def print_bench_section(mode: str):
     print()
 
 
+def print_dedup_section(path: Path):
+    with open(path) as f:
+        data = json.load(f)
+
+    cfg = data["config"]
+    results = data["results"]
+    top_k = cfg["top_k"]
+    recall = results[f"recall_at_{top_k}"]
+    hits = results["hits"]
+    total = results["total"]
+
+    print()
+    print("=" * 60)
+    print(" Deduplication Recall Results")
+    print("=" * 60)
+    print(f"  File        : {path.name}")
+    print(f"  Vector mode : {cfg['vector_mode']}")
+    print(f"  Identities  : {cfg['n_identities']}")
+    print(f"  Variants    : {cfg['variants_per_identity']}  (total records: {cfg['total_records']})")
+    print(f"  Noise       : {cfg['noise_fraction']:.0%}")
+    print(f"  Top-K       : {top_k}")
+    print(f"  HDC dim     : {cfg['hdim']}")
+    print(f"  Seed        : {cfg['seed']}")
+    print("=" * 60)
+    print()
+
+    c = recall_color(recall)
+    print(f"  recall@{top_k} = {c}{recall:.1%}{RESET}  ({hits}/{total})")
+    print()
+    print(f"  {c}{bar(recall)}{RESET}")
+    print()
+    print("-" * 60)
+
+
 def main():
     path = Path(sys.argv[1]) if len(sys.argv) > 1 else find_latest_recall()
-    mode = print_recall_section(path)
-    print_bench_section(mode)
+    if path.name.startswith("dedup_recall_"):
+        print_dedup_section(path)
+    else:
+        mode = print_recall_section(path)
+        print_bench_section(mode)
 
 
 if __name__ == "__main__":

@@ -30,3 +30,12 @@ results-float:
 
 results-binary:
 	python scripts/show_results.py $(shell ls -t test_results/recall_under_noise_binary_*.json | head -1)
+
+experiment-dedup:
+	pytest tests/experiments/test_dedup_recall.py -v -s
+
+results-dedup:
+	python scripts/show_results.py $(shell ls -t test_results/dedup_recall_*.json | head -1)
+
+experiment-showcase:
+	pytest tests/experiments/test_dedup_showcase.py -v -s
