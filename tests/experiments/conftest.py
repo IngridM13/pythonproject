@@ -5,7 +5,7 @@ import pytest
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from database_utils.milvus_db_connection import ensure_people_collection
+from database_utils.milvus_db_connection import ensure_people_collection, _collection_cache
 
 
 @pytest.fixture(scope="class", params=["binary", "float"])
@@ -32,6 +32,7 @@ def test_collection(with_vector_mode):
     yield name
 
     print(f"\n[FIXTURE] Teardown: dropping {name}. Entities after: {col.num_entities}")
+    _collection_cache.pop(name, None)
     try:
         col.drop()
         print(f"[FIXTURE] Collection {name} dropped.")

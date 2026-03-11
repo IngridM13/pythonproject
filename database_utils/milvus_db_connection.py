@@ -20,6 +20,10 @@ COLLECTION = "people"
 ALIAS = "default"
 VECTOR_MODE = os.getenv("MILVUS_VECTOR_MODE", "binary")  # "binary" or "float"
 
+# Cache of collection_name -> Collection for collections already set up in this process.
+# Avoids repeating index creation and schema validation on every store_person() call.
+_collection_cache: dict = {}
+
 def connect():
     """Establece la conexión con Milvus si no existe."""
     if not connections.has_connection(ALIAS):
@@ -31,6 +35,9 @@ def get_vector_mode():
 
 
 def ensure_people_collection(collection_name: str = COLLECTION) -> Collection:
+    if collection_name in _collection_cache:
+        return _collection_cache[collection_name]
+
     """
     Schema Milvus equivalente a la tabla Postgres previamente definida.
     Arrays (address, akas, landlines) van en el JSON 'attrs'.
@@ -99,6 +106,7 @@ def ensure_people_collection(collection_name: str = COLLECTION) -> Collection:
                 # Cargar la colección
                 try:
                     col.load()
+                    _collection_cache[collection_name] = col
                     return col
                 except MilvusException as e:
                     print(f">>> Error al cargar colección: {e}")
@@ -164,4 +172,5 @@ def ensure_people_collection(collection_name: str = COLLECTION) -> Collection:
     print(f">>> Cargando colección {collection_name}...")
     col.load()
 
+    _collection_cache[collection_name] = col
     return col
