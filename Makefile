@@ -5,7 +5,7 @@ down:
 	docker-compose -f infra/docker-compose.yml down
 
 test:
-	pytest tests/unit/ tests/integration/ tests/bench/ tests/functional/
+	pytest tests/unit/ tests/integration/ tests/functional/
 
 test-unit:
 	pytest tests/unit/

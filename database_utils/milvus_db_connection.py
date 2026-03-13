@@ -35,8 +35,9 @@ def get_vector_mode():
 
 
 def ensure_people_collection(collection_name: str = COLLECTION) -> Collection:
-    if collection_name in _collection_cache:
-        return _collection_cache[collection_name]
+    cache_key = f"{collection_name}_{VECTOR_MODE}"
+    if cache_key in _collection_cache:
+        return _collection_cache[cache_key]
 
     """
     Schema Milvus equivalente a la tabla Postgres previamente definida.
@@ -106,7 +107,7 @@ def ensure_people_collection(collection_name: str = COLLECTION) -> Collection:
                 # Cargar la colección
                 try:
                     col.load()
-                    _collection_cache[collection_name] = col
+                    _collection_cache[f"{collection_name}_{VECTOR_MODE}"] = col
                     return col
                 except MilvusException as e:
                     print(f">>> Error al cargar colección: {e}")
@@ -172,5 +173,5 @@ def ensure_people_collection(collection_name: str = COLLECTION) -> Collection:
     print(f">>> Cargando colección {collection_name}...")
     col.load()
 
-    _collection_cache[collection_name] = col
+    _collection_cache[f"{collection_name}_{VECTOR_MODE}"] = col
     return col

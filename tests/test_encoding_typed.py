@@ -177,24 +177,22 @@ def _unpack_binary(payload, dim: int, device: str = 'cpu') -> torch.Tensor:
     # Cut to requested dimension and cast boolean -> uint8 (0 or 1)
     return bits[:dim].to(torch.uint8)
 
-def _load_person_from_milvus(person_id: int, with_hv: bool = True):
+def _load_person_from_milvus(person_id: int, with_hv: bool = True, collection_name: str = "people"):
     """
     Query Milvus by primary key and return a dict with scalar fields and optionally 'hv'.
     """
-    col = ensure_people_collection()
+    col = ensure_people_collection(collection_name)
     out_fields = ["name", "lastname", "dob", "marital_status", "mobile_number", "gender", "race", "attrs"]
     if with_hv:
         out_fields.append("hv")
 
     res = col.query(expr=f"id == {person_id}", output_fields=out_fields, consistency_level="Strong")
-    # query returns list[dict]
     return res[0] if res else None
 
-def _delete_people_from_milvus(ids):
-    col = ensure_people_collection()
+def _delete_people_from_milvus(ids, collection_name: str = "people"):
+    col = ensure_people_collection(collection_name)
     if not ids:
-        # When called with empty list, delete all records instead of returning early
-        col.delete(expr="id >= 0")  # Delete all records
+        col.delete(expr="id >= 0")
         return
     id_list = ",".join(str(i) for i in ids)
     col.delete(expr=f"id in [{id_list}]")
@@ -390,13 +388,18 @@ def test_different_people_produce_different_encodings(with_vector_mode):
 @pytest.mark.parametrize("with_vector_mode", ["binary", "float"], indirect=True)
 def test_db_encoding_preservation(with_vector_mode):
     """Los datos personales se puedan almacenar y recuperar de Milvus con el encoding preservado."""
-    from database_utils.milvus_db_connection import get_vector_mode
+    import uuid
+    from database_utils.milvus_db_connection import get_vector_mode, _collection_cache
 
     # Verify the vector mode is correctly set for the test
     current_mode = get_vector_mode()
     assert current_mode == with_vector_mode, f"Expected mode {with_vector_mode}, got {current_mode}"
 
     print(f"\n--- Testing Milvus Encoding Preservation (mode: {with_vector_mode}) ---")
+
+    # Use an isolated collection to avoid interference with other tests
+    collection_name = f"people_test_{uuid.uuid4().hex[:8]}"
+    col = ensure_people_collection(collection_name)
 
     # Use GPU if available for improved performance
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -451,13 +454,13 @@ def test_db_encoding_preservation(with_vector_mode):
         # Insertar en Milvus (devuelve PK id)
         person_ids = []
         for person in normalized_test_persons:
-            person_id = store_person(person)
+            person_id = store_person(person, collection_name=collection_name)
             person_ids.append(person_id)
 
         print(f"\nPersonas guardadas en Milvus con IDs: {person_ids}")
 
         # Leer de Milvus (incluyendo hv) la persona que recién guardé
-        stored = _load_person_from_milvus(person_ids[0], with_hv=True)
+        stored = _load_person_from_milvus(person_ids[0], with_hv=True, collection_name=collection_name)
         if not stored:
             print("ERROR: Persona no se encuentra en Milvus!")
             return False
@@ -582,16 +585,23 @@ def test_db_encoding_preservation(with_vector_mode):
                 ).item()
                 print(f"Cosine similarity entre recalculado y almacenado: {cosine_sim:.6f}")
 
-        # Clean up test data
-        _delete_people_from_milvus(person_ids)
-
-    return stored_vs_original and recomputed_vs_stored
+    _collection_cache.pop(f"{collection_name}_{with_vector_mode}", None)
+    try:
+        col.drop()
+    except Exception:
+        pass
 
 
 # TODO: Hay que trabajar en optimizar este test para pytorch!
 def test_search_with_encoded_vector():
     """Búsqueda de persona usando un vector codificado con pequeñas variaciones(Milvus backend)"""
+    import uuid
+    from database_utils.milvus_db_connection import get_vector_mode, _collection_cache
+
     print("\n--- Búsqueda con Vector Codificado (Milvus) ---")
+
+    collection_name = f"people_test_{uuid.uuid4().hex[:8]}"
+    col = ensure_people_collection(collection_name)
 
     original_person = {
         "name": "Jane",
@@ -610,7 +620,7 @@ def test_search_with_encoded_vector():
 
     global hv_dict
     hv_dict = {}
-    person_id = store_person(original_person)
+    person_id = store_person(original_person, collection_name=collection_name)
     print(f"Persona original almacenada en Milvus con ID: {person_id}")
     for k, v in original_person.items():
         print(f"  {k}: {v}")
@@ -626,7 +636,7 @@ def test_search_with_encoded_vector():
         print(f"  {k}: {v}")
 
     # find_closest_match_db ahora debería buscar en Milvus
-    matches = find_closest_match_db(query_person, threshold=0.5) # experimentar con este threshold para rsultados mas exactos
+    matches = find_closest_match_db(query_person, threshold=0.5, collection_name=collection_name)
 
     print("\nResultados de búsqueda de persona con vector codificado (Milvus):")
     for match in matches:
@@ -652,7 +662,7 @@ def test_search_with_encoded_vector():
     for k, v in different_person.items():
         print(f"  {k}: {v}")
 
-    different_matches = find_closest_match_db(different_person, threshold=0.5)
+    different_matches = find_closest_match_db(different_person, threshold=0.5, collection_name=collection_name)
 
     print("\nResultados para la persona distinta:")
     if different_matches:
@@ -667,16 +677,19 @@ def test_search_with_encoded_vector():
         print("No se encontraron coincidencias para la persona distinta (esperado)")
         lower_similarity = True
 
-    # Limpiamos DB
-    _delete_people_from_milvus([person_id])
-
-    return is_correct_match and lower_similarity
+    _collection_cache.pop(f"{collection_name}_{get_vector_mode()}", None)
+    try:
+        col.drop()
+    except Exception:
+        pass
 
 
 @pytest.mark.parametrize("with_vector_mode", ["binary", "float"], indirect=True)
 def test_date_range_search(with_vector_mode):
     """Tests the ability to search for records within a specific date range with optimized PyTorch usage"""
-    from database_utils.milvus_db_connection import get_vector_mode
+    import uuid
+    from database_utils.milvus_db_connection import get_vector_mode, _collection_cache
+    from pymilvus import utility
     import time
     import torch
 
@@ -690,36 +703,39 @@ def test_date_range_search(with_vector_mode):
     print(f"\n--- Test: Date Range Search (mode: {with_vector_mode}) ---")
     print(f"Using device: {device}")
 
-    # Clean database before starting
-    _delete_people_from_milvus([])
+    # Use an isolated collection to avoid interference with other tests
+    collection_name = f"people_test_{uuid.uuid4().hex[:8]}"
+    col = ensure_people_collection(collection_name)
+    print(f"Using isolated collection: {collection_name}")
 
-    # Test data - batch of people with different date ranges
-    test_people = [
-        {"name": "Person", "lastname": "One", "dob": "1990-05-15", "gender": "Male"},
-        {"name": "Person", "lastname": "Two", "dob": "1990-05-20", "gender": "Female"},
-        {"name": "Person", "lastname": "Three", "dob": "1990-06-15", "gender": "Other"},
-        {"name": "Person", "lastname": "Four", "dob": "1991-05-15", "gender": "Male"},
-    ]
+    try:
+        # Test data - batch of people with different date ranges
+        test_people = [
+            {"name": "Person", "lastname": "One", "dob": "1990-05-15", "gender": "Male"},
+            {"name": "Person", "lastname": "Two", "dob": "1990-05-20", "gender": "Female"},
+            {"name": "Person", "lastname": "Three", "dob": "1990-06-15", "gender": "Other"},
+            {"name": "Person", "lastname": "Four", "dob": "1991-05-15", "gender": "Male"},
+        ]
 
-    # Measure performance - start time
-    start_time = time.time()
+        # Measure performance - start time
+        start_time = time.time()
 
-    # Batch store all people at once if possible, otherwise fallback to individual storing
-    # Note: This would require a batch version of store_person to be implemented
-    # For now, using the sequential approach
-    ids = []
-    for p in test_people:
-        pid = store_person(p)
-        ids.append(pid)
-        print(f"Guardando {p['name']} {p['lastname']} (DOB: {p['dob']}) con ID: {pid}")
+        ids = []
+        for p in test_people:
+            pid = store_person(p, collection_name=collection_name)
+            ids.append(pid)
+            print(f"Guardando {p['name']} {p['lastname']} (DOB: {p['dob']}) con ID: {pid}")
 
-    # Perform the date range search
-    print("\nBuscando personas nacidas en mayo de 1990 (dentro de los 15 días del 15 de mayo):")
-    target_date = date(1990, 5, 15)
-    range_days = 15
+        col.flush()
 
-    with torch.no_grad():  # Disable gradient tracking for inference
-        matches = find_similar_by_date(target_date, range_days=range_days)
+        # Perform the date range search
+        print("\nBuscando personas nacidas en mayo de 1990 (dentro de los 15 días del 15 de mayo):")
+        target_date = date(1990, 5, 15)
+        range_days = 15
+
+        with torch.no_grad():  # Disable gradient tracking for inference
+            matches = find_similar_by_date(target_date, range_days=range_days,
+                                           collection_name=collection_name)
 
         # Convert results to tensors for efficient processing
         if matches:
@@ -744,29 +760,33 @@ def test_date_range_search(with_vector_mode):
             correct_date_matches = False
             print("No se encontraron coincidencias")
 
-    # Report execution time
-    end_time = time.time()
-    execution_time = end_time - start_time
-    print(f"Execution time: {execution_time:.4f} seconds")
+        # Report execution time
+        end_time = time.time()
+        execution_time = end_time - start_time
+        print(f"Execution time: {execution_time:.4f} seconds")
 
-    print(f"Se encontraron coincidencias de fecha correctas: {correct_date_matches}")
+        print(f"Se encontraron coincidencias de fecha correctas: {correct_date_matches}")
 
-    # Use an assertion instead of returning the result
-    assert correct_date_matches, "The date matching search failed to find the expected records"
+        assert correct_date_matches, "The date matching search failed to find the expected records"
 
-    # Optional: Test with different date ranges and batch sizes for more thorough validation
-    if len(ids) > 2:
-        print("\nPrueba adicional: Buscando personas nacidas en 1991:")
-        with torch.no_grad():
-            future_matches = find_similar_by_date(date(1991, 5, 15), range_days=15)
+        # Optional: Test with different date ranges and batch sizes for more thorough validation
+        if len(ids) > 2:
+            print("\nPrueba adicional: Buscando personas nacidas en 1991:")
+            with torch.no_grad():
+                future_matches = find_similar_by_date(date(1991, 5, 15), range_days=15,
+                                                      collection_name=collection_name)
 
-            # Check that Person Four is found
-            found_future = any(m["id"] == ids[3] for m in future_matches)
-            print(f"Se encontró Person Four en 1991: {found_future}")
-            assert found_future, "Could not find Person Four in 1991 search"
+                # Check that Person Four is found
+                found_future = any(m["id"] == ids[3] for m in future_matches)
+                print(f"Se encontró Person Four en 1991: {found_future}")
+                assert found_future, "Could not find Person Four in 1991 search"
 
-    # Clean up - use batch operation if available
-    _delete_people_from_milvus(ids)
+    finally:
+        _collection_cache.pop(f"{collection_name}_{with_vector_mode}", None)
+        try:
+            col.drop()
+        except Exception:
+            pass
 
 
 def test_date_similarity_ordering_binary():

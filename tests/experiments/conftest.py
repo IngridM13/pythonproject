@@ -78,7 +78,7 @@ def test_collection(with_vector_mode):
         return
 
     print(f"\n[FIXTURE] Teardown: dropping {name}. Entities after: {col.num_entities}")
-    _collection_cache.pop(name, None)
+    _collection_cache.pop(f"{name}_{with_vector_mode}", None)
     try:
         col.drop()
         print(f"[FIXTURE] Collection {name} dropped.")

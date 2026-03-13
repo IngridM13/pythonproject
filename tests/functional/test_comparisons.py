@@ -209,13 +209,17 @@ def test_database_search_with_reordered_lists(with_vector_mode, test_collection)
     persona1, persona2, _, _ = create_test_data()
 
     # Almacenar la primera persona en la BD
-    persona1_id = store_person(normalize_person_data(persona1))
+    persona1_id = store_person(normalize_person_data(persona1), collection_name=test_collection)
     print(f"Persona original almacenada con ID: {persona1_id}")
+
+    # Flush para asegurar que el registro sea buscable
+    from database_utils.milvus_db_connection import ensure_people_collection
+    ensure_people_collection(test_collection).flush()
 
     # Buscar utilizando la segunda persona (mismos datos, listas reordenadas)
     print("Buscando coincidencias usando persona con listas reordenadas...")
     start_time = time.time()
-    matches = find_closest_match_db(persona2, threshold=0.85)  # Umbral más bajo para garantizar resultados
+    matches = find_closest_match_db(persona2, threshold=0.85, collection_name=test_collection)
     search_time = time.time() - start_time
 
     print(f"Tiempo de búsqueda: {search_time:.4f} segundos")
@@ -231,7 +235,7 @@ def test_database_search_with_reordered_lists(with_vector_mode, test_collection)
             print(f"Coincidencia encontrada - ID: {match.get('id')}, Similitud: {match_similarity:.6f}")
 
     # Limpiar después de la prueba
-    _delete_people_from_milvus([persona1_id])
+    _delete_people_from_milvus([persona1_id], collection_name=test_collection)
 
     # Aserción
     assert persona_encontrada, "La búsqueda debería encontrar la persona original a pesar del reordenamiento de listas"
@@ -258,8 +262,12 @@ def test_robustness_with_modified_lists(with_vector_mode, test_collection):
     persona1, _, _, persona4 = create_test_data()
 
     # Almacenar la primera persona en la BD
-    persona1_id = store_person(normalize_person_data(persona1))
+    persona1_id = store_person(normalize_person_data(persona1), collection_name=test_collection)
     print(f"Persona original almacenada con ID: {persona1_id}")
+
+    # Flush para asegurar que el registro sea buscable
+    from database_utils.milvus_db_connection import ensure_people_collection
+    ensure_people_collection(test_collection).flush()
 
     # Realizar una sola búsqueda con un umbral bajo para garantizar encontrar resultados
     # Luego analizaremos la similitud obtenida para determinar la robustez
@@ -268,7 +276,7 @@ def test_robustness_with_modified_lists(with_vector_mode, test_collection):
 
     # Usamos un umbral bajo para asegurar encontrar resultados
     threshold = 0.7
-    matches = find_closest_match_db(persona4, threshold=threshold)
+    matches = find_closest_match_db(persona4, threshold=threshold, collection_name=test_collection)
 
     search_time = time.time() - start_time
     print(f"Tiempo de búsqueda: {search_time:.4f} segundos")
@@ -287,7 +295,7 @@ def test_robustness_with_modified_lists(with_vector_mode, test_collection):
     match_similarity = found_match.get('similarity', 0) if found_match else 0
 
     # Limpiar después de la prueba
-    _delete_people_from_milvus([persona1_id])
+    _delete_people_from_milvus([persona1_id], collection_name=test_collection)
 
     # Aserciones
     assert persona_encontrada, "La búsqueda debería encontrar la persona original a pesar de las modificaciones en las listas"
