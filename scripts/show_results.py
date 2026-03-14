@@ -224,11 +224,52 @@ def print_dedup_section(path: Path):
         print("-" * 60)
 
 
+def print_field_weighting_section(path: Path):
+    with open(path) as f:
+        data = json.load(f)
+
+    cfg  = data["config"]
+    mode = data["mode"]
+    results = data["results"]
+    top_k = cfg["top_k"]
+
+    print()
+    print("=" * 60)
+    print(" Field Weighting Ablation Results")
+    print("=" * 60)
+    print(f"  File        : {path.name}")
+    print(f"  Vector mode : {mode}")
+    print(f"  Identities  : {cfg['n_identities']}  x  {cfg['variants_per_identity']} variants")
+    print(f"  Noise       : {cfg['noise_fraction']:.0%}")
+    print(f"  Top-K       : {top_k}")
+    print(f"  HDC dim     : {cfg['hdim']}")
+    print(f"  Seed        : {cfg['seed']}")
+    print("=" * 60)
+    print()
+    print(f"  {'Variant':<22}  {'Recall@' + str(top_k):>8}  {'Hits':>10}    Chart")
+    print(f"  {'-'*22}  {'-'*8}  {'-'*10}    {'-'*BAR_WIDTH}")
+
+    for r in results:
+        recall = r["recall_at_k"]
+        hits   = r["hits"]
+        total  = r["total"]
+        c = recall_color(recall)
+        print(
+            f"  {r['variant']:<22}  {c}{recall:>8.1%}{RESET}  "
+            f"{hits:>5}/{total:<5}    "
+            f"{c}{bar(recall)}{RESET}"
+        )
+
+    print("-" * 60)
+
+
 def main():
     if len(sys.argv) > 1:
         path = Path(sys.argv[1])
         if path.name.startswith("dedup_recall_"):
             print_dedup_section(path)
+        elif path.name.startswith("field_weighting_"):
+            print_field_weighting_section(path)
         else:
             mode = print_recall_section(path)
             print_bench_section(mode)

@@ -413,10 +413,27 @@ class HyperDimensionalComputingBinary:
             return batch_result
         return batch_result[0]
 
-    def encode_person_binary(self, raw_person: Dict[str, Any]) -> torch.Tensor:
+    def encode_person_binary(
+        self,
+        raw_person: Dict[str, Any],
+        field_weights: Optional[Dict[str, int]] = None,
+        excluded_fields: Optional[set] = None,
+    ) -> torch.Tensor:
         """
         Codifica los datos de una persona en un hipervector binario utilizando estrategias
         basadas en tipos de datos.
+
+        Parameters
+        ----------
+        raw_person : dict
+            Raw person data to encode.
+        field_weights : dict, optional
+            Mapping of field name -> repetition count. Each bound field vector is
+            included in the bundle ``weight`` times. Fields absent from the dict
+            default to weight 1. When None, all fields have weight 1.
+        excluded_fields : set, optional
+            Field names to skip entirely (not bound, not bundled). When None, no
+            fields are skipped.
         """
         person = normalize_person_data(raw_person)
         profiler = DataTypeProfiler()
@@ -425,6 +442,10 @@ class HyperDimensionalComputingBinary:
         all_field_vectors = []
 
         for key in sorted(person.keys()):
+            # Skip excluded fields
+            if excluded_fields is not None and key in excluded_fields:
+                continue
+
             value = person[key]
 
             # Saltar valores vacíos explícitamente, igual que en la versión bipolar
@@ -445,7 +466,14 @@ class HyperDimensionalComputingBinary:
 
                 key_hv = self.get_binary_hv(key.upper())
                 bound_hv = self.bind_hv(key_hv, encoded_value)
-                all_field_vectors.append(bound_hv)
+
+                # Determine repetition weight (default 1)
+                weight = 1
+                if field_weights is not None:
+                    weight = field_weights.get(key, 1)
+
+                for _ in range(weight):
+                    all_field_vectors.append(bound_hv)
 
         if not all_field_vectors:
             return torch.zeros(self.dim, dtype=torch.uint8, device=self.device)

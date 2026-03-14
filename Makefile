@@ -40,3 +40,12 @@ results-dedup:
 		if [ -n "$$file" ]; then python scripts/show_results.py $$file; fi \
 	done
 
+experiment-weights:
+	pytest tests/experiments/test_field_weighting.py -v -s
+
+results-weights:
+	@for mode in binary float; do \
+		file=$$(ls -t test_results/field_weighting_$${mode}_*.json 2>/dev/null | head -1); \
+		if [ -n "$$file" ]; then python scripts/show_results.py $$file; fi \
+	done
+
