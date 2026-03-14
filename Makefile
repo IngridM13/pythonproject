@@ -35,7 +35,8 @@ experiment-dedup:
 	pytest tests/experiments/test_dedup_recall.py -v -s
 
 results-dedup:
-	python scripts/show_results.py $(shell ls -t test_results/dedup_recall_*.json | head -1)
+	@for mode in binary float; do \
+		file=$$(ls -t test_results/dedup_recall_$${mode}_*.json 2>/dev/null | head -1); \
+		if [ -n "$$file" ]; then python scripts/show_results.py $$file; fi \
+	done
 
-experiment-showcase:
-	pytest tests/experiments/test_dedup_showcase.py -v -s

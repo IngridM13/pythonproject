@@ -190,14 +190,62 @@ def print_dedup_section(path: Path):
     print()
     print("-" * 60)
 
+    queries = data.get("queries", [])
+    if queries:
+        print()
+        print(f"  Sample queries  ({len(queries)} records)")
+
+        for q in queries:
+            print()
+            print(f"  ── Query {q['query_num']}/{len(queries)}  [identity {q['identity_idx']}] " + "─" * 30)
+            qr = q["query_record"]
+            print(f"  Searched for")
+            print(f"    {qr['name']} {qr['lastname']:<20}  DOB: {qr['dob']}  |  {qr['gender']}, {qr['race']}, {qr['marital_status']}")
+            print(f"    Phone: {qr['mobile_number']}")
+            if qr.get("akas"):
+                print(f"    AKAs: {', '.join(qr['akas'])}")
+            if qr.get("addresses"):
+                print(f"    Address: {qr['addresses'][0]}")
+            print()
+            for r in q["results"]:
+                label = f"{GREEN}[MATCH]{RESET}" if r["is_match"] else f"{RED}[DIFF] {RESET}"
+                rec = r["record"]
+                sim = rec.get("similarity")
+                sim_str = f"  similarity: {sim:.4f}" if sim is not None else ""
+                print(f"  {label}  #{r['rank']}{sim_str}")
+                print(f"    {rec['name']} {rec['lastname']:<20}  DOB: {rec['dob']}  |  {rec['gender']}, {rec['race']}, {rec['marital_status']}")
+                print(f"    Phone: {rec['mobile_number']}")
+                if rec.get("akas"):
+                    print(f"    AKAs: {', '.join(rec['akas'])}")
+                if rec.get("addresses"):
+                    print(f"    Address: {rec['addresses'][0]}")
+                print()
+
+        print("-" * 60)
+
 
 def main():
-    path = Path(sys.argv[1]) if len(sys.argv) > 1 else find_latest_recall()
-    if path.name.startswith("dedup_recall_"):
-        print_dedup_section(path)
+    if len(sys.argv) > 1:
+        path = Path(sys.argv[1])
+        if path.name.startswith("dedup_recall_"):
+            print_dedup_section(path)
+        else:
+            mode = print_recall_section(path)
+            print_bench_section(mode)
     else:
-        mode = print_recall_section(path)
-        print_bench_section(mode)
+        shown = False
+        for mode in ("binary", "float"):
+            files = sorted(RESULTS_DIR.glob(f"recall_under_noise_{mode}_*.json"), key=lambda f: f.stat().st_mtime)
+            if files:
+                print_recall_section(files[-1])
+                print_bench_section(mode)
+                shown = True
+        if not shown:
+            # fall back to dedup results if no recall files exist
+            for mode in ("binary", "float"):
+                files = sorted(RESULTS_DIR.glob(f"dedup_recall_{mode}_*.json"), key=lambda f: f.stat().st_mtime)
+                if files:
+                    print_dedup_section(files[-1])
 
 
 if __name__ == "__main__":

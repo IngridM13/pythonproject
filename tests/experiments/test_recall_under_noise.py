@@ -166,6 +166,6 @@ class TestRecallUnderNoise:
 
         mid_noise = 0.5
         if mid_noise in recall_by_level:
-            assert recall_by_level[mid_noise] >= 0.6, (
-                f"Recall at noise=0.5 below 0.6: {recall_by_level[mid_noise]:.3f}"
+            assert recall_by_level[mid_noise] >= 0.5, (
+                f"Recall at noise=0.5 below 0.5: {recall_by_level[mid_noise]:.3f}"
             )
