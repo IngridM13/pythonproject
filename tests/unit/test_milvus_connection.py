@@ -18,6 +18,7 @@ def test_connect_skips_if_connection_exists(mock_connections):
     connect()
     mock_connections.connect.assert_not_called()
 
+@patch('database_utils.milvus_db_connection._collection_cache', {})
 @patch('database_utils.milvus_db_connection.utility')
 @patch('database_utils.milvus_db_connection.Collection')
 def test_ensure_collection_creates_when_missing(mock_collection, mock_utility):

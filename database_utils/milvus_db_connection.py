@@ -20,6 +20,10 @@ COLLECTION = "people"
 ALIAS = "default"
 VECTOR_MODE = os.getenv("MILVUS_VECTOR_MODE", "binary")  # "binary" or "float"
 
+# Cache of collection_name -> Collection for collections already set up in this process.
+# Avoids repeating index creation and schema validation on every store_person() call.
+_collection_cache: dict = {}
+
 def connect():
     """Establece la conexión con Milvus si no existe."""
     if not connections.has_connection(ALIAS):
@@ -31,6 +35,10 @@ def get_vector_mode():
 
 
 def ensure_people_collection(collection_name: str = COLLECTION) -> Collection:
+    cache_key = f"{collection_name}_{VECTOR_MODE}"
+    if cache_key in _collection_cache:
+        return _collection_cache[cache_key]
+
     """
     Schema Milvus equivalente a la tabla Postgres previamente definida.
     Arrays (address, akas, landlines) van en el JSON 'attrs'.
@@ -99,6 +107,7 @@ def ensure_people_collection(collection_name: str = COLLECTION) -> Collection:
                 # Cargar la colección
                 try:
                     col.load()
+                    _collection_cache[f"{collection_name}_{VECTOR_MODE}"] = col
                     return col
                 except MilvusException as e:
                     print(f">>> Error al cargar colección: {e}")
@@ -106,11 +115,11 @@ def ensure_people_collection(collection_name: str = COLLECTION) -> Collection:
                     col.release()
                     utility.drop_collection(collection_name)
                     # La colección se creará más adelante
-        except Exception as e:
+        except MilvusException as e:
             print(f">>> Error al procesar colección existente: {e}")
             try:
                 utility.drop_collection(collection_name)
-            except:
+            except MilvusException:
                 pass
             # La colección se creará más adelante
 
@@ -164,4 +173,5 @@ def ensure_people_collection(collection_name: str = COLLECTION) -> Collection:
     print(f">>> Cargando colección {collection_name}...")
     col.load()
 
+    _collection_cache[f"{collection_name}_{VECTOR_MODE}"] = col
     return col

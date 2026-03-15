@@ -147,21 +147,34 @@ def encode_date(date_obj, mode="binary"):
         return hdc_bipolar.encode_date_bipolar(date_obj)
 
 
-def encode_person(person, mode="binary"):
+def encode_person(person, mode="binary", field_weights=None, excluded_fields=None):
     hdc_bipolar = HyperDimensionalComputingBipolar(dim=HDC_DIM)
     hdc_binary = HyperDimensionalComputingBinary(dim=HDC_DIM)
 
     vector_mode = get_vector_mode()
     if vector_mode == "binary":
-        return hdc_binary.encode_person_binary(person)
+        return hdc_binary.encode_person_binary(
+            person,
+            field_weights=field_weights,
+            excluded_fields=excluded_fields,
+        )
     elif vector_mode == "float":
-        return hdc_bipolar.encode_person_generalized(person)
+        return hdc_bipolar.encode_person_generalized(
+            person,
+            field_weights=field_weights,
+            excluded_fields=excluded_fields,
+        )
     else:
         raise ValueError(f"Invalid vector mode: {vector_mode}")
 
 
 # --- Database Operations ---
-def store_person(person: Dict[str, Any], collection_name: str = "people") -> int:
+def store_person(
+    person: Dict[str, Any],
+    collection_name: str = "people",
+    field_weights=None,
+    excluded_fields=None,
+) -> int:
     person_data = person.copy()
     embedding = person_data.pop('embedding', None)
 
@@ -173,7 +186,7 @@ def store_person(person: Dict[str, Any], collection_name: str = "people") -> int
             person_data['attrs'][attr_key] = person_data.pop(attr_key)
 
     normalized_person = normalize_person_data(person_data)
-    hv = encode_person(normalized_person)
+    hv = encode_person(normalized_person, field_weights=field_weights, excluded_fields=excluded_fields)
     
     # Usar _encode_for_milvus para preparar el vector en el formato correcto
     milvus_vector = _encode_for_milvus(hv)

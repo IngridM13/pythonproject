@@ -272,14 +272,36 @@ class HyperDimensionalComputingBipolar:
 
         return res if is_list else res[0]
 
-    def encode_person_generalized(self, raw_person: Dict[str, Any]) -> torch.Tensor:
-        """Codifica una persona usando el sistema de estrategias."""
+    def encode_person_generalized(
+        self,
+        raw_person: Dict[str, Any],
+        field_weights: Optional[Dict[str, int]] = None,
+        excluded_fields: Optional[set] = None,
+    ) -> torch.Tensor:
+        """Codifica una persona usando el sistema de estrategias.
+
+        Parameters
+        ----------
+        raw_person : dict
+            Raw person data to encode.
+        field_weights : dict, optional
+            Mapping of field name -> repetition count. Each bound field vector is
+            added to the accumulator ``weight`` times. Fields absent from the dict
+            default to weight 1. When None, all fields have weight 1.
+        excluded_fields : set, optional
+            Field names to skip entirely (not bound, not bundled). When None, no
+            fields are skipped.
+        """
         bundle_acc = self.bundle_init()
         person = normalize_person_data(raw_person)
         profiler = DataTypeProfiler()
         profiler.profile_record(person)
 
         for key in sorted(person.keys()):
+            # Skip excluded fields
+            if excluded_fields is not None and key in excluded_fields:
+                continue
+
             value = person[key]
             if value in (None, "", []): continue
 
@@ -292,7 +314,13 @@ class HyperDimensionalComputingBipolar:
 
             key_hv = self.get_bipolar_hv(key)
             bound_hv = self.bind_hv(key_hv, encoded_value)
-            self.bundle_add(bundle_acc, bound_hv)
+
+            # Determine repetition weight (default 1)
+            weight = 1
+            if field_weights is not None:
+                weight = field_weights.get(key, 1)
+
+            self.bundle_add(bundle_acc, bound_hv, weights=[weight])
 
         return self.bundle_finalize(bundle_acc, tie_key="person_bundle")
 

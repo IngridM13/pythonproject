@@ -1,3 +1,4 @@
+import json
 import pandas as pd
 import torch
 import faker
@@ -23,11 +24,25 @@ def generate_data_chunk(num_rows):
     names = [fake.first_name() for _ in range(num_rows)]
     lastnames = [fake.last_name() for _ in range(num_rows)]
     dobs = [fake.date_of_birth(minimum_age=18, maximum_age=90).isoformat() for _ in range(num_rows)]
-    addresses = [str([fake.address().replace("\n", ", ") for _ in range(random.randint(0, 5))]) for _ in
-                 range(num_rows)]
-    akas = [str([fake.name() for _ in range(random.randint(0, 3))]) for _ in range(num_rows)]
-    landlines = [str([fake.phone_number() for _ in range(random.randint(0, 2))]) for _ in range(num_rows)]
+
+    addresses_lists = [
+        [fake.address().replace("\n", ", ") for _ in range(random.randint(0, 5))]
+        for _ in range(num_rows)
+    ]
+    akas_lists = [
+        [fake.name() for _ in range(random.randint(0, 3))]
+        for _ in range(num_rows)
+    ]
+    landlines_lists = [
+        [fake.phone_number() for _ in range(random.randint(0, 2))]
+        for _ in range(num_rows)
+    ]
     mobile_numbers = [fake.phone_number() for _ in range(num_rows)]
+
+    # Serialize list-like fields to valid JSON strings (cleaner to parse later)
+    addresses = [json.dumps(v, ensure_ascii=False) for v in addresses_lists]
+    akas = [json.dumps(v, ensure_ascii=False) for v in akas_lists]
+    landlines = [json.dumps(v, ensure_ascii=False) for v in landlines_lists]
 
     # Use PyTorch for random choices
     gender_indices = torch.randint(0, len(genders), (num_rows,))
@@ -43,11 +58,14 @@ def generate_data_chunk(num_rows):
     data = {
         "name": names,
         "lastname": lastnames,
-        "DOB": dobs,
-        "address": addresses,
+        "dob": dobs,
+        "addresses": addresses,
+        "addresses_count": [len(v) for v in addresses_lists],
         "marital_status": marital_selected,
-        "Akas": akas,
+        "akas": akas,
+        "akas_count": [len(v) for v in akas_lists],
         "landlines": landlines,
+        "landlines_count": [len(v) for v in landlines_lists],
         "mobile_number": mobile_numbers,
         "gender": genders_selected,
         "race": races_selected,
@@ -61,10 +79,17 @@ def generate_data_and_save(output_file=OUTPUT_FILE):
     with open(output_file, "w", newline="", encoding="utf-8") as f:
         first_chunk = True  # To handle header writing
 
-        for _ in tqdm(range(NUM_ROWS // CHUNK_SIZE), desc="Generating dataset", unit="chunk"):
+        full_chunks = NUM_ROWS // CHUNK_SIZE
+        remainder = NUM_ROWS % CHUNK_SIZE
+
+        for _ in tqdm(range(full_chunks), desc="Generating dataset", unit="chunk"):
             df_chunk = generate_data_chunk(CHUNK_SIZE)
             df_chunk.to_csv(f, mode="a", header=first_chunk, index=False)
             first_chunk = False  # Only write header for the first chunk
+
+        if remainder > 0:
+            df_chunk = generate_data_chunk(remainder)
+            df_chunk.to_csv(f, mode="a", header=first_chunk, index=False)
 
     # Use logging instead of print
     import logging

@@ -5,7 +5,7 @@ from pathlib import Path
 from datetime import datetime
 
 import pytest
-from pymilvus import MilvusClient
+from pymilvus import MilvusClient, MilvusException
 from database_utils.milvus_db_connection import ensure_people_collection
 
 # Asegurar path para imports
@@ -40,7 +40,7 @@ def test_collection():
     try:
         col.drop()
         print(f"[DEBUG-FIXTURE] Colección {name} dropeada exitosamente.")
-    except Exception as e:
+    except MilvusException as e:
         print(f"[DEBUG-FIXTURE] Falló col.drop(): {e}. Intentando vaciar...")
         try:
             rows = col.query(expr="id >= 0", output_fields=["id"], limit=100000)
@@ -52,11 +52,11 @@ def test_collection():
                 try:
                     col.compact()
                     print("[DEBUG-FIXTURE] col.compact() exitoso.")
-                except Exception as e_compact:
+                except MilvusException as e_compact:
                     print(f"[DEBUG-FIXTURE] col.compact() falló: {e_compact}")
             else:
                 print("[DEBUG-FIXTURE] No se encontraron filas para borrar.")
-        except Exception as e_query:
+        except MilvusException as e_query:
             print(f"[DEBUG-FIXTURE] Falló el vaciado (query/delete): {e_query}")
 
     print("[DEBUG-FIXTURE] ----------------------------------\n")
