@@ -6,7 +6,7 @@ import hashlib
 from typing import Any, Dict, List, Union
 from datetime import datetime, date as date_cls, timedelta
 
-from configs.settings import HDC_DIM as DIMENSION, HDC_DIM
+from configs.settings import HDC_DIM as DIMENSION, HDC_DIM, NAME_AND_DATE_WEIGHTS
 from database_utils.milvus_db_connection import ensure_people_collection, VECTOR_MODE, get_vector_mode
 from hdc.binary_hdc import HyperDimensionalComputingBinary
 from utils.person_data_normalization import parse_date, normalize_person_data
@@ -147,7 +147,7 @@ def encode_date(date_obj, mode="binary"):
         return hdc_bipolar.encode_date_bipolar(date_obj)
 
 
-def encode_person(person, mode="binary", field_weights=None, excluded_fields=None):
+def encode_person(person, mode="binary", field_weights=NAME_AND_DATE_WEIGHTS, excluded_fields=None):
     hdc_bipolar = HyperDimensionalComputingBipolar(dim=HDC_DIM)
     hdc_binary = HyperDimensionalComputingBinary(dim=HDC_DIM)
 
@@ -172,7 +172,7 @@ def encode_person(person, mode="binary", field_weights=None, excluded_fields=Non
 def store_person(
     person: Dict[str, Any],
     collection_name: str = "people",
-    field_weights=None,
+    field_weights=NAME_AND_DATE_WEIGHTS,
     excluded_fields=None,
 ) -> int:
     person_data = person.copy()
@@ -254,11 +254,11 @@ def get_person_details(person_id: int, collection_name: str = "people") -> Dict[
     }
 
 
-def find_closest_match_db(query_person, threshold=0.7, limit=5, collection_name: str = "people"):
+def find_closest_match_db(query_person, threshold=0.7, limit=5, collection_name: str = "people", field_weights=NAME_AND_DATE_WEIGHTS):
     col = ensure_people_collection(collection_name)
     normalized_query = normalize_person_data(query_person)
     current_mode = get_vector_mode()
-    qhv = encode_person(normalized_query)
+    qhv = encode_person(normalized_query, field_weights=field_weights)
     qpayload = _encode_for_milvus(qhv)
 
     if current_mode == "binary":
