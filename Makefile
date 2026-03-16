@@ -85,3 +85,12 @@ results-per-field-sweep:
 		if [ -n "$$file" ]; then python scripts/show_results.py $$file; fi \
 	done
 
+experiment-dimensionality:
+	pytest tests/experiments/test_dimensionality.py -v -s
+
+results-dimensionality:
+	@for mode in binary float; do \
+		file=$$(ls -t test_results/dimensionality_$${mode}_*.json 2>/dev/null | head -1); \
+		if [ -n "$$file" ]; then python scripts/show_results.py $$file; fi \
+	done
+

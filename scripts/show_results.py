@@ -504,6 +504,75 @@ def print_per_field_sweep_section(path: Path):
     print()
 
 
+def print_dimensionality_section(path: Path):
+    with open(path) as f:
+        data = json.load(f)
+
+    cfg     = data["config"]
+    mode    = data["mode"]
+    results = data["results"]
+    top_k   = cfg["top_k"]
+
+    print()
+    print("=" * 80)
+    print(" Dimensionality Sweep Results")
+    print("=" * 80)
+    print(f"  File        : {path.name}")
+    print(f"  Vector mode : {mode}")
+    print(f"  Dim values  : {cfg['dim_values']}")
+    print(f"  Identities  : {cfg['n_identities']}  x  {cfg['variants_per_identity']} variants")
+    print(f"  Noise       : {cfg['noise_fraction']:.0%}")
+    print(f"  Top-K       : {top_k}")
+    print(f"  Seed        : {cfg['seed']}")
+    print("=" * 80)
+    print()
+
+    col_dim    = 10
+    col_total  = 14
+    col_recall = 10
+    col_mrr    =  8
+    col_hit1   =  7
+    col_insert = 10
+    col_query  = 10
+
+    print(
+        f"  {'HDC_DIM':>{col_dim}}  "
+        f"{'Total Records':>{col_total}}  "
+        f"{'Recall@' + str(top_k):>{col_recall}}  "
+        f"{'MRR':>{col_mrr}}  "
+        f"{'Hit@1':>{col_hit1}}  "
+        f"{'Insert(s)':>{col_insert}}  "
+        f"{'Query(s)':>{col_query}}  "
+        f"Chart"
+    )
+    print(
+        f"  {'-'*col_dim}  "
+        f"{'-'*col_total}  "
+        f"{'-'*col_recall}  "
+        f"{'-'*col_mrr}  "
+        f"{'-'*col_hit1}  "
+        f"{'-'*col_insert}  "
+        f"{'-'*col_query}  "
+        f"{'-'*BAR_WIDTH}"
+    )
+
+    for r in results:
+        recall = r["recall_at_k"]
+        c = recall_color(recall)
+        print(
+            f"  {r['dim']:>{col_dim}}  "
+            f"{r['total_records']:>{col_total}}  "
+            f"{c}{recall:>{col_recall}.1%}{RESET}  "
+            f"{r['mrr']:>{col_mrr}.3f}  "
+            f"{c}{r['hit_at_1']:>{col_hit1}.1%}{RESET}  "
+            f"{r['insert_time_s']:>{col_insert}.2f}  "
+            f"{r['query_time_s']:>{col_query}.2f}  "
+            f"{c}{bar(recall)}{RESET}"
+        )
+
+    print("-" * 80)
+
+
 def main():
     if len(sys.argv) > 1:
         path = Path(sys.argv[1])
@@ -519,6 +588,8 @@ def main():
             print_per_field_sweep_section(path)
         elif path.name.startswith("per_field_noise_"):
             print_per_field_noise_section(path)
+        elif path.name.startswith("dimensionality_"):
+            print_dimensionality_section(path)
         else:
             mode = print_recall_section(path)
             print_bench_section(mode)
