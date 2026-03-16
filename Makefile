@@ -58,3 +58,12 @@ results-scalability:
 		if [ -n "$$file" ]; then python scripts/show_results.py $$file; fi \
 	done
 
+experiment-ranking:
+	pytest tests/experiments/test_ranking_metrics.py -v -s
+
+results-ranking:
+	@for mode in binary float; do \
+		file=$$(ls -t test_results/ranking_metrics_$${mode}_*.json 2>/dev/null | head -1); \
+		if [ -n "$$file" ]; then python scripts/show_results.py $$file; fi \
+	done
+

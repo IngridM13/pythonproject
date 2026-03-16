@@ -332,6 +332,49 @@ def print_scalability_section(path: Path):
     print("-" * 60)
 
 
+def print_ranking_section(path: Path):
+    with open(path) as f:
+        data = json.load(f)
+
+    cfg     = data["config"]
+    mode    = data["mode"]
+    results = data["results"]
+    top_k   = cfg["top_k"]
+
+    recall   = results["recall_at_k"]
+    mrr      = results["mrr"]
+    prec     = results["precision_at_k"]
+    hit1     = results["hit_at_1"]
+    total    = results["total_queries"]
+
+    print()
+    print("=" * 60)
+    print(" Ranking Metrics Results")
+    print("=" * 60)
+    print(f"  File        : {path.name}")
+    print(f"  Vector mode : {mode}")
+    print(f"  Identities  : {cfg['n_identities']}  x  {cfg['variants_per_identity']} variants")
+    print(f"  Noise       : {cfg['noise_fraction']:.0%}")
+    print(f"  Top-K       : {top_k}")
+    print(f"  HDC dim     : {cfg['hdim']}")
+    print(f"  Seed        : {cfg['seed']}")
+    print(f"  Queries     : {total}")
+    print("=" * 60)
+    print()
+
+    c_recall = recall_color(recall)
+    c_hit1   = recall_color(hit1)
+
+    print(f"  {'Metric':<16}  {'Value':>8}")
+    print(f"  {'-'*16}  {'-'*8}")
+    print(f"  {'recall@' + str(top_k):<16}  {c_recall}{recall:>7.1%}{RESET}")
+    print(f"  {'MRR':<16}  {mrr:>8.3f}")
+    print(f"  {'Precision@' + str(top_k):<16}  {prec:>7.1%}")
+    print(f"  {'Hit@1':<16}  {c_hit1}{hit1:>7.1%}{RESET}")
+    print()
+    print("-" * 60)
+
+
 def main():
     if len(sys.argv) > 1:
         path = Path(sys.argv[1])
@@ -341,6 +384,8 @@ def main():
             print_field_weighting_section(path)
         elif path.name.startswith("scalability_"):
             print_scalability_section(path)
+        elif path.name.startswith("ranking_metrics_"):
+            print_ranking_section(path)
         else:
             mode = print_recall_section(path)
             print_bench_section(mode)
