@@ -573,6 +573,80 @@ def print_dimensionality_section(path: Path):
     print("-" * 80)
 
 
+def print_date_encoding_section(path: Path):
+    with open(path) as f:
+        data = json.load(f)
+
+    cfg     = data["config"]
+    mode    = data["mode"]
+    results = data["results"]
+    top_k   = cfg["top_k"]
+
+    print()
+    print("=" * 80)
+    print(" Date Encoding Comparison Results")
+    print("=" * 80)
+    print(f"  File        : {path.name}")
+    print(f"  Vector mode : {mode}")
+    print(f"  Identities  : {cfg['n_identities']}  x  {cfg['variants_per_identity']} variants")
+    print(f"  Noise       : {cfg['noise_fraction']:.0%}")
+    print(f"  Top-K       : {top_k}")
+    print(f"  HDC dim     : {cfg['hdim']}")
+    print(f"  Seed        : {cfg['seed']}")
+    print(f"  Ref date    : {cfg['reference_date']}")
+    print("=" * 80)
+    print()
+
+    col_variant = 16
+    col_recall  = 10
+    col_mono    = 12
+    col_viol    = 12
+
+    print(
+        f"  {'Variant':<{col_variant}}  "
+        f"{'Recall@' + str(top_k):>{col_recall}}  "
+        f"{'Monotonic?':>{col_mono}}  "
+        f"{'Violations':>{col_viol}}  "
+        f"Chart"
+    )
+    print(
+        f"  {'-'*col_variant}  "
+        f"{'-'*col_recall}  "
+        f"{'-'*col_mono}  "
+        f"{'-'*col_viol}  "
+        f"{'-'*BAR_WIDTH}"
+    )
+
+    total_checks = len(cfg["monotonicity_distances"]) - 1
+
+    for r in results:
+        recall   = r["recall_at_k"]
+        mono_ok  = r["monotonicity"]["is_monotonic"]
+        viol     = r["monotonicity"]["violations"]
+        c        = recall_color(recall)
+        print(
+            f"  {r['variant']:<{col_variant}}  "
+            f"{c}{recall:>{col_recall}.1%}{RESET}  "
+            f"{'YES' if mono_ok else 'NO':>{col_mono}}  "
+            f"{viol:>{col_viol - 1}}/{total_checks:<2}  "
+            f"{c}{bar(recall)}{RESET}"
+        )
+
+    print()
+    print("  Monotonicity detail (similarity vs temporal distance from reference date):")
+    print()
+    for r in results:
+        print(f"  Variant: {r['variant']}")
+        print(f"  {'Days':>6}  {'Similarity':>12}  Note")
+        print(f"  {'-'*6}  {'-'*12}  {'-'*20}")
+        for row in r["monotonicity"]["distances"]:
+            note = " <- violation" if row["violation"] else ""
+            print(f"  {row['dist_days']:>6}  {row['similarity']:>12.4f}{note}")
+        print()
+
+    print("-" * 80)
+
+
 def main():
     if len(sys.argv) > 1:
         path = Path(sys.argv[1])
@@ -590,6 +664,8 @@ def main():
             print_per_field_noise_section(path)
         elif path.name.startswith("dimensionality_"):
             print_dimensionality_section(path)
+        elif path.name.startswith("date_encoding_"):
+            print_date_encoding_section(path)
         else:
             mode = print_recall_section(path)
             print_bench_section(mode)

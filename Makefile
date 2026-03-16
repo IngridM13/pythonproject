@@ -94,3 +94,12 @@ results-dimensionality:
 		if [ -n "$$file" ]; then python scripts/show_results.py $$file; fi \
 	done
 
+experiment-date-encoding:
+	pytest tests/experiments/test_date_encoding.py -v -s
+
+results-date-encoding:
+	@for mode in binary float; do \
+		file=$$(ls -t test_results/date_encoding_$${mode}_*.json 2>/dev/null | head -1); \
+		if [ -n "$$file" ]; then python scripts/show_results.py $$file; fi \
+	done
+
