@@ -375,6 +375,135 @@ def print_ranking_section(path: Path):
     print("-" * 60)
 
 
+def print_per_field_noise_section(path: Path):
+    with open(path) as f:
+        data = json.load(f)
+
+    cfg      = data["config"]
+    mode     = data["mode"]
+    baseline = data["baseline"]
+    results  = data["results"]   # already sorted by delta_recall descending
+    top_k    = cfg["top_k"]
+
+    print()
+    print("=" * 90)
+    print(" Per-Field Noise Sensitivity Results")
+    print("=" * 90)
+    print(f"  File        : {path.name}")
+    print(f"  Vector mode : {mode}")
+    print(f"  Identities  : {cfg['n_identities']}  x  {cfg['variants_per_identity']} variants")
+    print(f"  Noise       : {cfg['noise_fraction']:.0%}")
+    print(f"  Top-K       : {top_k}")
+    print(f"  HDC dim     : {cfg['hdim']}")
+    print(f"  Seed        : {cfg['seed']}")
+    print("=" * 90)
+    print()
+
+    BAR_MAX = 20
+
+    max_delta = max((r["delta_recall"] for r in results), default=0.001)
+
+    def _delta_color(delta):
+        if delta > 0.1:
+            return RED
+        elif delta >= 0.05:
+            return YELLOW
+        return GREEN
+
+    def _delta_bar(delta):
+        filled = round(abs(delta) * BAR_MAX / max(0.001, max_delta))
+        filled = min(filled, BAR_MAX)
+        return "#" * filled + "-" * (BAR_MAX - filled)
+
+    print(
+        f"  {'Field':<16}  {'Recall@K':>8}  {'Δ Recall':>9}  "
+        f"{'MRR':>7}  {'Δ MRR':>8}  {'Hit@1':>7}  {'Δ Hit@1':>8}  Bar (Δ Recall)"
+    )
+    print(
+        f"  {'-'*16}  {'-'*8}  {'-'*9}  "
+        f"{'-'*7}  {'-'*8}  {'-'*7}  {'-'*8}  {'-'*BAR_MAX}"
+    )
+
+    # Baseline row
+    b_recall = baseline["recall_at_k"]
+    b_mrr    = baseline["mrr"]
+    b_hit1   = baseline["hit_at_1"]
+    print(
+        f"  {'[baseline]':<16}  {b_recall:>8.1%}  {'—':>9}  "
+        f"{b_mrr:>7.3f}  {'—':>8}  {b_hit1:>7.1%}  {'—':>8}"
+    )
+    print(
+        f"  {'-'*16}  {'-'*8}  {'-'*9}  "
+        f"{'-'*7}  {'-'*8}  {'-'*7}  {'-'*8}  {'-'*BAR_MAX}"
+    )
+
+    for r in results:
+        c = _delta_color(r["delta_recall"])
+        print(
+            f"  {r['field']:<16}  {r['recall_at_k']:>8.1%}  "
+            f"{c}{r['delta_recall']:>+9.3f}{RESET}  "
+            f"{r['mrr']:>7.3f}  {c}{r['delta_mrr']:>+8.3f}{RESET}  "
+            f"{r['hit_at_1']:>7.1%}  {c}{r['delta_hit1']:>+8.3f}{RESET}  "
+            f"{c}{_delta_bar(r['delta_recall'])}{RESET}"
+        )
+
+    print("=" * 90)
+    print()
+
+
+def print_per_field_sweep_section(path: Path):
+    with open(path) as f:
+        data = json.load(f)
+
+    cfg     = data["config"]
+    mode    = data["mode"]
+    results = data["results"]   # dict: field -> list of {noise_level, recall_at_k, mrr, hit_at_1}
+    top_k   = cfg["top_k"]
+
+    print()
+    print("=" * 85)
+    print(" Per-Field Noise Sweep Results")
+    print("=" * 85)
+    print(f"  File        : {path.name}")
+    print(f"  Vector mode : {mode}")
+    print(f"  Fields      : {', '.join(cfg['fields'])}")
+    print(f"  Noise levels: {cfg['noise_levels']}")
+    print(f"  Identities  : {cfg['n_identities']}  x  {cfg['variants_per_identity']} variants")
+    print(f"  Top-K       : {top_k}")
+    print(f"  HDC dim     : {cfg['hdim']}")
+    print(f"  Seed        : {cfg['seed']}")
+    print("=" * 85)
+
+    for field, rows in results.items():
+        print()
+        print(f"  Field: {field}")
+        print(
+            f"  {'Noise%':>7}  {'Recall@' + str(top_k):>9}  {'MRR':>7}  {'Hit@1':>7}  Chart"
+        )
+        print(
+            f"  {'-'*7}  {'-'*9}  {'-'*7}  {'-'*7}  {'-'*BAR_WIDTH}"
+        )
+
+        for r in rows:
+            recall = r["recall_at_k"]
+            mrr    = r["mrr"]
+            hit1   = r["hit_at_1"]
+            noise  = r["noise_level"]
+            c = recall_color(recall)
+            print(
+                f"  {noise:>6}%  "
+                f"{c}{recall:>9.1%}{RESET}  "
+                f"{mrr:>7.3f}  "
+                f"{c}{hit1:>7.1%}{RESET}  "
+                f"{c}{bar(recall)}{RESET}"
+            )
+
+        print(f"  {'-'*7}  {'-'*9}  {'-'*7}  {'-'*7}  {'-'*BAR_WIDTH}")
+
+    print("=" * 85)
+    print()
+
+
 def main():
     if len(sys.argv) > 1:
         path = Path(sys.argv[1])
@@ -386,6 +515,10 @@ def main():
             print_scalability_section(path)
         elif path.name.startswith("ranking_metrics_"):
             print_ranking_section(path)
+        elif path.name.startswith("per_field_sweep_"):
+            print_per_field_sweep_section(path)
+        elif path.name.startswith("per_field_noise_"):
+            print_per_field_noise_section(path)
         else:
             mode = print_recall_section(path)
             print_bench_section(mode)

@@ -67,3 +67,21 @@ results-ranking:
 		if [ -n "$$file" ]; then python scripts/show_results.py $$file; fi \
 	done
 
+experiment-per-field-noise:
+	pytest tests/experiments/test_per_field_noise.py -v -s
+
+results-per-field-noise:
+	@for mode in binary float; do \
+		file=$$(ls -t test_results/per_field_noise_$${mode}_*.json 2>/dev/null | head -1); \
+		if [ -n "$$file" ]; then python scripts/show_results.py $$file; fi \
+	done
+
+experiment-per-field-sweep:
+	pytest tests/experiments/test_per_field_noise_sweep.py -v -s
+
+results-per-field-sweep:
+	@for mode in binary float; do \
+		file=$$(ls -t test_results/per_field_sweep_$${mode}_*.json 2>/dev/null | head -1); \
+		if [ -n "$$file" ]; then python scripts/show_results.py $$file; fi \
+	done
+
