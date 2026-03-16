@@ -31,14 +31,10 @@ Environment variables
     DIM_SWEEP_SEED      RNG seed (default: 42)
 """
 
-import json
 import os
-import random
 import sys
 import time
 import uuid
-from datetime import datetime
-from pathlib import Path
 
 import pytest
 
@@ -55,11 +51,12 @@ from configs.settings import (
     DIM_SWEEP_VALUES,
 )
 from database_utils.milvus_db_connection import ensure_people_collection
-from dummy_data.generacion_base_de_datos import generate_data_chunk
-from encoding_methods.encoding_and_search_milvus import find_closest_match_db, store_person
-from utils.person_data_normalization import normalize_person_data
-from tests.experiments.noise_injection import inject_noise
-from tests.experiments.conftest import dataframe_row_to_person_dict
+from tests.experiments.experiment_utils import (
+    generate_canonical_persons,
+    insert_noisy_variants,
+    run_dedup_recall,
+    save_report,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -84,11 +81,7 @@ class TestDimensionalitySweep:
         total_records         = n_identities * variants_per_identity
 
         # --- Pre-generate canonical identities once (shared across all dims) ---
-        df = generate_data_chunk(n_identities)
-        canonical_persons = []
-        for _, row in df.iterrows():
-            raw = dataframe_row_to_person_dict(row)
-            canonical_persons.append(normalize_person_data(raw))
+        canonical_persons = generate_canonical_persons(n_identities)
 
         config = {
             "dim_values":            dim_values,
@@ -98,10 +91,6 @@ class TestDimensionalitySweep:
             "top_k":                 top_k,
             "seed":                  seed,
         }
-
-        project_root = Path(__file__).resolve().parents[2]
-        output_dir   = project_root / "test_results"
-        output_dir.mkdir(exist_ok=True)
 
         for mode in ["binary", "float"]:
             # Switch vector mode inline (same pattern as test_field_weighting.py)
@@ -130,25 +119,11 @@ class TestDimensionalitySweep:
 
                     try:
                         # --- Insert all noisy variants; measure wall-clock ---
-                        identity_to_milvus_ids: list = [[] for _ in range(n_identities)]
-                        milvus_id_to_identity:  dict = {}
-
                         insert_start = time.perf_counter()
-                        for identity_idx, canonical in enumerate(canonical_persons):
-                            for variant_idx in range(variants_per_identity):
-                                variant_rng = random.Random(
-                                    seed
-                                    + identity_idx * variants_per_identity
-                                    + variant_idx
-                                )
-                                noisy = inject_noise(canonical, noise_fraction, variant_rng)
-                                milvus_id = store_person(
-                                    noisy,
-                                    collection_name=col_name,
-                                )
-                                identity_to_milvus_ids[identity_idx].append(milvus_id)
-                                milvus_id_to_identity[milvus_id] = identity_idx
-
+                        identity_to_milvus_ids, milvus_id_to_identity = insert_noisy_variants(
+                            canonical_persons, variants_per_identity, noise_fraction,
+                            seed, col_name,
+                        )
                         col.flush()
                         insert_time = time.perf_counter() - insert_start
 
@@ -158,63 +133,18 @@ class TestDimensionalitySweep:
                         )
 
                         # --- Evaluate Recall@K, MRR, Hit@1; measure wall-clock ---
-                        hits   = 0
-                        total  = 0
-                        mrr_sum   = 0.0
-                        hit1_count = 0
-
                         query_start = time.perf_counter()
-                        for identity_idx, milvus_ids in enumerate(identity_to_milvus_ids):
-                            for variant_idx, query_milvus_id in enumerate(milvus_ids):
-                                query_rng = random.Random(
-                                    seed
-                                    + identity_idx * variants_per_identity
-                                    + variant_idx
-                                )
-                                query_person = inject_noise(
-                                    canonical_persons[identity_idx],
-                                    noise_fraction,
-                                    query_rng,
-                                )
-
-                                matches = find_closest_match_db(
-                                    query_person,
-                                    threshold=0.0,
-                                    limit=top_k + 1,
-                                    collection_name=col_name,
-                                )
-
-                                neighbours = [
-                                    m for m in matches if m["id"] != query_milvus_id
-                                ][:top_k]
-
-                                # Recall@K
-                                hit = any(
-                                    milvus_id_to_identity.get(m["id"]) == identity_idx
-                                    for m in neighbours
-                                )
-                                if hit:
-                                    hits += 1
-
-                                # MRR
-                                rr = 0.0
-                                for rank, m in enumerate(neighbours, 1):
-                                    if milvus_id_to_identity.get(m["id"]) == identity_idx:
-                                        rr = 1.0 / rank
-                                        break
-                                mrr_sum += rr
-
-                                # Hit@1
-                                if neighbours and milvus_id_to_identity.get(neighbours[0]["id"]) == identity_idx:
-                                    hit1_count += 1
-
-                                total += 1
-
+                        recall_at_k, mrr, hit_at_1, hits, total = run_dedup_recall(
+                            canonical_persons,
+                            identity_to_milvus_ids,
+                            milvus_id_to_identity,
+                            variants_per_identity,
+                            noise_fraction,
+                            seed,
+                            top_k,
+                            col_name,
+                        )
                         query_time = time.perf_counter() - query_start
-
-                        recall_at_k = hits / total if total > 0 else 0.0
-                        mrr         = mrr_sum / total if total > 0 else 0.0
-                        hit_at_1    = hit1_count / total if total > 0 else 0.0
 
                         print(
                             f"[DIM] mode={mode}  dim={dim}  "
@@ -255,14 +185,11 @@ class TestDimensionalitySweep:
                         milvus_conn.HDC_DIM   = original_dim_milvus
 
                 # --- Save JSON report ---
-                timestamp   = datetime.now().strftime("%Y%m%d_%H%M%S")
-                output_path = output_dir / f"dimensionality_{mode}_{timestamp}.json"
-                report = {
+                output_path = save_report("dimensionality", mode, {
                     "mode":    mode,
                     "config":  config,
                     "results": mode_results,
-                }
-                output_path.write_text(json.dumps(report, indent=2))
+                })
                 print(f"\n[DIM] Results saved to {output_path.name}")
 
                 # --- Print summary table ---

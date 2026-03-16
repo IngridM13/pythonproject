@@ -29,24 +29,22 @@ Environment variables
     PER_FIELD_SEED      RNG seed (default: PER_FIELD_SEED from settings)
 """
 
-import json
 import os
 import random
 import sys
-from datetime import datetime
-from pathlib import Path
 
 import pytest
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from configs.settings import HDC_DIM, PER_FIELD_N, PER_FIELD_V, PER_FIELD_NOISE, PER_FIELD_K, PER_FIELD_SEED
-from dummy_data.generacion_base_de_datos import generate_data_chunk
-from encoding_methods.encoding_and_search_milvus import store_person
-from utils.person_data_normalization import normalize_person_data
-from tests.experiments.noise_injection import inject_noise
-from tests.experiments.conftest import dataframe_row_to_person_dict
-from tests.experiments.experiment_utils import _inject_single_field_noise, _compute_metrics
+from tests.experiments.experiment_utils import (
+    _inject_single_field_noise,
+    _compute_metrics,
+    generate_canonical_persons,
+    insert_noisy_variants,
+    save_report,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -91,25 +89,12 @@ class TestPerFieldNoise:
         print(f"[PER_FIELD] Total records to insert: {total_records}")
 
         # --- 1. Generate canonical identities ---
-        df = generate_data_chunk(n_identities)
-        canonical_persons = []
-        for _, row in df.iterrows():
-            raw = dataframe_row_to_person_dict(row)
-            canonical_persons.append(normalize_person_data(raw))
+        canonical_persons = generate_canonical_persons(n_identities)
 
         # --- 2. Generate variants and insert into Milvus ONCE ---
-        identity_to_milvus_ids: list = [[] for _ in range(n_identities)]
-        milvus_id_to_identity:  dict = {}
-
-        for identity_idx, canonical in enumerate(canonical_persons):
-            for variant_idx in range(variants_per_identity):
-                variant_rng = random.Random(
-                    seed + identity_idx * variants_per_identity + variant_idx
-                )
-                noisy = inject_noise(canonical, noise_fraction, variant_rng)
-                milvus_id = store_person(noisy, collection_name=test_collection)
-                identity_to_milvus_ids[identity_idx].append(milvus_id)
-                milvus_id_to_identity[milvus_id] = identity_idx
+        identity_to_milvus_ids, milvus_id_to_identity = insert_noisy_variants(
+            canonical_persons, variants_per_identity, noise_fraction, seed, test_collection
+        )
 
         # --- 3. Flush once — reused for all field variants ---
         from database_utils.milvus_db_connection import ensure_people_collection
@@ -233,15 +218,7 @@ class TestPerFieldNoise:
         print()
 
         # --- 7. Save JSON report ---
-        project_root = Path(__file__).resolve().parents[2]
-        output_dir = project_root / "test_results"
-        output_dir.mkdir(exist_ok=True)
-
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"per_field_noise_{mode}_{timestamp}.json"
-        output_path = output_dir / filename
-
-        report = {
+        output_path = save_report("per_field_noise", mode, {
             "mode": mode,
             "config": {
                 "n_identities":          n_identities,
@@ -257,6 +234,5 @@ class TestPerFieldNoise:
                 "hit_at_1":    base_hit1,
             },
             "results": ranked,
-        }
-        output_path.write_text(json.dumps(report, indent=2))
-        print(f"[PER_FIELD] Results saved to {filename}")
+        })
+        print(f"[PER_FIELD] Results saved to {output_path.name}")

@@ -21,13 +21,10 @@ Environment variables:
                               problem harder and more realistic.
 """
 
-import json
 import math
 import os
 import random
 import sys
-from datetime import datetime
-from pathlib import Path
 
 import pytest
 
@@ -40,6 +37,7 @@ from utils.person_data_normalization import normalize_person_data
 from tests.experiments.noise_injection import inject_noise
 from tests.experiments.near_duplicates import generate_near_duplicates
 from tests.experiments.conftest import dataframe_row_to_person_dict
+from tests.experiments.experiment_utils import save_report
 
 
 # ---------------------------------------------------------------------------
@@ -133,14 +131,6 @@ class TestRecallUnderNoise:
             )
 
         # --- 4. Save JSON ---
-        project_root = Path(__file__).resolve().parents[2]
-        output_dir = project_root / "test_results"
-        output_dir.mkdir(exist_ok=True)
-
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"recall_under_noise_{mode}_{timestamp}.json"
-        output_path = output_dir / filename
-
         report = {
             "config": {
                 "vector_mode": mode,
@@ -154,8 +144,8 @@ class TestRecallUnderNoise:
             },
             "results": results,
         }
-        output_path.write_text(json.dumps(report, indent=2))
-        print(f"[EXPERIMENT] Results saved to {filename}")
+        output_path = save_report("recall_under_noise", mode, report)
+        print(f"[EXPERIMENT] Results saved to {output_path.name}")
 
         # --- 5. Assertions ---
         recall_by_level = {r["noise_level"]: r["recall_at_1"] for r in results}

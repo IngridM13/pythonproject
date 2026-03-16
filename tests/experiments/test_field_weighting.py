@@ -33,13 +33,9 @@ Run
     pytest tests/experiments/test_field_weighting.py -v -s
 """
 
-import json
 import os
-import random
 import sys
 import uuid
-from datetime import datetime
-from pathlib import Path
 
 import pytest
 
@@ -48,11 +44,12 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 import database_utils.milvus_db_connection as milvus_conn
 from configs.settings import DEFAULT_SEED, HDC_DIM
 from database_utils.milvus_db_connection import ensure_people_collection
-from dummy_data.generacion_base_de_datos import generate_data_chunk
-from encoding_methods.encoding_and_search_milvus import find_closest_match_db, store_person
-from utils.person_data_normalization import normalize_person_data
-from tests.experiments.noise_injection import inject_noise
-from tests.experiments.conftest import dataframe_row_to_person_dict
+from tests.experiments.experiment_utils import (
+    generate_canonical_persons,
+    insert_noisy_variants,
+    run_dedup_recall,
+    save_report,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -133,11 +130,7 @@ class TestFieldWeighting:
         total_records         = n_identities * variants_per_identity
 
         # --- Pre-generate canonical identities once (shared across variants) ---
-        df = generate_data_chunk(n_identities)
-        canonical_persons = []
-        for _, row in df.iterrows():
-            raw = dataframe_row_to_person_dict(row)
-            canonical_persons.append(normalize_person_data(raw))
+        canonical_persons = generate_canonical_persons(n_identities)
 
         config = {
             "n_identities":          n_identities,
@@ -147,10 +140,6 @@ class TestFieldWeighting:
             "hdim":                  HDC_DIM,
             "seed":                  seed,
         }
-
-        project_root = Path(__file__).resolve().parents[2]
-        output_dir   = project_root / "test_results"
-        output_dir.mkdir(exist_ok=True)
 
         for mode in ["binary", "float"]:
             # Switch vector mode
@@ -176,25 +165,15 @@ class TestFieldWeighting:
 
                     try:
                         # --- Insert all noisy variants ---
-                        identity_to_milvus_ids: list = [[] for _ in range(n_identities)]
-                        milvus_id_to_identity:  dict = {}
-
-                        for identity_idx, canonical in enumerate(canonical_persons):
-                            for variant_idx in range(variants_per_identity):
-                                variant_rng = random.Random(
-                                    seed
-                                    + identity_idx * variants_per_identity
-                                    + variant_idx
-                                )
-                                noisy = inject_noise(canonical, noise_fraction, variant_rng)
-                                milvus_id = store_person(
-                                    noisy,
-                                    collection_name=col_name,
-                                    field_weights=field_weights,
-                                    excluded_fields=excluded_fields,
-                                )
-                                identity_to_milvus_ids[identity_idx].append(milvus_id)
-                                milvus_id_to_identity[milvus_id] = identity_idx
+                        identity_to_milvus_ids, milvus_id_to_identity = insert_noisy_variants(
+                            canonical_persons,
+                            variants_per_identity,
+                            noise_fraction,
+                            seed,
+                            col_name,
+                            field_weights=field_weights,
+                            excluded_fields=excluded_fields,
+                        )
 
                         col.flush()
                         print(
@@ -203,42 +182,16 @@ class TestFieldWeighting:
                         )
 
                         # --- Evaluate recall@K ---
-                        hits  = 0
-                        total = 0
-
-                        for identity_idx, milvus_ids in enumerate(identity_to_milvus_ids):
-                            for variant_idx, query_milvus_id in enumerate(milvus_ids):
-                                query_rng = random.Random(
-                                    seed
-                                    + identity_idx * variants_per_identity
-                                    + variant_idx
-                                )
-                                query_person = inject_noise(
-                                    canonical_persons[identity_idx],
-                                    noise_fraction,
-                                    query_rng,
-                                )
-
-                                matches = find_closest_match_db(
-                                    query_person,
-                                    threshold=0.0,
-                                    limit=top_k + 1,
-                                    collection_name=col_name,
-                                )
-
-                                neighbours = [
-                                    m for m in matches if m["id"] != query_milvus_id
-                                ][:top_k]
-
-                                hit = any(
-                                    milvus_id_to_identity.get(m["id"]) == identity_idx
-                                    for m in neighbours
-                                )
-                                if hit:
-                                    hits += 1
-                                total += 1
-
-                        recall_at_k = hits / total if total > 0 else 0.0
+                        recall_at_k, _, _, hits, total = run_dedup_recall(
+                            canonical_persons,
+                            identity_to_milvus_ids,
+                            milvus_id_to_identity,
+                            variants_per_identity,
+                            noise_fraction,
+                            seed,
+                            top_k,
+                            col_name,
+                        )
                         print(
                             f"[FW] mode={mode}  variant={variant_name}  "
                             f"recall@{top_k}={recall_at_k:.3f}  "
@@ -264,14 +217,11 @@ class TestFieldWeighting:
                             )
 
                 # --- Save JSON report ---
-                timestamp   = datetime.now().strftime("%Y%m%d_%H%M%S")
-                output_path = output_dir / f"field_weighting_{mode}_{timestamp}.json"
-                report = {
+                output_path = save_report("field_weighting", mode, {
                     "mode":    mode,
                     "config":  config,
                     "results": mode_results,
-                }
-                output_path.write_text(json.dumps(report, indent=2))
+                })
                 print(f"\n[FW] Results saved to {output_path.name}")
 
                 # --- Print summary table ---
