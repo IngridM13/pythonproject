@@ -34,7 +34,7 @@ def get_vector_mode():
     return VECTOR_MODE
 
 
-def ensure_people_collection(collection_name: str = COLLECTION) -> Collection:
+def ensure_people_collection(collection_name: str = COLLECTION, include_embedding: bool = True) -> Collection:
     cache_key = f"{collection_name}_{VECTOR_MODE}"
     if cache_key in _collection_cache:
         return _collection_cache[cache_key]
@@ -137,8 +137,9 @@ def ensure_people_collection(collection_name: str = COLLECTION) -> Collection:
     ]
 
     # Campo opcional para embeddings densos (e.g., de redes neuronales convencionales)
-    fields.append(FieldSchema(name="embedding", dtype=DataType.FLOAT_VECTOR, dim=128,
-                              description="Optional dense embedding"))
+    if include_embedding:
+        fields.append(FieldSchema(name="embedding", dtype=DataType.FLOAT_VECTOR, dim=128,
+                                  description="Optional dense embedding"))
 
     # Campo para hypervector según el modo
     if VECTOR_MODE == "binary":
@@ -161,7 +162,8 @@ def ensure_people_collection(collection_name: str = COLLECTION) -> Collection:
     else:  # float
         col.create_index("hv", {"index_type": "IVF_FLAT", "metric_type": "IP", "params": {"nlist": 128}})
 
-    col.create_index("embedding", {"index_type": "IVF_FLAT", "metric_type": "L2", "params": {"nlist": 128}})
+    if include_embedding:
+        col.create_index("embedding", {"index_type": "IVF_FLAT", "metric_type": "L2", "params": {"nlist": 128}})
 
     # Índice opcional para texto
     try:

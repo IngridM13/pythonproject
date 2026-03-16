@@ -18,3 +18,10 @@ NAME_AND_DATE_WEIGHTS: Dict[str, int] = {
     "lastname": 2,
     "dob": 2,
 }
+
+# Experiment 4 — Scalability
+SCALABILITY_N_VALUES = [100, 500, 1000, 5000, 10000]
+SCALABILITY_V = 3
+SCALABILITY_NOISE = 0.30
+SCALABILITY_K = 5
+SCALABILITY_SEED = 42

@@ -167,7 +167,7 @@ class TestFieldWeighting:
 
                     # Create a fresh ephemeral collection for this variant
                     col_name = f"fw_{uuid.uuid4().hex[:10]}"
-                    col = ensure_people_collection(col_name)
+                    col = ensure_people_collection(col_name, include_embedding=False)
 
                     print(
                         f"\n[FW] mode={mode}  variant={variant_name}  "

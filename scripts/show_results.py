@@ -263,6 +263,75 @@ def print_field_weighting_section(path: Path):
     print("-" * 60)
 
 
+def print_scalability_section(path: Path):
+    with open(path) as f:
+        data = json.load(f)
+
+    cfg     = data["config"]
+    mode    = data["mode"]
+    results = data["results"]
+    top_k   = cfg["top_k"]
+
+    print()
+    print("=" * 60)
+    print(" Scalability Results")
+    print("=" * 60)
+    print(f"  File        : {path.name}")
+    print(f"  Vector mode : {mode}")
+    print(f"  N values    : {cfg['n_values']}")
+    print(f"  Variants    : {cfg['variants_per_identity']} per identity")
+    print(f"  Noise       : {cfg['noise_fraction']:.0%}")
+    print(f"  Top-K       : {top_k}")
+    print(f"  HDC dim     : {cfg['hdim']}")
+    print(f"  Seed        : {cfg['seed']}")
+    print("=" * 60)
+    print()
+
+    col_n      = 7
+    col_total  = 14
+    col_recall = 10
+    col_hits   = 12
+    col_insert = 10
+    col_query  = 10
+    col_chart  = BAR_WIDTH
+
+    print(
+        f"  {'N':>{col_n}}  "
+        f"{'Total Records':>{col_total}}  "
+        f"{'Recall@' + str(top_k):>{col_recall}}  "
+        f"{'Hits':>{col_hits}}  "
+        f"{'Insert(s)':>{col_insert}}  "
+        f"{'Query(s)':>{col_query}}  "
+        f"Chart"
+    )
+    print(
+        f"  {'-'*col_n}  "
+        f"{'-'*col_total}  "
+        f"{'-'*col_recall}  "
+        f"{'-'*col_hits}  "
+        f"{'-'*col_insert}  "
+        f"{'-'*col_query}  "
+        f"{'-'*col_chart}"
+    )
+
+    for r in results:
+        recall = r["recall_at_k"]
+        hits   = r["hits"]
+        total  = r["total"]
+        c = recall_color(recall)
+        print(
+            f"  {r['n']:>{col_n}}  "
+            f"{r['total_records']:>{col_total}}  "
+            f"{c}{recall:>{col_recall}.1%}{RESET}  "
+            f"{hits:>5}/{total:<{col_hits - 6}}  "
+            f"{r['insert_time_s']:>{col_insert}.2f}  "
+            f"{r['query_time_s']:>{col_query}.2f}  "
+            f"{c}{bar(recall)}{RESET}"
+        )
+
+    print("-" * 60)
+
+
 def main():
     if len(sys.argv) > 1:
         path = Path(sys.argv[1])
@@ -270,6 +339,8 @@ def main():
             print_dedup_section(path)
         elif path.name.startswith("field_weighting_"):
             print_field_weighting_section(path)
+        elif path.name.startswith("scalability_"):
+            print_scalability_section(path)
         else:
             mode = print_recall_section(path)
             print_bench_section(mode)

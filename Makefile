@@ -49,3 +49,12 @@ results-weights:
 		if [ -n "$$file" ]; then python scripts/show_results.py $$file; fi \
 	done
 
+experiment-scalability:
+	pytest tests/experiments/test_scalability.py -v -s
+
+results-scalability:
+	@for mode in binary float; do \
+		file=$$(ls -t test_results/scalability_$${mode}_*.json 2>/dev/null | head -1); \
+		if [ -n "$$file" ]; then python scripts/show_results.py $$file; fi \
+	done
+

@@ -37,7 +37,7 @@ def test_collection():
     name = f"people_test_{uuid.uuid4().hex[:8]}"
     print(f"[DEBUG-FIXTURE] Creando colección: {name}")
 
-    col = ensure_people_collection(name)
+    col = ensure_people_collection(name, include_embedding=False)
 
     print(f"[DEBUG-FIXTURE] Colección '{col.name}' asegurada.")
     print(f"[DEBUG-FIXTURE] Entidades ANTES del test: {col.num_entities}")
