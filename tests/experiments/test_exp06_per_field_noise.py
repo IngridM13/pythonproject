@@ -1,5 +1,5 @@
 """
-Per-Field Noise Sensitivity experiment for HDC-based data reconciliation.
+Experiment 6 — Per-Field Noise Sensitivity for HDC-based data reconciliation.
 
 Measures how much each individual field contributes to retrieval quality by
 corrupting exactly one field at a time while keeping all other fields clean.

@@ -1,5 +1,5 @@
 """
-Ranking metrics experiment for HDC-based data reconciliation.
+Experiment 5 — Ranking Metrics for HDC-based data reconciliation.
 
 Measures ranking quality beyond simple recall by computing MRR, Precision@K,
 and Hit@1 for the HDC vector search, modelling the real deduplication use-case:

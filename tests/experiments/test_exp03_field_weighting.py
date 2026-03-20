@@ -1,5 +1,5 @@
 """
-Experiment 3 — Field Weighting Ablation for HDC data reconciliation.
+Experiment 3 — Field Weighting Ablation for HDC-based data reconciliation.
 
 Measures how different field weighting / exclusion schemes affect deduplication
 recall@K when multiple noisy variants of each identity are stored in Milvus.

@@ -1,5 +1,5 @@
 """
-Recall-under-noise experiment for HDC-based data reconciliation.
+Experiment 1 — Recall Under Noise for HDC-based data reconciliation.
 
 Measures recall@1 at increasing noise levels by storing N persons in Milvus,
 then querying with noisy versions and checking whether the top-1 result is the

@@ -1,5 +1,5 @@
 """
-Deduplication recall experiment for HDC-based data reconciliation.
+Experiment 2 — Dedup Recall for HDC-based data reconciliation.
 
 Measures how effectively the system surfaces same-person candidates when
 multiple noisy variants of each identity are stored in Milvus.

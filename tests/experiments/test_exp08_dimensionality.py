@@ -1,5 +1,5 @@
 """
-Experiment 8 — Dimensionality Sweep for HDC data reconciliation.
+Experiment 8 — Dimensionality Sweep for HDC-based data reconciliation.
 
 Measures how recall@K, MRR, and Hit@1 change as the hypervector
 dimension is varied, holding all other parameters fixed.

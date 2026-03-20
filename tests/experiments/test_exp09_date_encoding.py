@@ -1,5 +1,5 @@
 """
-Experiment 9 — Date Encoding Comparison.
+Experiment 9 — Date Encoding Comparison for HDC-based data reconciliation.
 
 Compares three date encoding variants side-by-side using the standard dedup
 recall procedure plus a monotonicity check on raw date similarity.

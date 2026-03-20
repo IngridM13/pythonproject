@@ -1,5 +1,5 @@
 """
-Per-Field Noise Sweep experiment for HDC-based data reconciliation.
+Experiment 7 — Per-Field Noise Sweep for HDC-based data reconciliation.
 
 Sweeps a range of noise levels for each individual field and measures how
 retrieval quality (Recall@K, MRR, Hit@1) degrades as noise in that field
