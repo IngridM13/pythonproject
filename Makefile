@@ -103,3 +103,11 @@ results-date-encoding:
 		if [ -n "$$file" ]; then python scripts/show_results.py $$file; fi \
 	done
 
+experiment-nk-sweep:
+	pytest tests/experiments/test_recall_nk_sweep.py -v -s
+
+results-nk-sweep:
+	@file=$$(ls -t test_results/recall_nk_sweep_*.json 2>/dev/null | head -1); \
+	if [ -n "$$file" ]; then python scripts/show_results.py $$file; \
+	else echo "No recall_nk_sweep results found in test_results/"; fi
+

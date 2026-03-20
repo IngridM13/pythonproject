@@ -647,6 +647,49 @@ def print_date_encoding_section(path: Path):
     print("-" * 80)
 
 
+def print_nk_sweep_section(path: Path) -> None:
+    with open(path) as f:
+        data = json.load(f)
+
+    cfg     = data["config"]
+    results = data["results"]
+
+    print()
+    print("=" * 70)
+    print(" N × K Sweep Results  (Recall@k vs collection size)")
+    print("=" * 70)
+    print(f"  File            : {path.name}")
+    print(f"  N values        : {cfg['n_values']}")
+    print(f"  K values        : {cfg['k_values']}")
+    print(f"  Noise fraction  : {cfg['noise_fraction']}")
+    print(f"  Variants/identity: {cfg['variants_per_identity']}")
+    print(f"  HDC dim         : {cfg['hdim']}")
+    print(f"  Seed            : {cfg['seed']}")
+    print("=" * 70)
+
+    modes = sorted({r["vector_mode"] for r in results})
+    for mode in modes:
+        mode_rows = [r for r in results if r["vector_mode"] == mode]
+        k_cols    = sorted({r["top_k"] for r in mode_rows})
+        n_vals    = sorted({r["n_identities"] for r in mode_rows})
+
+        cell = {(r["n_identities"], r["top_k"]): r["recall_at_k"] for r in mode_rows}
+
+        print(f"\n  Mode: {mode}")
+        header  = f"  {'N':>8} | " + " | ".join(f"k={k:<6}" for k in k_cols)
+        divider = "  " + "-" * 9 + "+" + "+".join(["-" * 9] * len(k_cols))
+        print(header)
+        print(divider)
+        for n in n_vals:
+            vals = " | ".join(
+                f"{recall_color(cell.get((n, k), 0.0))}{cell.get((n, k), float('nan')):>6.3f}{RESET} "
+                for k in k_cols
+            )
+            print(f"  {n:>8} | {vals}")
+
+    print()
+
+
 def main():
     if len(sys.argv) > 1:
         path = Path(sys.argv[1])
@@ -666,6 +709,8 @@ def main():
             print_dimensionality_section(path)
         elif path.name.startswith("date_encoding_"):
             print_date_encoding_section(path)
+        elif path.name.startswith("recall_nk_sweep_"):
+            print_nk_sweep_section(path)
         else:
             mode = print_recall_section(path)
             print_bench_section(mode)

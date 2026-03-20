@@ -77,10 +77,10 @@ class TestDedupRecall:
 
     def test_dedup_recall(self, with_vector_mode, test_collection):
         # --- Config from env ---
-        n_identities          = int(os.environ.get("DEDUP_N_IDENTITIES", 200))
+        n_identities          = int(os.environ.get("DEDUP_N_IDENTITIES", 1000))
         variants_per_identity = int(os.environ.get("DEDUP_VARIANTS_PER_IDENTITY", 3))
         noise_fraction        = float(os.environ.get("DEDUP_NOISE_FRACTION", 0.3))
-        top_k                 = int(os.environ.get("DEDUP_TOP_K", 5))
+        top_k                 = int(os.environ.get("DEDUP_TOP_K", 3))
         n_samples             = int(os.environ.get("DEDUP_N_SAMPLES", 5))
         seed                  = int(os.environ.get("DEDUP_SEED", DEFAULT_SEED))
 
