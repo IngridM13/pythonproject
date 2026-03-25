@@ -83,14 +83,14 @@ def ensure_people_collection(collection_name: str = COLLECTION, include_embeddin
                 # La colección se creará más adelante
             else:
                 # Intentamos crear los índices necesarios si no hay inconsistencia de tipos
-                try:
-                    # Crear índice para embedding
-                    col.create_index("embedding",
-                                     {"index_type": "IVF_FLAT", "metric_type": "L2", "params": {"nlist": 128}})
-                    print(f">>> Índice para 'embedding' creado en {collection_name}")
-                except MilvusException as e:
-                    if "index already exists" not in str(e).lower():
-                        print(f">>> Error al crear índice para 'embedding': {e}")
+                if include_embedding and "embedding" in field_names:
+                    try:
+                        col.create_index("embedding",
+                                         {"index_type": "IVF_FLAT", "metric_type": "L2", "params": {"nlist": 128}})
+                        print(f">>> Índice para 'embedding' creado en {collection_name}")
+                    except MilvusException as e:
+                        if "index already exists" not in str(e).lower():
+                            print(f">>> Error al crear índice para 'embedding': {e}")
 
                 try:
                     # Crear índice para hv según el modo
