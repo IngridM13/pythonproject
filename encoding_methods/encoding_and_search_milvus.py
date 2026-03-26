@@ -6,7 +6,7 @@ import hashlib
 from typing import Any, Dict, List, Union
 from datetime import datetime, date as date_cls, timedelta
 
-from configs.settings import HDC_DIM as DIMENSION, HDC_DIM
+from configs.settings import HDC_DIM as DIMENSION, HDC_DIM, NAME_AND_DATE_WEIGHTS
 from database_utils.milvus_db_connection import ensure_people_collection, VECTOR_MODE, get_vector_mode
 from hdc.binary_hdc import HyperDimensionalComputingBinary
 from utils.person_data_normalization import parse_date, normalize_person_data
@@ -147,7 +147,7 @@ def encode_date(date_obj, mode="binary"):
         return hdc_bipolar.encode_date_bipolar(date_obj)
 
 
-def encode_person(person, mode="binary", field_weights=None, excluded_fields=None):
+def encode_person(person, mode="binary", field_weights=NAME_AND_DATE_WEIGHTS, excluded_fields=None):
     hdc_bipolar = HyperDimensionalComputingBipolar(dim=HDC_DIM)
     hdc_binary = HyperDimensionalComputingBinary(dim=HDC_DIM)
 
@@ -172,11 +172,10 @@ def encode_person(person, mode="binary", field_weights=None, excluded_fields=Non
 def store_person(
     person: Dict[str, Any],
     collection_name: str = "people",
-    field_weights=None,
+    field_weights=NAME_AND_DATE_WEIGHTS,
     excluded_fields=None,
 ) -> int:
     person_data = person.copy()
-    embedding = person_data.pop('embedding', None)
 
     if 'attrs' not in person_data or not isinstance(person_data['attrs'], dict):
         person_data['attrs'] = {}
@@ -205,20 +204,7 @@ def store_person(
         else:
             doc_to_insert["dob"] = str(d)
 
-    if embedding is not None:
-        if not isinstance(embedding, torch.Tensor):
-            embedding = torch.tensor(embedding)
-        doc_to_insert["embedding"] = embedding.detach().cpu().float().tolist()[:128]
-
     col = ensure_people_collection(collection_name)
-    schema_fields = {f.name: f for f in col.schema.fields}
-
-    if "embedding" in schema_fields and "embedding" not in doc_to_insert:
-        emb_field = schema_fields["embedding"]
-        dim = 128
-        if hasattr(emb_field, 'params') and 'dim' in emb_field.params:
-            dim = int(emb_field.params['dim'])
-        doc_to_insert["embedding"] = [0.0] * dim
 
     res = col.insert(doc_to_insert)
     return res.primary_keys[0] if hasattr(res, 'primary_keys') else res.inserted_ids[0]
@@ -227,10 +213,6 @@ def store_person(
 def get_person_details(person_id: int, collection_name: str = "people") -> Dict[str, Any]:
     col = ensure_people_collection(collection_name)
     output_fields = ["name", "lastname", "dob", "marital_status", "mobile_number", "gender", "race", "attrs", "id"]
-
-    schema_fields = {f.name for f in col.schema.fields}
-    if "embedding" in schema_fields:
-        output_fields.append("embedding")
 
     res = col.query(expr=f"id == {person_id}", output_fields=output_fields, consistency_level="Strong")
     if not res: return None
@@ -250,15 +232,14 @@ def get_person_details(person_id: int, collection_name: str = "people") -> Dict[
         "mobile_number": r.get("mobile_number", ""),
         "gender": r.get("gender", ""),
         "race": r.get("race", ""),
-        "embedding": r.get("embedding")
     }
 
 
-def find_closest_match_db(query_person, threshold=0.7, limit=5, collection_name: str = "people"):
+def find_closest_match_db(query_person, threshold=0.7, limit=5, collection_name: str = "people", field_weights=NAME_AND_DATE_WEIGHTS):
     col = ensure_people_collection(collection_name)
     normalized_query = normalize_person_data(query_person)
     current_mode = get_vector_mode()
-    qhv = encode_person(normalized_query)
+    qhv = encode_person(normalized_query, field_weights=field_weights)
     qpayload = _encode_for_milvus(qhv)
 
     if current_mode == "binary":

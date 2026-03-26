@@ -263,6 +263,433 @@ def print_field_weighting_section(path: Path):
     print("-" * 60)
 
 
+def print_scalability_section(path: Path):
+    with open(path) as f:
+        data = json.load(f)
+
+    cfg     = data["config"]
+    mode    = data["mode"]
+    results = data["results"]
+    top_k   = cfg["top_k"]
+
+    print()
+    print("=" * 60)
+    print(" Scalability Results")
+    print("=" * 60)
+    print(f"  File        : {path.name}")
+    print(f"  Vector mode : {mode}")
+    print(f"  N values    : {cfg['n_values']}")
+    print(f"  Variants    : {cfg['variants_per_identity']} per identity")
+    print(f"  Noise       : {cfg['noise_fraction']:.0%}")
+    print(f"  Top-K       : {top_k}")
+    print(f"  HDC dim     : {cfg['hdim']}")
+    print(f"  Seed        : {cfg['seed']}")
+    print("=" * 60)
+    print()
+
+    col_n      = 7
+    col_total  = 14
+    col_recall = 10
+    col_hits   = 12
+    col_insert = 10
+    col_query  = 10
+    col_chart  = BAR_WIDTH
+
+    print(
+        f"  {'N':>{col_n}}  "
+        f"{'Total Records':>{col_total}}  "
+        f"{'Recall@' + str(top_k):>{col_recall}}  "
+        f"{'Hits':>{col_hits}}  "
+        f"{'Insert(s)':>{col_insert}}  "
+        f"{'Query(s)':>{col_query}}  "
+        f"Chart"
+    )
+    print(
+        f"  {'-'*col_n}  "
+        f"{'-'*col_total}  "
+        f"{'-'*col_recall}  "
+        f"{'-'*col_hits}  "
+        f"{'-'*col_insert}  "
+        f"{'-'*col_query}  "
+        f"{'-'*col_chart}"
+    )
+
+    for r in results:
+        recall = r["recall_at_k"]
+        hits   = r["hits"]
+        total  = r["total"]
+        c = recall_color(recall)
+        print(
+            f"  {r['n']:>{col_n}}  "
+            f"{r['total_records']:>{col_total}}  "
+            f"{c}{recall:>{col_recall}.1%}{RESET}  "
+            f"{hits:>5}/{total:<{col_hits - 6}}  "
+            f"{r['insert_time_s']:>{col_insert}.2f}  "
+            f"{r['query_time_s']:>{col_query}.2f}  "
+            f"{c}{bar(recall)}{RESET}"
+        )
+
+    print("-" * 60)
+
+
+def print_ranking_section(path: Path):
+    with open(path) as f:
+        data = json.load(f)
+
+    cfg     = data["config"]
+    mode    = data["mode"]
+    results = data["results"]
+    top_k   = cfg["top_k"]
+
+    recall   = results["recall_at_k"]
+    mrr      = results["mrr"]
+    prec     = results["precision_at_k"]
+    hit1     = results["hit_at_1"]
+    total    = results["total_queries"]
+
+    print()
+    print("=" * 60)
+    print(" Ranking Metrics Results")
+    print("=" * 60)
+    print(f"  File        : {path.name}")
+    print(f"  Vector mode : {mode}")
+    print(f"  Identities  : {cfg['n_identities']}  x  {cfg['variants_per_identity']} variants")
+    print(f"  Noise       : {cfg['noise_fraction']:.0%}")
+    print(f"  Top-K       : {top_k}")
+    print(f"  HDC dim     : {cfg['hdim']}")
+    print(f"  Seed        : {cfg['seed']}")
+    print(f"  Queries     : {total}")
+    print("=" * 60)
+    print()
+
+    c_recall = recall_color(recall)
+    c_hit1   = recall_color(hit1)
+
+    print(f"  {'Metric':<16}  {'Value':>8}")
+    print(f"  {'-'*16}  {'-'*8}")
+    print(f"  {'recall@' + str(top_k):<16}  {c_recall}{recall:>7.1%}{RESET}")
+    print(f"  {'MRR':<16}  {mrr:>8.3f}")
+    print(f"  {'Precision@' + str(top_k):<16}  {prec:>7.1%}")
+    print(f"  {'Hit@1':<16}  {c_hit1}{hit1:>7.1%}{RESET}")
+    print()
+    print("-" * 60)
+
+
+def print_per_field_noise_section(path: Path):
+    with open(path) as f:
+        data = json.load(f)
+
+    cfg      = data["config"]
+    mode     = data["mode"]
+    baseline = data["baseline"]
+    results  = data["results"]   # already sorted by delta_recall descending
+    top_k    = cfg["top_k"]
+
+    print()
+    print("=" * 90)
+    print(" Per-Field Noise Sensitivity Results")
+    print("=" * 90)
+    print(f"  File        : {path.name}")
+    print(f"  Vector mode : {mode}")
+    print(f"  Identities  : {cfg['n_identities']}  x  {cfg['variants_per_identity']} variants")
+    print(f"  Noise       : {cfg['noise_fraction']:.0%}")
+    print(f"  Top-K       : {top_k}")
+    print(f"  HDC dim     : {cfg['hdim']}")
+    print(f"  Seed        : {cfg['seed']}")
+    print("=" * 90)
+    print()
+
+    BAR_MAX = 20
+
+    max_delta = max((r["delta_recall"] for r in results), default=0.001)
+
+    def _delta_color(delta):
+        if delta > 0.1:
+            return RED
+        elif delta >= 0.05:
+            return YELLOW
+        return GREEN
+
+    def _delta_bar(delta):
+        filled = round(abs(delta) * BAR_MAX / max(0.001, max_delta))
+        filled = min(filled, BAR_MAX)
+        return "#" * filled + "-" * (BAR_MAX - filled)
+
+    print(
+        f"  {'Field':<16}  {'Recall@K':>8}  {'Δ Recall':>9}  "
+        f"{'MRR':>7}  {'Δ MRR':>8}  {'Hit@1':>7}  {'Δ Hit@1':>8}  Bar (Δ Recall)"
+    )
+    print(
+        f"  {'-'*16}  {'-'*8}  {'-'*9}  "
+        f"{'-'*7}  {'-'*8}  {'-'*7}  {'-'*8}  {'-'*BAR_MAX}"
+    )
+
+    # Baseline row
+    b_recall = baseline["recall_at_k"]
+    b_mrr    = baseline["mrr"]
+    b_hit1   = baseline["hit_at_1"]
+    print(
+        f"  {'[baseline]':<16}  {b_recall:>8.1%}  {'—':>9}  "
+        f"{b_mrr:>7.3f}  {'—':>8}  {b_hit1:>7.1%}  {'—':>8}"
+    )
+    print(
+        f"  {'-'*16}  {'-'*8}  {'-'*9}  "
+        f"{'-'*7}  {'-'*8}  {'-'*7}  {'-'*8}  {'-'*BAR_MAX}"
+    )
+
+    for r in results:
+        c = _delta_color(r["delta_recall"])
+        print(
+            f"  {r['field']:<16}  {r['recall_at_k']:>8.1%}  "
+            f"{c}{r['delta_recall']:>+9.3f}{RESET}  "
+            f"{r['mrr']:>7.3f}  {c}{r['delta_mrr']:>+8.3f}{RESET}  "
+            f"{r['hit_at_1']:>7.1%}  {c}{r['delta_hit1']:>+8.3f}{RESET}  "
+            f"{c}{_delta_bar(r['delta_recall'])}{RESET}"
+        )
+
+    print("=" * 90)
+    print()
+
+
+def print_per_field_sweep_section(path: Path):
+    with open(path) as f:
+        data = json.load(f)
+
+    cfg     = data["config"]
+    mode    = data["mode"]
+    results = data["results"]   # dict: field -> list of {noise_level, recall_at_k, mrr, hit_at_1}
+    top_k   = cfg["top_k"]
+
+    print()
+    print("=" * 85)
+    print(" Per-Field Noise Sweep Results")
+    print("=" * 85)
+    print(f"  File        : {path.name}")
+    print(f"  Vector mode : {mode}")
+    print(f"  Fields      : {', '.join(cfg['fields'])}")
+    print(f"  Noise levels: {cfg['noise_levels']}")
+    print(f"  Identities  : {cfg['n_identities']}  x  {cfg['variants_per_identity']} variants")
+    print(f"  Top-K       : {top_k}")
+    print(f"  HDC dim     : {cfg['hdim']}")
+    print(f"  Seed        : {cfg['seed']}")
+    print("=" * 85)
+
+    for field, rows in results.items():
+        print()
+        print(f"  Field: {field}")
+        print(
+            f"  {'Noise%':>7}  {'Recall@' + str(top_k):>9}  {'MRR':>7}  {'Hit@1':>7}  Chart"
+        )
+        print(
+            f"  {'-'*7}  {'-'*9}  {'-'*7}  {'-'*7}  {'-'*BAR_WIDTH}"
+        )
+
+        for r in rows:
+            recall = r["recall_at_k"]
+            mrr    = r["mrr"]
+            hit1   = r["hit_at_1"]
+            noise  = r["noise_level"]
+            c = recall_color(recall)
+            print(
+                f"  {noise:>6}%  "
+                f"{c}{recall:>9.1%}{RESET}  "
+                f"{mrr:>7.3f}  "
+                f"{c}{hit1:>7.1%}{RESET}  "
+                f"{c}{bar(recall)}{RESET}"
+            )
+
+        print(f"  {'-'*7}  {'-'*9}  {'-'*7}  {'-'*7}  {'-'*BAR_WIDTH}")
+
+    print("=" * 85)
+    print()
+
+
+def print_dimensionality_section(path: Path):
+    with open(path) as f:
+        data = json.load(f)
+
+    cfg     = data["config"]
+    mode    = data["mode"]
+    results = data["results"]
+    top_k   = cfg["top_k"]
+
+    print()
+    print("=" * 80)
+    print(" Dimensionality Sweep Results")
+    print("=" * 80)
+    print(f"  File        : {path.name}")
+    print(f"  Vector mode : {mode}")
+    print(f"  Dim values  : {cfg['dim_values']}")
+    print(f"  Identities  : {cfg['n_identities']}  x  {cfg['variants_per_identity']} variants")
+    print(f"  Noise       : {cfg['noise_fraction']:.0%}")
+    print(f"  Top-K       : {top_k}")
+    print(f"  Seed        : {cfg['seed']}")
+    print("=" * 80)
+    print()
+
+    col_dim    = 10
+    col_total  = 14
+    col_recall = 10
+    col_mrr    =  8
+    col_hit1   =  7
+    col_insert = 10
+    col_query  = 10
+
+    print(
+        f"  {'HDC_DIM':>{col_dim}}  "
+        f"{'Total Records':>{col_total}}  "
+        f"{'Recall@' + str(top_k):>{col_recall}}  "
+        f"{'MRR':>{col_mrr}}  "
+        f"{'Hit@1':>{col_hit1}}  "
+        f"{'Insert(s)':>{col_insert}}  "
+        f"{'Query(s)':>{col_query}}  "
+        f"Chart"
+    )
+    print(
+        f"  {'-'*col_dim}  "
+        f"{'-'*col_total}  "
+        f"{'-'*col_recall}  "
+        f"{'-'*col_mrr}  "
+        f"{'-'*col_hit1}  "
+        f"{'-'*col_insert}  "
+        f"{'-'*col_query}  "
+        f"{'-'*BAR_WIDTH}"
+    )
+
+    for r in results:
+        recall = r["recall_at_k"]
+        c = recall_color(recall)
+        print(
+            f"  {r['dim']:>{col_dim}}  "
+            f"{r['total_records']:>{col_total}}  "
+            f"{c}{recall:>{col_recall}.1%}{RESET}  "
+            f"{r['mrr']:>{col_mrr}.3f}  "
+            f"{c}{r['hit_at_1']:>{col_hit1}.1%}{RESET}  "
+            f"{r['insert_time_s']:>{col_insert}.2f}  "
+            f"{r['query_time_s']:>{col_query}.2f}  "
+            f"{c}{bar(recall)}{RESET}"
+        )
+
+    print("-" * 80)
+
+
+def print_date_encoding_section(path: Path):
+    with open(path) as f:
+        data = json.load(f)
+
+    cfg     = data["config"]
+    mode    = data["mode"]
+    results = data["results"]
+    top_k   = cfg["top_k"]
+
+    print()
+    print("=" * 80)
+    print(" Date Encoding Comparison Results")
+    print("=" * 80)
+    print(f"  File        : {path.name}")
+    print(f"  Vector mode : {mode}")
+    print(f"  Identities  : {cfg['n_identities']}  x  {cfg['variants_per_identity']} variants")
+    print(f"  Noise       : {cfg['noise_fraction']:.0%}")
+    print(f"  Top-K       : {top_k}")
+    print(f"  HDC dim     : {cfg['hdim']}")
+    print(f"  Seed        : {cfg['seed']}")
+    print(f"  Ref date    : {cfg['reference_date']}")
+    print("=" * 80)
+    print()
+
+    col_variant = 16
+    col_recall  = 10
+    col_mono    = 12
+    col_viol    = 12
+
+    print(
+        f"  {'Variant':<{col_variant}}  "
+        f"{'Recall@' + str(top_k):>{col_recall}}  "
+        f"{'Monotonic?':>{col_mono}}  "
+        f"{'Violations':>{col_viol}}  "
+        f"Chart"
+    )
+    print(
+        f"  {'-'*col_variant}  "
+        f"{'-'*col_recall}  "
+        f"{'-'*col_mono}  "
+        f"{'-'*col_viol}  "
+        f"{'-'*BAR_WIDTH}"
+    )
+
+    total_checks = len(cfg["monotonicity_distances"]) - 1
+
+    for r in results:
+        recall   = r["recall_at_k"]
+        mono_ok  = r["monotonicity"]["is_monotonic"]
+        viol     = r["monotonicity"]["violations"]
+        c        = recall_color(recall)
+        print(
+            f"  {r['variant']:<{col_variant}}  "
+            f"{c}{recall:>{col_recall}.1%}{RESET}  "
+            f"{'YES' if mono_ok else 'NO':>{col_mono}}  "
+            f"{viol:>{col_viol - 1}}/{total_checks:<2}  "
+            f"{c}{bar(recall)}{RESET}"
+        )
+
+    print()
+    print("  Monotonicity detail (similarity vs temporal distance from reference date):")
+    print()
+    for r in results:
+        print(f"  Variant: {r['variant']}")
+        print(f"  {'Days':>6}  {'Similarity':>12}  Note")
+        print(f"  {'-'*6}  {'-'*12}  {'-'*20}")
+        for row in r["monotonicity"]["distances"]:
+            note = " <- violation" if row["violation"] else ""
+            print(f"  {row['dist_days']:>6}  {row['similarity']:>12.4f}{note}")
+        print()
+
+    print("-" * 80)
+
+
+def print_nk_sweep_section(path: Path) -> None:
+    with open(path) as f:
+        data = json.load(f)
+
+    cfg     = data["config"]
+    results = data["results"]
+
+    print()
+    print("=" * 70)
+    print(" N × K Sweep Results  (Recall@k vs collection size)")
+    print("=" * 70)
+    print(f"  File            : {path.name}")
+    print(f"  N values        : {cfg['n_values']}")
+    print(f"  K values        : {cfg['k_values']}")
+    print(f"  Noise fraction  : {cfg['noise_fraction']}")
+    print(f"  Variants/identity: {cfg['variants_per_identity']}")
+    print(f"  HDC dim         : {cfg['hdim']}")
+    print(f"  Seed            : {cfg['seed']}")
+    print("=" * 70)
+
+    modes = sorted({r["vector_mode"] for r in results})
+    for mode in modes:
+        mode_rows = [r for r in results if r["vector_mode"] == mode]
+        k_cols    = sorted({r["top_k"] for r in mode_rows})
+        n_vals    = sorted({r["n_identities"] for r in mode_rows})
+
+        cell = {(r["n_identities"], r["top_k"]): r["recall_at_k"] for r in mode_rows}
+
+        print(f"\n  Mode: {mode}")
+        header  = f"  {'N':>8} | " + " | ".join(f"k={k:<6}" for k in k_cols)
+        divider = "  " + "-" * 9 + "+" + "+".join(["-" * 9] * len(k_cols))
+        print(header)
+        print(divider)
+        for n in n_vals:
+            vals = " | ".join(
+                f"{recall_color(cell.get((n, k), 0.0))}{cell.get((n, k), float('nan')):>6.3f}{RESET} "
+                for k in k_cols
+            )
+            print(f"  {n:>8} | {vals}")
+
+    print()
+
+
 def main():
     if len(sys.argv) > 1:
         path = Path(sys.argv[1])
@@ -270,6 +697,20 @@ def main():
             print_dedup_section(path)
         elif path.name.startswith("field_weighting_"):
             print_field_weighting_section(path)
+        elif path.name.startswith("scalability_"):
+            print_scalability_section(path)
+        elif path.name.startswith("ranking_metrics_"):
+            print_ranking_section(path)
+        elif path.name.startswith("per_field_sweep_"):
+            print_per_field_sweep_section(path)
+        elif path.name.startswith("per_field_noise_"):
+            print_per_field_noise_section(path)
+        elif path.name.startswith("dimensionality_"):
+            print_dimensionality_section(path)
+        elif path.name.startswith("date_encoding_"):
+            print_date_encoding_section(path)
+        elif path.name.startswith("recall_nk_sweep_"):
+            print_nk_sweep_section(path)
         else:
             mode = print_recall_section(path)
             print_bench_section(mode)

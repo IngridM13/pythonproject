@@ -1,5 +1,5 @@
 """
-Deduplication recall experiment for HDC-based data reconciliation.
+Experiment 2 — Dedup Recall for HDC-based data reconciliation.
 
 Measures how effectively the system surfaces same-person candidates when
 multiple noisy variants of each identity are stored in Milvus.
@@ -35,23 +35,19 @@ Environment variables
     DEDUP_SEED                  RNG seed (default: DEFAULT_SEED from settings)
 """
 
-import json
 import os
 import random
 import sys
-from datetime import date, datetime
-from pathlib import Path
+from datetime import date
 
 import pytest
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from configs.settings import DEFAULT_SEED, HDC_DIM
-from dummy_data.generacion_base_de_datos import generate_data_chunk
 from encoding_methods.encoding_and_search_milvus import find_closest_match_db, store_person
-from utils.person_data_normalization import normalize_person_data
 from tests.experiments.noise_injection import inject_noise
-from tests.experiments.conftest import dataframe_row_to_person_dict
+from tests.experiments.experiment_utils import generate_canonical_persons, run_dedup_recall, save_report
 
 
 def _serialize_person(p: dict) -> dict:
@@ -81,10 +77,10 @@ class TestDedupRecall:
 
     def test_dedup_recall(self, with_vector_mode, test_collection):
         # --- Config from env ---
-        n_identities          = int(os.environ.get("DEDUP_N_IDENTITIES", 200))
+        n_identities          = int(os.environ.get("DEDUP_N_IDENTITIES", 1000))
         variants_per_identity = int(os.environ.get("DEDUP_VARIANTS_PER_IDENTITY", 3))
         noise_fraction        = float(os.environ.get("DEDUP_NOISE_FRACTION", 0.3))
-        top_k                 = int(os.environ.get("DEDUP_TOP_K", 5))
+        top_k                 = int(os.environ.get("DEDUP_TOP_K", 3))
         n_samples             = int(os.environ.get("DEDUP_N_SAMPLES", 5))
         seed                  = int(os.environ.get("DEDUP_SEED", DEFAULT_SEED))
 
@@ -99,11 +95,7 @@ class TestDedupRecall:
         print(f"[DEDUP] Total records to insert: {total_records}")
 
         # --- 1. Generate canonical identities ---
-        df = generate_data_chunk(n_identities)
-        canonical_persons = []
-        for _, row in df.iterrows():
-            raw = dataframe_row_to_person_dict(row)
-            canonical_persons.append(normalize_person_data(raw))
+        canonical_persons = generate_canonical_persons(n_identities)
 
         # --- 2. Generate variants and insert into Milvus ---
         identity_to_milvus_ids: list = [[] for _ in range(n_identities)]
@@ -128,36 +120,16 @@ class TestDedupRecall:
         print(f"[DEDUP] Inserted & flushed {total_records} records.")
 
         # --- 4. Evaluate recall@K ---
-        hits = 0
-        total = 0
-
-        for identity_idx, milvus_ids in enumerate(identity_to_milvus_ids):
-            for variant_idx, query_milvus_id in enumerate(milvus_ids):
-                query_rng = random.Random(
-                    seed + identity_idx * variants_per_identity + variant_idx
-                )
-                query_person = inject_noise(
-                    canonical_persons[identity_idx], noise_fraction, query_rng
-                )
-
-                matches = find_closest_match_db(
-                    query_person,
-                    threshold=0.0,
-                    limit=top_k + 1,
-                    collection_name=test_collection,
-                )
-
-                neighbours = [m for m in matches if m["id"] != query_milvus_id][:top_k]
-
-                hit = any(
-                    milvus_id_to_identity.get(m["id"]) == identity_idx
-                    for m in neighbours
-                )
-                if hit:
-                    hits += 1
-                total += 1
-
-        recall_at_k = hits / total if total > 0 else 0.0
+        recall_at_k, _, _, hits, total = run_dedup_recall(
+            canonical_persons,
+            identity_to_milvus_ids,
+            milvus_id_to_identity,
+            variants_per_identity,
+            noise_fraction,
+            seed,
+            top_k,
+            test_collection,
+        )
         print(
             f"[DEDUP] recall@{top_k} = {recall_at_k:.3f}  "
             f"({hits}/{total})  noise_fraction={noise_fraction}"
@@ -209,14 +181,6 @@ class TestDedupRecall:
             })
 
         # --- 6. Save JSON report ---
-        project_root = Path(__file__).resolve().parents[2]
-        output_dir = project_root / "test_results"
-        output_dir.mkdir(exist_ok=True)
-
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"dedup_recall_{mode}_{timestamp}.json"
-        output_path = output_dir / filename
-
         report = {
             "config": {
                 "vector_mode":           mode,
@@ -236,8 +200,8 @@ class TestDedupRecall:
             },
             "queries": queries_report,
         }
-        output_path.write_text(json.dumps(report, indent=2))
-        print(f"[DEDUP] Results saved to {filename}")
+        output_path = save_report("dedup_recall", mode, report)
+        print(f"[DEDUP] Results saved to {output_path.name}")
 
         # --- 7. Assertion ---
         assert recall_at_k >= 0.5, (

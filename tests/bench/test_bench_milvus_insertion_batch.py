@@ -90,7 +90,6 @@ class TestBenchMilvusInsertionBatch:
                 doc["dob"] = d.strftime("%Y-%m-%d") if hasattr(d, "strftime") else str(d)
 
             doc["attrs"] = doc.get("attrs", {}) or {}
-            doc["embedding"] = [0.0] * 128
             doc["hv"] = vec
 
             docs.append(doc)

@@ -92,9 +92,6 @@ class TestBenchMilvusInsertion:
             # attrs siempre presente por normalizador, pero aseguramos tipo JSON/dict
             doc["attrs"] = doc.get("attrs", {}) or {}
 
-            # embedding requerido por schema (aunque sea "optional" conceptualmente)
-            doc["embedding"] = [0.0] * 128
-
             # hv requerido por schema (binary/float según modo)
             doc["hv"] = vec
 
