@@ -34,7 +34,7 @@ def get_vector_mode():
     return VECTOR_MODE
 
 
-def ensure_people_collection(collection_name: str = COLLECTION, include_embedding: bool = True) -> Collection:
+def ensure_people_collection(collection_name: str = COLLECTION) -> Collection:
     cache_key = f"{collection_name}_{VECTOR_MODE}"
     if cache_key in _collection_cache:
         return _collection_cache[cache_key]
@@ -83,15 +83,6 @@ def ensure_people_collection(collection_name: str = COLLECTION, include_embeddin
                 # La colección se creará más adelante
             else:
                 # Intentamos crear los índices necesarios si no hay inconsistencia de tipos
-                if include_embedding and "embedding" in field_names:
-                    try:
-                        col.create_index("embedding",
-                                         {"index_type": "IVF_FLAT", "metric_type": "L2", "params": {"nlist": 128}})
-                        print(f">>> Índice para 'embedding' creado en {collection_name}")
-                    except MilvusException as e:
-                        if "index already exists" not in str(e).lower():
-                            print(f">>> Error al crear índice para 'embedding': {e}")
-
                 try:
                     # Crear índice para hv según el modo
                     if VECTOR_MODE == "binary":
@@ -136,11 +127,6 @@ def ensure_people_collection(collection_name: str = COLLECTION, include_embeddin
         FieldSchema(name="attrs", dtype=DataType.JSON),  # address/akas/landlines van acá
     ]
 
-    # Campo opcional para embeddings densos (e.g., de redes neuronales convencionales)
-    if include_embedding:
-        fields.append(FieldSchema(name="embedding", dtype=DataType.FLOAT_VECTOR, dim=128,
-                                  description="Optional dense embedding"))
-
     # Campo para hypervector según el modo
     if VECTOR_MODE == "binary":
         print(f">>> Creando colección {collection_name} con campo 'hv' como BINARY_VECTOR")
@@ -161,9 +147,6 @@ def ensure_people_collection(collection_name: str = COLLECTION, include_embeddin
         col.create_index("hv", {"index_type": "BIN_IVF_FLAT", "metric_type": "HAMMING", "params": {}})
     else:  # float
         col.create_index("hv", {"index_type": "IVF_FLAT", "metric_type": "IP", "params": {"nlist": 128}})
-
-    if include_embedding:
-        col.create_index("embedding", {"index_type": "IVF_FLAT", "metric_type": "L2", "params": {"nlist": 128}})
 
     # Índice opcional para texto
     try:

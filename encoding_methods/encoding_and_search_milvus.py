@@ -176,7 +176,6 @@ def store_person(
     excluded_fields=None,
 ) -> int:
     person_data = person.copy()
-    embedding = person_data.pop('embedding', None)
 
     if 'attrs' not in person_data or not isinstance(person_data['attrs'], dict):
         person_data['attrs'] = {}
@@ -205,20 +204,7 @@ def store_person(
         else:
             doc_to_insert["dob"] = str(d)
 
-    if embedding is not None:
-        if not isinstance(embedding, torch.Tensor):
-            embedding = torch.tensor(embedding)
-        doc_to_insert["embedding"] = embedding.detach().cpu().float().tolist()[:128]
-
     col = ensure_people_collection(collection_name)
-    schema_fields = {f.name: f for f in col.schema.fields}
-
-    if "embedding" in schema_fields and "embedding" not in doc_to_insert:
-        emb_field = schema_fields["embedding"]
-        dim = 128
-        if hasattr(emb_field, 'params') and 'dim' in emb_field.params:
-            dim = int(emb_field.params['dim'])
-        doc_to_insert["embedding"] = [0.0] * dim
 
     res = col.insert(doc_to_insert)
     return res.primary_keys[0] if hasattr(res, 'primary_keys') else res.inserted_ids[0]
@@ -227,10 +213,6 @@ def store_person(
 def get_person_details(person_id: int, collection_name: str = "people") -> Dict[str, Any]:
     col = ensure_people_collection(collection_name)
     output_fields = ["name", "lastname", "dob", "marital_status", "mobile_number", "gender", "race", "attrs", "id"]
-
-    schema_fields = {f.name for f in col.schema.fields}
-    if "embedding" in schema_fields:
-        output_fields.append("embedding")
 
     res = col.query(expr=f"id == {person_id}", output_fields=output_fields, consistency_level="Strong")
     if not res: return None
@@ -250,7 +232,6 @@ def get_person_details(person_id: int, collection_name: str = "people") -> Dict[
         "mobile_number": r.get("mobile_number", ""),
         "gender": r.get("gender", ""),
         "race": r.get("race", ""),
-        "embedding": r.get("embedding")
     }
 
 

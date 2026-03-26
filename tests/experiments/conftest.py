@@ -67,7 +67,7 @@ def test_collection(with_vector_mode):
     name = f"people_test_{uuid.uuid4().hex[:8]}"
     print(f"\n[FIXTURE] Creating collection: {name}")
 
-    col = ensure_people_collection(name, include_embedding=False)
+    col = ensure_people_collection(name)
     print(f"[FIXTURE] Collection '{col.name}' ready. Entities before: {col.num_entities}")
 
     yield name
