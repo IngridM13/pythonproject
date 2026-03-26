@@ -209,7 +209,7 @@ class TestExp10ScalabilityNoisyDupes:
                         f"total={n + n_sources * duplicates_per_original}  collection={col_name}"
                     )
 
-                    col = ensure_people_collection(col_name, include_embedding=False)
+                    col = ensure_people_collection(col_name)
 
                     try:
                         rng = random.Random(seed)

@@ -404,7 +404,7 @@ class TestDateEncoding:
 
                     try:
                         col_name = f"de_{uuid.uuid4().hex[:10]}"
-                        col = ensure_people_collection(col_name, include_embedding=False)
+                        col = ensure_people_collection(col_name)
 
                         print(f"\n[DATE] mode={mode}  variant={variant_name}  collection={col_name}")
 

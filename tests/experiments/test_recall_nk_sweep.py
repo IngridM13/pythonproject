@@ -70,7 +70,7 @@ _MAX_K = max(K_VALUES)
 def _make_collection(mode: str) -> str:
     """Create a fresh ephemeral Milvus collection for the given mode."""
     name = f"people_nksweep_{uuid.uuid4().hex[:8]}"
-    ensure_people_collection(name, include_embedding=False)
+    ensure_people_collection(name)
     return name
 
 
@@ -78,7 +78,7 @@ def _drop_collection(name: str, mode: str) -> None:
     """Drop the ephemeral collection and evict it from the connection cache."""
     _collection_cache.pop(f"{name}_{mode}", None)
     try:
-        col = ensure_people_collection(name, include_embedding=False)
+        col = ensure_people_collection(name)
         col.drop()
     except Exception as exc:
         print(f"  [WARN] Could not drop collection '{name}': {exc}")
@@ -111,7 +111,7 @@ def _insert_and_flush(
             identity_to_milvus_ids[identity_idx].append(milvus_id)
             milvus_id_to_identity[milvus_id] = identity_idx
 
-    col = ensure_people_collection(col_name, include_embedding=False)
+    col = ensure_people_collection(col_name)
     col.flush()
     return identity_to_milvus_ids, milvus_id_to_identity
 

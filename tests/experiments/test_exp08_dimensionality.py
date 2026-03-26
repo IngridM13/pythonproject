@@ -110,7 +110,7 @@ class TestDimensionalitySweep:
                     milvus_conn.HDC_DIM   = dim
 
                     col_name = f"dim_{uuid.uuid4().hex[:10]}"
-                    col = ensure_people_collection(col_name, include_embedding=False)
+                    col = ensure_people_collection(col_name)
 
                     print(
                         f"\n[DIM] mode={mode}  dim={dim}  "

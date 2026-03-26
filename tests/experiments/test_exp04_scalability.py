@@ -100,7 +100,7 @@ class TestScalability:
 
                     # Create a fresh ephemeral collection for this N
                     col_name = f"scale_{uuid.uuid4().hex[:10]}"
-                    col = ensure_people_collection(col_name, include_embedding=False)
+                    col = ensure_people_collection(col_name)
 
                     print(f"\n[SCALE] mode={mode}  N={n}  "
                           f"total_records={total_records}  collection={col_name}")
