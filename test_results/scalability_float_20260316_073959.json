@@ -1,0 +1,64 @@
+{
+  "mode": "float",
+  "config": {
+    "n_values": [
+      100,
+      500,
+      1000,
+      5000,
+      10000
+    ],
+    "variants_per_identity": 3,
+    "noise_fraction": 0.3,
+    "top_k": 5,
+    "hdim": 10000,
+    "seed": 42
+  },
+  "results": [
+    {
+      "n": 100,
+      "total_records": 300,
+      "recall_at_k": 1.0,
+      "hits": 300,
+      "total": 300,
+      "insert_time_s": 61.1197,
+      "query_time_s": 1.1552
+    },
+    {
+      "n": 500,
+      "total_records": 1500,
+      "recall_at_k": 0.982667,
+      "hits": 1474,
+      "total": 1500,
+      "insert_time_s": 304.0302,
+      "query_time_s": 7.6438
+    },
+    {
+      "n": 1000,
+      "total_records": 3000,
+      "recall_at_k": 0.937333,
+      "hits": 2812,
+      "total": 3000,
+      "insert_time_s": 607.0323,
+      "query_time_s": 18.015
+    },
+    {
+      "n": 5000,
+      "total_records": 15000,
+      "recall_at_k": 0.7486,
+      "hits": 11229,
+      "total": 15000,
+      "insert_time_s": 3038.1476,
+      "query_time_s": 73.6633
+    },
+    {
+      "n": 10000,
+      "total_records": 30000,
+      "recall_at_k": 0.7298,
+      "hits": 21894,
+      "total": 30000,
+      "insert_time_s": 6073.291,
+      "query_time_s": 158.9514
+    }
+  ]
+}

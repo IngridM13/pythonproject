@@ -1,0 +1,18 @@
+{
+  "mode": "float",
+  "config": {
+    "n_identities": 200,
+    "variants_per_identity": 3,
+    "noise_fraction": 0.3,
+    "top_k": 5,
+    "hdim": 10000,
+    "seed": 42
+  },
+  "results": {
+    "recall_at_k": 0.9933333333333333,
+    "mrr": 0.9703333333333334,
+    "precision_at_k": 0.3716666666666695,
+    "hit_at_1": 0.9566666666666667,
+    "total_queries": 600
+  }
+}

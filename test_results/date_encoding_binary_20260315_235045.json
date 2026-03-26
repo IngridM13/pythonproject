@@ -1,0 +1,180 @@
+{
+  "mode": "binary",
+  "config": {
+    "n_identities": 200,
+    "variants_per_identity": 3,
+    "noise_fraction": 0.3,
+    "top_k": 5,
+    "hdim": 10000,
+    "seed": 42,
+    "monotonicity_distances": [
+      0,
+      1,
+      7,
+      30,
+      90,
+      180,
+      365,
+      730
+    ],
+    "reference_date": "1985-06-15"
+  },
+  "results": [
+    {
+      "variant": "current",
+      "recall_at_k": 0.986667,
+      "hits": 592,
+      "total": 600,
+      "monotonicity": {
+        "is_monotonic": true,
+        "violations": 0,
+        "distances": [
+          {
+            "dist_days": 0,
+            "similarity": 1.0,
+            "violation": false
+          },
+          {
+            "dist_days": 1,
+            "similarity": 1.0,
+            "violation": false
+          },
+          {
+            "dist_days": 7,
+            "similarity": 0.9999,
+            "violation": false
+          },
+          {
+            "dist_days": 30,
+            "similarity": 0.9996,
+            "violation": false
+          },
+          {
+            "dist_days": 90,
+            "similarity": 0.9989,
+            "violation": false
+          },
+          {
+            "dist_days": 180,
+            "similarity": 0.9975,
+            "violation": false
+          },
+          {
+            "dist_days": 365,
+            "similarity": 0.9943,
+            "violation": false
+          },
+          {
+            "dist_days": 730,
+            "similarity": 0.9875,
+            "violation": false
+          }
+        ]
+      }
+    },
+    {
+      "variant": "circular",
+      "recall_at_k": 0.998333,
+      "hits": 599,
+      "total": 600,
+      "monotonicity": {
+        "is_monotonic": false,
+        "violations": 2,
+        "distances": [
+          {
+            "dist_days": 0,
+            "similarity": 1.0,
+            "violation": false
+          },
+          {
+            "dist_days": 1,
+            "similarity": 0.9886,
+            "violation": false
+          },
+          {
+            "dist_days": 7,
+            "similarity": 0.9071,
+            "violation": false
+          },
+          {
+            "dist_days": 30,
+            "similarity": 0.5672,
+            "violation": false
+          },
+          {
+            "dist_days": 90,
+            "similarity": 0.4771,
+            "violation": false
+          },
+          {
+            "dist_days": 180,
+            "similarity": 0.5878,
+            "violation": true
+          },
+          {
+            "dist_days": 365,
+            "similarity": 0.9987,
+            "violation": true
+          },
+          {
+            "dist_days": 730,
+            "similarity": 0.998,
+            "violation": false
+          }
+        ]
+      }
+    },
+    {
+      "variant": "circular_full",
+      "recall_at_k": 0.998333,
+      "hits": 599,
+      "total": 600,
+      "monotonicity": {
+        "is_monotonic": false,
+        "violations": 2,
+        "distances": [
+          {
+            "dist_days": 0,
+            "similarity": 1.0,
+            "violation": false
+          },
+          {
+            "dist_days": 1,
+            "similarity": 0.9863,
+            "violation": false
+          },
+          {
+            "dist_days": 7,
+            "similarity": 0.9103,
+            "violation": false
+          },
+          {
+            "dist_days": 30,
+            "similarity": 0.5743,
+            "violation": false
+          },
+          {
+            "dist_days": 90,
+            "similarity": 0.4841,
+            "violation": false
+          },
+          {
+            "dist_days": 180,
+            "similarity": 0.5823,
+            "violation": true
+          },
+          {
+            "dist_days": 365,
+            "similarity": 0.9937,
+            "violation": true
+          },
+          {
+            "dist_days": 730,
+            "similarity": 0.9862,
+            "violation": false
+          }
+        ]
+      }
+    }
+  ]
+}

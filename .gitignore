@@ -19,9 +19,6 @@ volumes/
 .pytest_cache/
 tests/**/.pytest_cache/
 
-# Test results (generated output, not source)
-test_results/
-
 # Scripts data (generated)
 scripts/data/
 scripts/*.csv

@@ -1,0 +1,820 @@
+{
+  "config": {
+    "vector_mode": "binary",
+    "n_identities": 200,
+    "variants_per_identity": 3,
+    "total_records": 600,
+    "noise_fraction": 0.3,
+    "top_k": 5,
+    "n_samples": 5,
+    "hdim": 10000,
+    "seed": 42
+  },
+  "results": {
+    "recall_at_5": 0.9866666666666667,
+    "hits": 592,
+    "total": 600
+  },
+  "queries": [
+    {
+      "query_num": 1,
+      "query_milvus_id": 464916172200632946,
+      "identity_idx": 138,
+      "query_record": {
+        "name": "Katie",
+        "lastname": "Stevens",
+        "dob": "1989-10-20",
+        "gender": "Non-binary",
+        "race": "Mixed",
+        "marital_status": "Widowed",
+        "mobile_number": "454-906-4176",
+        "addresses": [
+          "USS George, FPO AP 78679"
+        ],
+        "akas": [
+          "Ryan Rivera"
+        ],
+        "landlines": [
+          "(550)804-2548x82142"
+        ]
+      },
+      "results": [
+        {
+          "rank": 1,
+          "milvus_id": 464916172200632947,
+          "identity_idx": 138,
+          "is_match": true,
+          "record": {
+            "name": "Katie",
+            "lastname": "Stevens",
+            "dob": "1986-10-20",
+            "gender": "Male",
+            "race": "Asian",
+            "marital_status": "Widowed",
+            "mobile_number": "454-906-4126",
+            "addresses": [
+              "USS George, FPO AP 78673"
+            ],
+            "akas": [
+              "Ryan Rivera"
+            ],
+            "landlines": [
+              "(550)804-2548x82142",
+              "001-814-830-7536"
+            ],
+            "similarity": 0.8182
+          }
+        },
+        {
+          "rank": 2,
+          "milvus_id": 464916172200632948,
+          "identity_idx": 138,
+          "is_match": true,
+          "record": {
+            "name": "Katie",
+            "lastname": "tSevens",
+            "dob": "1989-10-20",
+            "gender": "Non-binary",
+            "race": "Asian",
+            "marital_status": "Widowed",
+            "mobile_number": "454-906-4176",
+            "addresses": [
+              "USS George, FPO AP 78573"
+            ],
+            "akas": [
+              "Ryan Riveraq"
+            ],
+            "landlines": [
+              "(550)804-2548x82142",
+              "001-814-830-7536"
+            ],
+            "similarity": 0.7486999999999999
+          }
+        },
+        {
+          "rank": 3,
+          "milvus_id": 464916172200633113,
+          "identity_idx": 193,
+          "is_match": false,
+          "record": {
+            "name": "Sanrda",
+            "lastname": "Kelley",
+            "dob": "1993-12-06",
+            "gender": "Non-binary",
+            "race": "Mixed",
+            "marital_status": "Widowed",
+            "mobile_number": "+1-459-477-5244x182",
+            "addresses": [
+              "USNV Brown, FPO AA 72999",
+              "63048 John Point Apt. 496, Millerhaven, IL 19161"
+            ],
+            "akas": [],
+            "landlines": [
+              "765-622-0368x49951"
+            ],
+            "similarity": 0.6609
+          }
+        },
+        {
+          "rank": 4,
+          "milvus_id": 464916172200633104,
+          "identity_idx": 190,
+          "is_match": false,
+          "record": {
+            "name": "Robert",
+            "lastname": "Orr",
+            "dob": "1997-04-28",
+            "gender": "Non-binary",
+            "race": "Mixed",
+            "marital_status": "Widowed",
+            "mobile_number": "001-036-792-4926x932",
+            "addresses": [
+              "96115 Williams Drives Apt. 545, Kellytown, WY 19227",
+              "44327 David Keys Apt. 067, Arielmouth, WY 49955",
+              "87772 Davis Road, Hughesfurt, MA 71410",
+              "412 Ashley Underpass Suite 818, East Stephanieside, OK 99803"
+            ],
+            "akas": [
+              "Robim Richardson"
+            ],
+            "landlines": [],
+            "similarity": 0.6582
+          }
+        },
+        {
+          "rank": 5,
+          "milvus_id": 464916172200632543,
+          "identity_idx": 3,
+          "is_match": false,
+          "record": {
+            "name": "Jeffrey",
+            "lastname": "Martin",
+            "dob": "2000-12-28",
+            "gender": "Non-binary",
+            "race": "Mixed",
+            "marital_status": "Widowed",
+            "mobile_number": "(531)483-0617",
+            "addresses": [
+              "413 Angela Mall, Port Alexandra, NV 58529",
+              "9909 Stacey Fords Apt. 412, East Andrea, GA 00851",
+              "0344 Jones Fort Suite 936, New Jeffreyberg, PW 35317",
+              "24994 Martinez Spurs, Hollyview, NY 71277",
+              "065 Johnson Forks, Port Emilyview, OK 05874"
+            ],
+            "akas": [],
+            "landlines": [],
+            "similarity": 0.6567000000000001
+          }
+        }
+      ]
+    },
+    {
+      "query_num": 2,
+      "query_milvus_id": 464916172200632862,
+      "identity_idx": 110,
+      "query_record": {
+        "name": "Nancy",
+        "lastname": "Nloan",
+        "dob": "1950-08-27",
+        "gender": "Non-binary",
+        "race": "Mixed",
+        "marital_status": "Married",
+        "mobile_number": "001-264-877-2512x95786",
+        "addresses": [
+          "181 Morgan Crescent Suite 894, Churchshire, NJ 32387",
+          "790 Wilson Cliff Suite 335, Moseshaven, ND 01775",
+          "41651 Thomas Knoll Apt. 942, South Jillian, IA 96895"
+        ],
+        "akas": [
+          "Albert Garcia"
+        ],
+        "landlines": []
+      },
+      "results": [
+        {
+          "rank": 1,
+          "milvus_id": 464916172200632864,
+          "identity_idx": 110,
+          "is_match": true,
+          "record": {
+            "name": "Nancy",
+            "lastname": "Nolan",
+            "dob": "1950-08-02",
+            "gender": "Male",
+            "race": "Mixed",
+            "marital_status": "Widowed",
+            "mobile_number": "001-264-877-2512x95786",
+            "addresses": [
+              "181 Morgan Crescent Suite 894, Churchshire, NJ 32387",
+              "790 Wilson Cliff Suite 335, Moseshaven, ND 01775",
+              "41651 Thomas Knoll Apt. 942, South Jillian, IA 96895"
+            ],
+            "akas": [
+              "Albert Gwrcia"
+            ],
+            "landlines": [],
+            "similarity": 0.7289
+          }
+        },
+        {
+          "rank": 2,
+          "milvus_id": 464916172200632750,
+          "identity_idx": 72,
+          "is_match": false,
+          "record": {
+            "name": "Nancy",
+            "lastname": "Alvaradg",
+            "dob": "1965-07-22",
+            "gender": "Male",
+            "race": "White",
+            "marital_status": "Divorced",
+            "mobile_number": "+1-811-763-3194x226",
+            "addresses": [],
+            "akas": [],
+            "landlines": [
+              "(478)549-8436x24186"
+            ],
+            "similarity": 0.6724
+          }
+        },
+        {
+          "rank": 3,
+          "milvus_id": 464916172200632748,
+          "identity_idx": 72,
+          "is_match": false,
+          "record": {
+            "name": "Nancy",
+            "lastname": "Alarado",
+            "dob": "1965-06-24",
+            "gender": "Male",
+            "race": "Other",
+            "marital_status": "Widowed",
+            "mobile_number": "+1-811-763-3194x226",
+            "addresses": [],
+            "akas": [],
+            "landlines": [
+              "(478)549-8436x24186"
+            ],
+            "similarity": 0.6720999999999999
+          }
+        },
+        {
+          "rank": 4,
+          "milvus_id": 464916172200632863,
+          "identity_idx": 110,
+          "is_match": true,
+          "record": {
+            "name": "Nncy",
+            "lastname": "Nolak",
+            "dob": "1950-08-27",
+            "gender": "Other",
+            "race": "Mixed",
+            "marital_status": "Widowed",
+            "mobile_number": "001-264-877-2512x95786",
+            "addresses": [
+              "181 Morgan Crescent Suite 894, Churchshire, NJ 32387",
+              "790 Wilson Cliff Suite 335, Moseshaven, ND 01775",
+              "41651 Thomas Knoll Apt. 942, South Jillian, IA 96895"
+            ],
+            "akas": [
+              "Albeot Garcia"
+            ],
+            "landlines": [],
+            "similarity": 0.6544
+          }
+        },
+        {
+          "rank": 5,
+          "milvus_id": 464916172200632694,
+          "identity_idx": 54,
+          "is_match": false,
+          "record": {
+            "name": "Deborah",
+            "lastname": "Murlllo",
+            "dob": "1953-04-02",
+            "gender": "Non-binary",
+            "race": "Black",
+            "marital_status": "Married",
+            "mobile_number": "890.339.2355x5809",
+            "addresses": [
+              "2655 Christopher Inlet, Wardview, CT 17868",
+              "8886 Anthony Knoll Apt. 995, Smithchester, MS 11602",
+              "826 Dominic Hollow, Trevorland, GA 57474"
+            ],
+            "akas": [],
+            "landlines": [
+              "4909367881",
+              "001-286-986-6943x20293"
+            ],
+            "similarity": 0.6481
+          }
+        }
+      ]
+    },
+    {
+      "query_num": 3,
+      "query_milvus_id": 464916172200633023,
+      "identity_idx": 163,
+      "query_record": {
+        "name": "Rebecca",
+        "lastname": "Dixon",
+        "dob": "1961-02-11",
+        "gender": "Female",
+        "race": "Asian",
+        "marital_status": "Married",
+        "mobile_number": "(439)772-8351",
+        "addresses": [
+          "7112 Timothy Inlet, Donmouth, FM 78836",
+          "40132 Hailey Inlet Apt. 321, Vazquezville, CA 02965",
+          "31089 Taylor Glen Apt. 140, Port Davidborough, OR 26718",
+          "12495 Martin Parkway Apt. 891, Port Belindatown, NC 28943"
+        ],
+        "akas": [
+          "Melissa Brewer",
+          "Jesus Becker"
+        ],
+        "landlines": [
+          "+1-987-833-9785x59821",
+          "+1-761-291-2841x1730"
+        ]
+      },
+      "results": [
+        {
+          "rank": 1,
+          "milvus_id": 464916172200633021,
+          "identity_idx": 163,
+          "is_match": true,
+          "record": {
+            "name": "Rebecca",
+            "lastname": "Dixon",
+            "dob": "1955-02-11",
+            "gender": "Male",
+            "race": "Mixed",
+            "marital_status": "Married",
+            "mobile_number": "(439)772-8351",
+            "addresses": [
+              "7112 Timothy Inlet, Donmouth, FM 78836",
+              "40132 Hailey Inlet Apt. 321, Vazquezville, CA 02965",
+              "31089 Taylor Glen Apt. 140, Port Davidborough, OR 26718"
+            ],
+            "akas": [
+              "Melissa Brewer",
+              "Jesus Becker"
+            ],
+            "landlines": [
+              "+1-987-833-9785x59821",
+              "+1-761-291-2841x1730"
+            ],
+            "similarity": 0.8523000000000001
+          }
+        },
+        {
+          "rank": 2,
+          "milvus_id": 464916172200633022,
+          "identity_idx": 163,
+          "is_match": true,
+          "record": {
+            "name": "Rebecca",
+            "lastname": "Dixn",
+            "dob": "1959-02-11",
+            "gender": "Other",
+            "race": "Mixed",
+            "marital_status": "Divorced",
+            "mobile_number": "(439)772-8351",
+            "addresses": [
+              "7112 Timothy Inlet, Donmouth, FM 78836",
+              "40132 Hailey Inlet Apt. 321, Vazquezville, CA 02965",
+              "31089 Taylor Glen Apt. 140, Port Davidborough, OR 26718",
+              "12495 Martin Parkway Apt. 891, Port Belindatown, NC 28943"
+            ],
+            "akas": [
+              "Melissa Brewer",
+              "Jesus Becker"
+            ],
+            "landlines": [
+              "+1-987-833-9785x59821",
+              "+1-761-291-2841x1730"
+            ],
+            "similarity": 0.7247
+          }
+        },
+        {
+          "rank": 3,
+          "milvus_id": 464916172200632608,
+          "identity_idx": 25,
+          "is_match": false,
+          "record": {
+            "name": "Matthew",
+            "lastname": "Silv",
+            "dob": "1953-01-15",
+            "gender": "Female",
+            "race": "Asian",
+            "marital_status": "Married",
+            "mobile_number": "450.978.9598",
+            "addresses": [
+              "USCGC Lee, FPO AE 20809"
+            ],
+            "akas": [
+              "Emily Mcclure"
+            ],
+            "landlines": [
+              "(356)360-9314",
+              "+1-886-515-1554x23401"
+            ],
+            "similarity": 0.6546000000000001
+          }
+        },
+        {
+          "rank": 4,
+          "milvus_id": 464916172200632924,
+          "identity_idx": 130,
+          "is_match": false,
+          "record": {
+            "name": "Kyle",
+            "lastname": "Cochraj",
+            "dob": "1944-06-01",
+            "gender": "Female",
+            "race": "Asian",
+            "marital_status": "Married",
+            "mobile_number": "(460)782-1371x184",
+            "addresses": [
+              "98266 Hayes Fall, Garzaborough, FM 60097",
+              "211 Jasmin Roads Suite 186, South Andrea, AZ 22899"
+            ],
+            "akas": [
+              "Lee Richards"
+            ],
+            "landlines": [
+              "001-832-751-2257x207",
+              "2249120957"
+            ],
+            "similarity": 0.6541
+          }
+        },
+        {
+          "rank": 5,
+          "milvus_id": 464916172200632598,
+          "identity_idx": 22,
+          "is_match": false,
+          "record": {
+            "name": "Matthew",
+            "lastname": "aniels",
+            "dob": "1949-06-07",
+            "gender": "Female",
+            "race": "Asian",
+            "marital_status": "Married",
+            "mobile_number": "812.837.1067x28728",
+            "addresses": [
+              "127 Webster Trace, Maldonadoshire, SD 83770",
+              "Unit 5527 Box 1774, DPO AA 78019",
+              "7700 Decker Club, New Brookefurt, NH 76565",
+              "9359 Mason Circle, Garciamouth, VT 11554"
+            ],
+            "akas": [],
+            "landlines": [
+              "001-601-918-4582x60340",
+              "(597)358-5988"
+            ],
+            "similarity": 0.6522
+          }
+        }
+      ]
+    },
+    {
+      "query_num": 4,
+      "query_milvus_id": 464916172200633019,
+      "identity_idx": 162,
+      "query_record": {
+        "name": "Jeremy",
+        "lastname": "Obrien",
+        "dob": "1972-02-06",
+        "gender": "Other",
+        "race": "White",
+        "marital_status": "Married",
+        "mobile_number": "+1-751-320-8005x64099",
+        "addresses": [
+          "4714 White Spurs, North David, KY 65126",
+          "Unit 1959 Box 7964, DPO AP 90404",
+          "8904 Bonnie Drive, Stevenberg, MI 21906",
+          "5344 Willie Trafficway Apt. 192, Moniqueport, KY 90343",
+          "89520 April Landing Suite 652, East Ericbury, MP 25197"
+        ],
+        "akas": [],
+        "landlines": [
+          "277-343-3268x319",
+          "702.405.6981"
+        ]
+      },
+      "results": [
+        {
+          "rank": 1,
+          "milvus_id": 464916172200633020,
+          "identity_idx": 162,
+          "is_match": true,
+          "record": {
+            "name": "Jeremy",
+            "lastname": "Sbrien",
+            "dob": "1972-02-20",
+            "gender": "Non-binary",
+            "race": "White",
+            "marital_status": "Divorced",
+            "mobile_number": "+1-751-320-8005x64099",
+            "addresses": [
+              "4714 White Spurs, North David, KY 65126",
+              "Unit 1959 Box 7964, DPO AP 90404",
+              "8904 Bonnie Drive, Stevenberg, MI 21906",
+              "5044 Willie Trafficway Apt. 192, Moniqueport, KY 90343",
+              "89520 April Landing Suite 652, East Ericbury, MP 25197"
+            ],
+            "akas": [],
+            "landlines": [
+              "277-343-3268x319",
+              "702.405.6981"
+            ],
+            "similarity": 0.7341
+          }
+        },
+        {
+          "rank": 2,
+          "milvus_id": 464916172200632658,
+          "identity_idx": 42,
+          "is_match": false,
+          "record": {
+            "name": "Jeremy",
+            "lastname": "Mhlls",
+            "dob": "1978-09-03",
+            "gender": "Other",
+            "race": "Asian",
+            "marital_status": "Widowed",
+            "mobile_number": "001-524-606-4242x9563",
+            "addresses": [
+              "8713 Davis Pass, Stokesmouth, DC 67773"
+            ],
+            "akas": [
+              "Amanda Johnson",
+              "Christopher Mcclure"
+            ],
+            "landlines": [
+              "+1-341-267-8725x68621",
+              "(225)880-3056"
+            ],
+            "similarity": 0.6977
+          }
+        },
+        {
+          "rank": 3,
+          "milvus_id": 464916172200632659,
+          "identity_idx": 42,
+          "is_match": false,
+          "record": {
+            "name": "Jeremy",
+            "lastname": "Mills",
+            "dob": "1978-08-29",
+            "gender": "Female",
+            "race": "Asian",
+            "marital_status": "Widowed",
+            "mobile_number": "001-524-606-4242x9566",
+            "addresses": [
+              "8713 Davis Pass, Stokesmouth, DC 67773"
+            ],
+            "akas": [
+              "Cory Willis",
+              "Amacda Johnson",
+              "Christopher Mcclure"
+            ],
+            "landlines": [
+              "+1-341-267-8725x68621",
+              "(225)880-3056"
+            ],
+            "similarity": 0.6869000000000001
+          }
+        },
+        {
+          "rank": 4,
+          "milvus_id": 464916172200632660,
+          "identity_idx": 42,
+          "is_match": false,
+          "record": {
+            "name": "Jeremy",
+            "lastname": "Mills",
+            "dob": "1978-09-03",
+            "gender": "Male",
+            "race": "Asian",
+            "marital_status": "Widowed",
+            "mobile_number": "001-524-606-4242x9563",
+            "addresses": [
+              "8713 Davis Pass, Stokesmouth, DC 67773"
+            ],
+            "akas": [
+              "Cory Willis",
+              "Amanda Johnson",
+              "Christpoher Mcclure"
+            ],
+            "landlines": [
+              "+1-341-267-8725x68621"
+            ],
+            "similarity": 0.6811
+          }
+        },
+        {
+          "rank": 5,
+          "milvus_id": 464916172200632731,
+          "identity_idx": 66,
+          "is_match": false,
+          "record": {
+            "name": "Jeremy",
+            "lastname": "Cvrr",
+            "dob": "1952-02-01",
+            "gender": "Female",
+            "race": "Hispanic",
+            "marital_status": "Widowed",
+            "mobile_number": "+1-662-944-0630x624",
+            "addresses": [
+              "31617 Kyle Streets, North Alexander, DC 92447",
+              "8842 Martinez Tunnel Suite 105, Nelsonland, KS 93866",
+              "Unit 1778 Box 5079, DPO AE 48694",
+              "138 Bradley Wall, East Brandonstad, MS 20172",
+              "635 Robert Stravenue, Josephland, OK 49365"
+            ],
+            "akas": [
+              "Nancy Gaines",
+              "Elijah Short"
+            ],
+            "landlines": [
+              "(877)711-9642x1522"
+            ],
+            "similarity": 0.6709
+          }
+        }
+      ]
+    },
+    {
+      "query_num": 5,
+      "query_milvus_id": 464916172200632779,
+      "identity_idx": 82,
+      "query_record": {
+        "name": "Brenda",
+        "lastname": "Waletrs",
+        "dob": "1960-12-04",
+        "gender": "Male",
+        "race": "Mixed",
+        "marital_status": "Married",
+        "mobile_number": "(937)534-7517",
+        "addresses": [
+          "374 Ralph Walk Apt. 898, North Stacy, NV 23160",
+          "USNS Stanton, FPO AE 17040"
+        ],
+        "akas": [
+          "Steven Davis"
+        ],
+        "landlines": [
+          "874-472-1970x546"
+        ]
+      },
+      "results": [
+        {
+          "rank": 1,
+          "milvus_id": 464916172200632778,
+          "identity_idx": 82,
+          "is_match": true,
+          "record": {
+            "name": "Brenda",
+            "lastname": "Walters",
+            "dob": "1960-11-18",
+            "gender": "Male",
+            "race": "Mixed",
+            "marital_status": "Married",
+            "mobile_number": "(237)534-8817",
+            "addresses": [
+              "374 Ralph Walk Apt. 898, North Stacy, NV 23160"
+            ],
+            "akas": [
+              "Steveen Davis"
+            ],
+            "landlines": [
+              "874-472-1970x546"
+            ],
+            "similarity": 0.7582
+          }
+        },
+        {
+          "rank": 2,
+          "milvus_id": 464916172200632780,
+          "identity_idx": 82,
+          "is_match": true,
+          "record": {
+            "name": "Brenda",
+            "lastname": "Walters",
+            "dob": "1960-11-18",
+            "gender": "Other",
+            "race": "Mixed",
+            "marital_status": "Married",
+            "mobile_number": "(937)534-1517",
+            "addresses": [
+              "174 Ralph Walk Apt. 898, North Stacy, NV 23160",
+              "USNS Stanton, FPO AE 17040"
+            ],
+            "akas": [
+              "teven Davis"
+            ],
+            "landlines": [
+              "874-472-1970x546"
+            ],
+            "similarity": 0.7393000000000001
+          }
+        },
+        {
+          "rank": 3,
+          "milvus_id": 464916172200632717,
+          "identity_idx": 61,
+          "is_match": false,
+          "record": {
+            "name": "Danielle",
+            "lastname": "Suabez",
+            "dob": "1956-01-23",
+            "gender": "Male",
+            "race": "Mixed",
+            "marital_status": "Married",
+            "mobile_number": "(254)308-4245x60754",
+            "addresses": [
+              "034 Joshua Plain, Garymouth, OK 97824",
+              "819 Joseph Plains Suite 807, South Curtis, MP 86179",
+              "74517 Kimberly Freeway Apt. 959, Martinberg, WY 27583",
+              "584 Mario Squares, Keithview, PR 67926",
+              "Unit 1260 Box 4223, DPO AE 93744"
+            ],
+            "akas": [
+              "Kevin Marshall",
+              "Jessica Mcdonald",
+              "Robert Stewart"
+            ],
+            "landlines": [
+              "485-613-2797"
+            ],
+            "similarity": 0.6673
+          }
+        },
+        {
+          "rank": 4,
+          "milvus_id": 464916172200633021,
+          "identity_idx": 163,
+          "is_match": false,
+          "record": {
+            "name": "Rebecca",
+            "lastname": "Dixon",
+            "dob": "1955-02-11",
+            "gender": "Male",
+            "race": "Mixed",
+            "marital_status": "Married",
+            "mobile_number": "(439)772-8351",
+            "addresses": [
+              "7112 Timothy Inlet, Donmouth, FM 78836",
+              "40132 Hailey Inlet Apt. 321, Vazquezville, CA 02965",
+              "31089 Taylor Glen Apt. 140, Port Davidborough, OR 26718"
+            ],
+            "akas": [
+              "Melissa Brewer",
+              "Jesus Becker"
+            ],
+            "landlines": [
+              "+1-987-833-9785x59821",
+              "+1-761-291-2841x1730"
+            ],
+            "similarity": 0.6635
+          }
+        },
+        {
+          "rank": 5,
+          "milvus_id": 464916172200633054,
+          "identity_idx": 174,
+          "is_match": false,
+          "record": {
+            "name": "Lindsey",
+            "lastname": "Diaz",
+            "dob": "1954-12-02",
+            "gender": "Male",
+            "race": "Mixed",
+            "marital_status": "Married",
+            "mobile_number": "337-342-0607x251",
+            "addresses": [
+              "3275 Mccormick Harbor, Port Kimberlyfort, NJ 97093",
+              "612 Hunter Knoll Suite 985, Nealton, SD 84595",
+              "206 Courtney Island Apt. 123, Port Brooke, MT 42365",
+              "2954 Christopher Land, South Nancy, MP 75263",
+              "931 Gonzalez Squares, North Richard, NE 79195"
+            ],
+            "akas": [
+              "Dr. April Jones",
+              "Kelly Pena"
+            ],
+            "landlines": [
+              "+1-854-693-0596x601",
+              "+1-976-599-8426"
+            ],
+            "similarity": 0.6563
+          }
+        }
+      ]
+    }
+  ]
+}

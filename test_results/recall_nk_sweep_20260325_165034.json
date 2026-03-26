@@ -1,0 +1,236 @@
+{
+  "config": {
+    "n_values": [
+      200,
+      1000,
+      5000
+    ],
+    "k_values": [
+      2,
+      3,
+      5
+    ],
+    "noise_fraction": 0.3,
+    "variants_per_identity": 3,
+    "hdim": 10000,
+    "seed": 42
+  },
+  "results": [
+    {
+      "vector_mode": "binary",
+      "n_identities": 200,
+      "top_k": 2,
+      "total_records": 600,
+      "recall_at_k": 0.961667,
+      "recall_at_2": 0.961667,
+      "hits_at_k": 577,
+      "total_queries": 600,
+      "insert_time_s": 121.96,
+      "query_time_s": 2.12
+    },
+    {
+      "vector_mode": "binary",
+      "n_identities": 200,
+      "top_k": 3,
+      "total_records": 600,
+      "recall_at_k": 0.973333,
+      "recall_at_2": 0.961667,
+      "hits_at_k": 584,
+      "total_queries": 600,
+      "insert_time_s": 121.96,
+      "query_time_s": 2.12
+    },
+    {
+      "vector_mode": "binary",
+      "n_identities": 200,
+      "top_k": 5,
+      "total_records": 600,
+      "recall_at_k": 0.986667,
+      "recall_at_2": 0.961667,
+      "hits_at_k": 592,
+      "total_queries": 600,
+      "insert_time_s": 121.96,
+      "query_time_s": 2.12
+    },
+    {
+      "vector_mode": "binary",
+      "n_identities": 1000,
+      "top_k": 2,
+      "total_records": 3000,
+      "recall_at_k": 0.940667,
+      "recall_at_2": 0.940667,
+      "hits_at_k": 2822,
+      "total_queries": 3000,
+      "insert_time_s": 609.64,
+      "query_time_s": 11.63
+    },
+    {
+      "vector_mode": "binary",
+      "n_identities": 1000,
+      "top_k": 3,
+      "total_records": 3000,
+      "recall_at_k": 0.952333,
+      "recall_at_2": 0.940667,
+      "hits_at_k": 2857,
+      "total_queries": 3000,
+      "insert_time_s": 609.64,
+      "query_time_s": 11.63
+    },
+    {
+      "vector_mode": "binary",
+      "n_identities": 1000,
+      "top_k": 5,
+      "total_records": 3000,
+      "recall_at_k": 0.962667,
+      "recall_at_2": 0.940667,
+      "hits_at_k": 2888,
+      "total_queries": 3000,
+      "insert_time_s": 609.64,
+      "query_time_s": 11.63
+    },
+    {
+      "vector_mode": "binary",
+      "n_identities": 5000,
+      "top_k": 2,
+      "total_records": 15000,
+      "recall_at_k": 0.716667,
+      "recall_at_2": 0.716667,
+      "hits_at_k": 10750,
+      "total_queries": 15000,
+      "insert_time_s": 3036.69,
+      "query_time_s": 61.79
+    },
+    {
+      "vector_mode": "binary",
+      "n_identities": 5000,
+      "top_k": 3,
+      "total_records": 15000,
+      "recall_at_k": 0.734933,
+      "recall_at_2": 0.716667,
+      "hits_at_k": 11024,
+      "total_queries": 15000,
+      "insert_time_s": 3036.69,
+      "query_time_s": 61.79
+    },
+    {
+      "vector_mode": "binary",
+      "n_identities": 5000,
+      "top_k": 5,
+      "total_records": 15000,
+      "recall_at_k": 0.751667,
+      "recall_at_2": 0.716667,
+      "hits_at_k": 11275,
+      "total_queries": 15000,
+      "insert_time_s": 3036.69,
+      "query_time_s": 61.79
+    },
+    {
+      "vector_mode": "float",
+      "n_identities": 200,
+      "top_k": 2,
+      "total_records": 600,
+      "recall_at_k": 0.978333,
+      "recall_at_2": 0.978333,
+      "hits_at_k": 587,
+      "total_queries": 600,
+      "insert_time_s": 121.5,
+      "query_time_s": 2.6
+    },
+    {
+      "vector_mode": "float",
+      "n_identities": 200,
+      "top_k": 3,
+      "total_records": 600,
+      "recall_at_k": 0.985,
+      "recall_at_2": 0.978333,
+      "hits_at_k": 591,
+      "total_queries": 600,
+      "insert_time_s": 121.5,
+      "query_time_s": 2.6
+    },
+    {
+      "vector_mode": "float",
+      "n_identities": 200,
+      "top_k": 5,
+      "total_records": 600,
+      "recall_at_k": 0.996667,
+      "recall_at_2": 0.978333,
+      "hits_at_k": 598,
+      "total_queries": 600,
+      "insert_time_s": 121.5,
+      "query_time_s": 2.6
+    },
+    {
+      "vector_mode": "float",
+      "n_identities": 1000,
+      "top_k": 2,
+      "total_records": 3000,
+      "recall_at_k": 0.947,
+      "recall_at_2": 0.947,
+      "hits_at_k": 2841,
+      "total_queries": 3000,
+      "insert_time_s": 606.84,
+      "query_time_s": 21.04
+    },
+    {
+      "vector_mode": "float",
+      "n_identities": 1000,
+      "top_k": 3,
+      "total_records": 3000,
+      "recall_at_k": 0.958,
+      "recall_at_2": 0.947,
+      "hits_at_k": 2874,
+      "total_queries": 3000,
+      "insert_time_s": 606.84,
+      "query_time_s": 21.04
+    },
+    {
+      "vector_mode": "float",
+      "n_identities": 1000,
+      "top_k": 5,
+      "total_records": 3000,
+      "recall_at_k": 0.967667,
+      "recall_at_2": 0.947,
+      "hits_at_k": 2903,
+      "total_queries": 3000,
+      "insert_time_s": 606.84,
+      "query_time_s": 21.04
+    },
+    {
+      "vector_mode": "float",
+      "n_identities": 5000,
+      "top_k": 2,
+      "total_records": 15000,
+      "recall_at_k": 0.711333,
+      "recall_at_2": 0.711333,
+      "hits_at_k": 10670,
+      "total_queries": 15000,
+      "insert_time_s": 3043.72,
+      "query_time_s": 69.98
+    },
+    {
+      "vector_mode": "float",
+      "n_identities": 5000,
+      "top_k": 3,
+      "total_records": 15000,
+      "recall_at_k": 0.727333,
+      "recall_at_2": 0.711333,
+      "hits_at_k": 10910,
+      "total_queries": 15000,
+      "insert_time_s": 3043.72,
+      "query_time_s": 69.98
+    },
+    {
+      "vector_mode": "float",
+      "n_identities": 5000,
+      "top_k": 5,
+      "total_records": 15000,
+      "recall_at_k": 0.7432,
+      "recall_at_2": 0.711333,
+      "hits_at_k": 11148,
+      "total_queries": 15000,
+      "insert_time_s": 3043.72,
+      "query_time_s": 69.98
+    }
+  ]
+}

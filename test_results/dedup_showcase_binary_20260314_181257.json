@@ -1,0 +1,416 @@
+{
+  "config": {
+    "vector_mode": "binary",
+    "n_identities": 100,
+    "variants_per_identity": 3,
+    "total_records": 300,
+    "noise_fraction": 0.3,
+    "n_samples": 5,
+    "top_k": 2,
+    "hdim": 10000,
+    "seed": 42
+  },
+  "queries": [
+    {
+      "query_num": 1,
+      "query_milvus_id": 464916172200486122,
+      "identity_idx": 69,
+      "query_record": {
+        "name": "Joseph",
+        "lastname": "Anderson",
+        "dob": "1935-10-08",
+        "gender": "Female",
+        "race": "White",
+        "marital_status": "Married",
+        "mobile_number": "(820)686-1581x827",
+        "addresses": [
+          "182 Nguyen Mount, West Emilyfort, NC 84270",
+          "691 Bell Mount Apt. 499, Lake Dennisville, IA 40527",
+          "286 Carlson Ports Suite 629, New Garrett, LA 18889",
+          "050 Taylor Via Suite 887, Cohenchester, VT 58677",
+          "034 Joshua Plain, Garymouth, OK 97824"
+        ],
+        "akas": [
+          "Angel Reilly"
+        ],
+        "landlines": [
+          "9532910371"
+        ]
+      },
+      "results": [
+        {
+          "rank": 1,
+          "milvus_id": 464916172200486123,
+          "identity_idx": 69,
+          "is_match": true,
+          "record": {
+            "name": "Joseph",
+            "lastname": "Anderson",
+            "dob": "1935-09-08",
+            "gender": "Female",
+            "race": "Other",
+            "marital_status": "Married",
+            "mobile_number": "(560)983-3181x958",
+            "addresses": [
+              "182 Nguyen Mount, West Emilyfort, NC 84270",
+              "691 Bell Mount Apt. 499, Lake Dennisville, IA 40527",
+              "286 Carlson Ports Suite 627, New Garrett, LA 18889",
+              "050 Taylor Via Suite 887, Cohenchester, VT 58677",
+              "034 Joshua Plain, Garymouth, OK 97824"
+            ],
+            "akas": [
+              "Angel Reilly"
+            ],
+            "landlines": [
+              "9532910371"
+            ],
+            "similarity": 0.7851
+          }
+        },
+        {
+          "rank": 2,
+          "milvus_id": 464916172200486124,
+          "identity_idx": 69,
+          "is_match": true,
+          "record": {
+            "name": "Joseph",
+            "lastname": "Anderson",
+            "dob": "1935-10-08",
+            "gender": "Female",
+            "race": "Mixed",
+            "marital_status": "Married",
+            "mobile_number": "(560)983-3181x958",
+            "addresses": [
+              "182 Nguyen Mount, West Emilyfort, NC 84270",
+              "691 Bell Mount Apt. 499, Lake Dennisville, IA 40527",
+              "286 Carlson Ports Suite 627, New Garrett, LA 18889",
+              "034 Joshua Plain, Garymouth, OK 97824"
+            ],
+            "akas": [
+              "Angel Reilly"
+            ],
+            "landlines": [
+              "910.622.0317x31096"
+            ],
+            "similarity": 0.7782
+          }
+        }
+      ]
+    },
+    {
+      "query_num": 2,
+      "query_milvus_id": 464916172200486080,
+      "identity_idx": 55,
+      "query_record": {
+        "name": "Chelsea",
+        "lastname": "Walker",
+        "dob": "2007-12-05",
+        "gender": "Other",
+        "race": "White",
+        "marital_status": "Single",
+        "mobile_number": "(971)628-6391",
+        "addresses": [
+          "91878 Miller Port, North Mariahaven, ID 75566",
+          "8713 Davis Pass, Stokesmouth, DC 67773",
+          "740 Scott Alley, New Charles, NE 45659",
+          "70462 Katie Stream, Brooksfurt, NV 49980"
+        ],
+        "akas": [],
+        "landlines": [
+          "(770)831-2073"
+        ]
+      },
+      "results": [
+        {
+          "rank": 1,
+          "milvus_id": 464916172200486081,
+          "identity_idx": 55,
+          "is_match": true,
+          "record": {
+            "name": "Chelsea",
+            "lastname": "Walker",
+            "dob": "2007-11-30",
+            "gender": "Other",
+            "race": "White",
+            "marital_status": "Single",
+            "mobile_number": "(971)688-6697",
+            "addresses": [
+              "91878 Miller Port, North Mariahaven, ID 75566",
+              "8713 Davis Pass, Stokesmouth, DC 67773",
+              "740 Scott Alley, New Charles, NE 45659",
+              "70462 Katie Stream, Brooksfurt, NV 49980"
+            ],
+            "akas": [],
+            "landlines": [
+              "(770)831-2073"
+            ],
+            "similarity": 0.8573
+          }
+        },
+        {
+          "rank": 2,
+          "milvus_id": 464916172200486082,
+          "identity_idx": 55,
+          "is_match": true,
+          "record": {
+            "name": "Chclsea",
+            "lastname": "Walker",
+            "dob": "2007-11-27",
+            "gender": "Other",
+            "race": "White",
+            "marital_status": "Married",
+            "mobile_number": "(971)628-6391",
+            "addresses": [
+              "91878 Miller Port, North Mariahaven, ID 75566",
+              "8713 Davis Pass, Stokesmouth, DC 67773",
+              "740 Scott Alley, New Charles, NE 45659",
+              "70462 Katie Stream, Brooksfurt, NV 49980"
+            ],
+            "akas": [],
+            "landlines": [
+              "(770)831-2073"
+            ],
+            "similarity": 0.7936
+          }
+        }
+      ]
+    },
+    {
+      "query_num": 3,
+      "query_milvus_id": 464916172200486160,
+      "identity_idx": 81,
+      "query_record": {
+        "name": "Jase",
+        "lastname": "Nunez",
+        "dob": "1950-01-22",
+        "gender": "Male",
+        "race": "Other",
+        "marital_status": "Divorced",
+        "mobile_number": "(570)316-5804x649",
+        "addresses": [
+          "38061 Cline Trail, Markside, NH 01545",
+          "493 Richardson Park Apt. 832, South Andrewside, MI 83855"
+        ],
+        "akas": [
+          "David alker",
+          "Jessica Larsen",
+          "Nicholas Humphrey"
+        ],
+        "landlines": [
+          "746-759-1166",
+          "955.490.4259"
+        ]
+      },
+      "results": [
+        {
+          "rank": 1,
+          "milvus_id": 464916172200486159,
+          "identity_idx": 81,
+          "is_match": true,
+          "record": {
+            "name": "Jose",
+            "lastname": "Nunoz",
+            "dob": "1950-01-22",
+            "gender": "Male",
+            "race": "Other",
+            "marital_status": "Divorced",
+            "mobile_number": "(570)316-5804x649",
+            "addresses": [
+              "493 Richardson Park Apt. 832, South Andrewside, MI 83855"
+            ],
+            "akas": [
+              "David Walker",
+              "Jessica Larsen",
+              "Nicholas Humphrey"
+            ],
+            "landlines": [
+              "746-759-1166",
+              "955.490.4259"
+            ],
+            "similarity": 0.7746
+          }
+        },
+        {
+          "rank": 2,
+          "milvus_id": 464916172200486178,
+          "identity_idx": 87,
+          "is_match": false,
+          "record": {
+            "name": "William",
+            "lastname": "Wright",
+            "dob": "1941-11-15",
+            "gender": "Male",
+            "race": "Other",
+            "marital_status": "Divorced",
+            "mobile_number": "(738)834-6823",
+            "addresses": [
+              "5226 Banks Extensions Suite 392, Parkerport, DC 23793",
+              "029 Mccall Ridge Apt. 917, West Julie, IA 45958",
+              "Unit 2157 Box 0433, DPO AP 09386",
+              "006 Oconnor Expressway, Snyderfurt, MI 72069",
+              "327 Lauren Bypass Suite 054, North Matthewfurt, GA 96443"
+            ],
+            "akas": [],
+            "landlines": [
+              "301.764.5104x636",
+              "698.712.3878x0038"
+            ],
+            "similarity": 0.7001999999999999
+          }
+        }
+      ]
+    },
+    {
+      "query_num": 4,
+      "query_milvus_id": 464916172200486158,
+      "identity_idx": 81,
+      "query_record": {
+        "name": "Jose",
+        "lastname": "Nunez",
+        "dob": "1950-01-22",
+        "gender": "Other",
+        "race": "Hispanic",
+        "marital_status": "Divorced",
+        "mobile_number": "(246)015-8533x040",
+        "addresses": [
+          "38061 Cline Trail, Markside, NH 01545",
+          "493 Richardson Park Apt. 832, South Andrewside, MI 83855"
+        ],
+        "akas": [
+          "David Walker",
+          "Jessica Larsen",
+          "Nicholas Humphrey"
+        ],
+        "landlines": [
+          "846-759-1666",
+          "955.490.4259"
+        ]
+      },
+      "results": [
+        {
+          "rank": 1,
+          "milvus_id": 464916172200486085,
+          "identity_idx": 56,
+          "is_match": false,
+          "record": {
+            "name": "Gforge",
+            "lastname": "Morgan",
+            "dob": "1940-07-18",
+            "gender": "Other",
+            "race": "Hispanic",
+            "marital_status": "Divorced",
+            "mobile_number": "401-219-4707",
+            "addresses": [],
+            "akas": [
+              "Steven Lee"
+            ],
+            "landlines": [
+              "975-470-5120x4618"
+            ],
+            "similarity": 0.7101
+          }
+        },
+        {
+          "rank": 2,
+          "milvus_id": 464916172200486190,
+          "identity_idx": 91,
+          "is_match": false,
+          "record": {
+            "name": "Courtne",
+            "lastname": "Ramirez",
+            "dob": "1991-06-29",
+            "gender": "Other",
+            "race": "Hispanic",
+            "marital_status": "Divorced",
+            "mobile_number": "001-484-922-2231x059",
+            "addresses": [
+              "970 Joshua Divide Suite 065, North Julie, PW 35704",
+              "Unit 7546 Box 9137, DPO AE 53869",
+              "82148 Taylor Vista Apt. 233, East Antonioton, PW 47736",
+              "7861 John Overpass Suite 279, Maxview, WA 90790"
+            ],
+            "akas": [],
+            "landlines": [],
+            "similarity": 0.7010000000000001
+          }
+        }
+      ]
+    },
+    {
+      "query_num": 5,
+      "query_milvus_id": 464916172200486038,
+      "identity_idx": 41,
+      "query_record": {
+        "name": "Bradnon",
+        "lastname": "Pierce",
+        "dob": "1977-10-22",
+        "gender": "Non-binary",
+        "race": "Asian",
+        "marital_status": "Single",
+        "mobile_number": "001-384-968-9500x975",
+        "addresses": [
+          "89226 Marie Path Apt. 422, Sarahbury, MI 68513"
+        ],
+        "akas": [],
+        "landlines": [
+          "749-924-6133"
+        ]
+      },
+      "results": [
+        {
+          "rank": 1,
+          "milvus_id": 464916172200486039,
+          "identity_idx": 41,
+          "is_match": true,
+          "record": {
+            "name": "Brandon",
+            "lastname": "Pierce",
+            "dob": "1977-11-19",
+            "gender": "Non-binary",
+            "race": "Black",
+            "marital_status": "Single",
+            "mobile_number": "001-384-968-9500x975",
+            "addresses": [
+              "89226 Marie Path Apt. 422, Sarahbury, MI 68513"
+            ],
+            "akas": [],
+            "landlines": [
+              "649-921-6433"
+            ],
+            "similarity": 0.7888999999999999
+          }
+        },
+        {
+          "rank": 2,
+          "milvus_id": 464916172200485924,
+          "identity_idx": 3,
+          "is_match": false,
+          "record": {
+            "name": "Jeffrey",
+            "lastname": "Herrera",
+            "dob": "1947-05-23",
+            "gender": "Non-binary",
+            "race": "Asian",
+            "marital_status": "Single",
+            "mobile_number": "417-851-8689",
+            "addresses": [
+              "PSC 3406, Box 0883, APO AA 57032",
+              "514 Estrada Islands Suite 482, South Elizabeth, MS 89278",
+              "946 Kevin Fords, Floydmouth, NH 58406",
+              "721 Robertson Roads, Clarencebury, TX 41188",
+              "00379 Stanley Roads, Lake Heather, NM 52884"
+            ],
+            "akas": [
+              "Gregory Ohodes"
+            ],
+            "landlines": [
+              "(438)565-5779x0827",
+              "384-532-2259"
+            ],
+            "similarity": 0.7001999999999999
+          }
+        }
+      ]
+    }
+  ]
+}

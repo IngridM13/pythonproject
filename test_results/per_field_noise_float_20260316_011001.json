@@ -1,0 +1,90 @@
+{
+  "mode": "float",
+  "config": {
+    "n_identities": 200,
+    "variants_per_identity": 3,
+    "noise_fraction": 0.3,
+    "top_k": 5,
+    "hdim": 10000,
+    "seed": 42
+  },
+  "baseline": {
+    "recall_at_k": 1.0,
+    "mrr": 1.0,
+    "hit_at_1": 1.0
+  },
+  "results": [
+    {
+      "field": "name",
+      "recall_at_k": 1.0,
+      "delta_recall": 0.0,
+      "mrr": 0.9926666666666667,
+      "delta_mrr": 0.007333333333333303,
+      "hit_at_1": 0.99,
+      "delta_hit1": 0.010000000000000009
+    },
+    {
+      "field": "lastname",
+      "recall_at_k": 1.0,
+      "delta_recall": 0.0,
+      "mrr": 0.996,
+      "delta_mrr": 0.0040000000000000036,
+      "hit_at_1": 0.995,
+      "delta_hit1": 0.0050000000000000044
+    },
+    {
+      "field": "dob",
+      "recall_at_k": 1.0,
+      "delta_recall": 0.0,
+      "mrr": 1.0,
+      "delta_mrr": 0.0,
+      "hit_at_1": 1.0,
+      "delta_hit1": 0.0
+    },
+    {
+      "field": "gender",
+      "recall_at_k": 1.0,
+      "delta_recall": 0.0,
+      "mrr": 1.0,
+      "delta_mrr": 0.0,
+      "hit_at_1": 1.0,
+      "delta_hit1": 0.0
+    },
+    {
+      "field": "race",
+      "recall_at_k": 1.0,
+      "delta_recall": 0.0,
+      "mrr": 1.0,
+      "delta_mrr": 0.0,
+      "hit_at_1": 1.0,
+      "delta_hit1": 0.0
+    },
+    {
+      "field": "marital_status",
+      "recall_at_k": 1.0,
+      "delta_recall": 0.0,
+      "mrr": 1.0,
+      "delta_mrr": 0.0,
+      "hit_at_1": 1.0,
+      "delta_hit1": 0.0
+    },
+    {
+      "field": "mobile_number",
+      "recall_at_k": 1.0,
+      "delta_recall": 0.0,
+      "mrr": 1.0,
+      "delta_mrr": 0.0,
+      "hit_at_1": 1.0,
+      "delta_hit1": 0.0
+    },
+    {
+      "field": "address",
+      "recall_at_k": 1.0,
+      "delta_recall": 0.0,
+      "mrr": 1.0,
+      "delta_mrr": 0.0,
+      "hit_at_1": 1.0,
+      "delta_hit1": 0.0
+    }
+  ]
+}

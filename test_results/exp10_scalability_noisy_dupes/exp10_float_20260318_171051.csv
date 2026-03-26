@@ -1,0 +1,3 @@
+mode,N,noise_ratio,noise_level,duplicates_per_original,recall@1,recall@5,recall@3,mrr,hit@1,avg_query_time_ms,total_insert_time_s
+float,100,0.2,0.3,3,0.833333,1.0,1.0,0.916667,0.833333,4.315,25.076
+float,500,0.2,0.3,3,0.959596,1.0,1.0,0.979798,0.959596,4.036,121.4177

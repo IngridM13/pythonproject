@@ -1,0 +1,47 @@
+{
+  "experiment": "Experiment 10 \u2014 Scalability with Noisy Duplicates",
+  "timestamp": "20260318_170819",
+  "mode": "binary",
+  "config": {
+    "collection_sizes": [
+      100,
+      500
+    ],
+    "noise_ratio": 0.2,
+    "noise_level": 0.3,
+    "top_k": 5,
+    "duplicates_per_original": 3,
+    "hdim": 10000,
+    "seed": 42
+  },
+  "results": [
+    {
+      "mode": "binary",
+      "N": 100,
+      "noise_ratio": 0.2,
+      "noise_level": 0.3,
+      "duplicates_per_original": 3,
+      "recall@1": 0.833333,
+      "recall@5": 1.0,
+      "recall@3": 1.0,
+      "mrr": 0.898148,
+      "hit@1": 0.833333,
+      "avg_query_time_ms": 4.842,
+      "total_insert_time_s": 24.5608
+    },
+    {
+      "mode": "binary",
+      "N": 500,
+      "noise_ratio": 0.2,
+      "noise_level": 0.3,
+      "duplicates_per_original": 3,
+      "recall@1": 0.888889,
+      "recall@5": 1.0,
+      "recall@3": 1.0,
+      "mrr": 0.941077,
+      "hit@1": 0.888889,
+      "avg_query_time_ms": 2.97,
+      "total_insert_time_s": 121.482
+    }
+  ]
+}

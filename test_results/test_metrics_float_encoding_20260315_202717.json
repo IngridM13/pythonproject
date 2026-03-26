@@ -1,0 +1,19 @@
+{
+  "configuracion": {
+    "encoding": "float",
+    "dimension": 10000,
+    "seed": 42
+  },
+  "build": {
+    "tiempo_encoding_total": 0.5833,
+    "tiempo_insercion_bd": 0.0,
+    "tamano_indice_memoria": null
+  },
+  "query": {
+    "latencia_p50": 1.11,
+    "latencia_p95": 1.5739,
+    "latencia_p99": 2.275,
+    "total_queries": 500
+  },
+  "timestamp": "2026-03-15T20:27:16.668830"
+}

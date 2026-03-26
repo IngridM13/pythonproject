@@ -1,0 +1,806 @@
+{
+  "config": {
+    "vector_mode": "float",
+    "n_identities": 200,
+    "variants_per_identity": 3,
+    "total_records": 600,
+    "noise_fraction": 0.3,
+    "top_k": 5,
+    "n_samples": 5,
+    "hdim": 10000,
+    "seed": 42
+  },
+  "results": {
+    "recall_at_5": 0.9933333333333333,
+    "hits": 596,
+    "total": 600
+  },
+  "queries": [
+    {
+      "query_num": 1,
+      "query_milvus_id": 464916172200633546,
+      "identity_idx": 138,
+      "query_record": {
+        "name": "Misty",
+        "lastname": "Taylor",
+        "dob": "2003-06-04",
+        "gender": "Non-binary",
+        "race": "Mixed",
+        "marital_status": "Widowed",
+        "mobile_number": "485.865.3523",
+        "addresses": [],
+        "akas": [
+          "Jacob David",
+          "Tricia Russo",
+          "Denise Wiley"
+        ],
+        "landlines": []
+      },
+      "results": [
+        {
+          "rank": 1,
+          "milvus_id": 464916172200633547,
+          "identity_idx": 138,
+          "is_match": true,
+          "record": {
+            "name": "Misty",
+            "lastname": "Taylor",
+            "dob": "2000-06-04",
+            "gender": "Male",
+            "race": "Asian",
+            "marital_status": "Widowed",
+            "mobile_number": "485.865.3533",
+            "addresses": [],
+            "akas": [
+              "Jacob David",
+              "Tricia Russo",
+              "Denise Wiley"
+            ],
+            "landlines": [],
+            "similarity": 0.6344
+          }
+        },
+        {
+          "rank": 2,
+          "milvus_id": 464916172200633548,
+          "identity_idx": 138,
+          "is_match": true,
+          "record": {
+            "name": "Misty",
+            "lastname": "aTylor",
+            "dob": "2003-06-04",
+            "gender": "Non-binary",
+            "race": "Asian",
+            "marital_status": "Widowed",
+            "mobile_number": "485.865.3523",
+            "addresses": [],
+            "akas": [
+              "Jacob David",
+              "Tricia Russo",
+              "Denisx Wiley"
+            ],
+            "landlines": [],
+            "similarity": 0.483
+          }
+        },
+        {
+          "rank": 3,
+          "milvus_id": 464916172200633451,
+          "identity_idx": 106,
+          "is_match": false,
+          "record": {
+            "name": "Katelyn",
+            "lastname": "Taylor",
+            "dob": "1971-05-01",
+            "gender": "Female",
+            "race": "White",
+            "marital_status": "Widowed",
+            "mobile_number": "364-509-9414x75398",
+            "addresses": [
+              "47312 Jones Plains, Adamland, AR 46563",
+              "USS Davis, FPO AP 49233",
+              "Unit 9271 Box 1526, DPO AE 98481",
+              "70923 Antonio Cliffs Suite 950, South Jonathanland, FM 66584",
+              "543 Lauren Pike Suite 698, Port Meredith, MI 17737"
+            ],
+            "akas": [
+              "Mrs. Susan Newton MD"
+            ],
+            "landlines": [
+              "629-299-5694x60788"
+            ],
+            "similarity": 0.3162
+          }
+        },
+        {
+          "rank": 4,
+          "milvus_id": 464916172200633452,
+          "identity_idx": 106,
+          "is_match": false,
+          "record": {
+            "name": "Katelyn",
+            "lastname": "Taylor",
+            "dob": "1971-04-21",
+            "gender": "Other",
+            "race": "Hispanic",
+            "marital_status": "Widowed",
+            "mobile_number": "364-509-9414x75398",
+            "addresses": [
+              "47312 Jones Plains, Adamland, AR 46563",
+              "USS Davis, FPO AP 49233",
+              "Unit 9271 Box 1526, DPO AE 98481",
+              "70923 Antonio Cliffs Suite 950, South Jonathanland, FM 66584",
+              "543 Lauren Pike Suite 698, Port Meredith, MI 17737"
+            ],
+            "akas": [
+              "Mrs. Susan Newtow MD"
+            ],
+            "landlines": [
+              "475-993-3639x30099"
+            ],
+            "similarity": 0.3126
+          }
+        },
+        {
+          "rank": 5,
+          "milvus_id": 464916172200633704,
+          "identity_idx": 190,
+          "is_match": false,
+          "record": {
+            "name": "Matthew",
+            "lastname": "Turner",
+            "dob": "2002-05-02",
+            "gender": "Non-binary",
+            "race": "Mixed",
+            "marital_status": "Widowed",
+            "mobile_number": "001-085-567-2850x215",
+            "addresses": [
+              "4148 Thornton Skyway, South Brendan, OK 23144",
+              "862 Lopez Path Suite 076, Kingtown, NV 86052"
+            ],
+            "akas": [
+              "Alexandria Collins"
+            ],
+            "landlines": [
+              "751.735.3814x83747",
+              "903.909.0168x56471"
+            ],
+            "similarity": 0.2864
+          }
+        }
+      ]
+    },
+    {
+      "query_num": 2,
+      "query_milvus_id": 464916172200633462,
+      "identity_idx": 110,
+      "query_record": {
+        "name": "Sean",
+        "lastname": "Dvais",
+        "dob": "1979-02-28",
+        "gender": "Non-binary",
+        "race": "Mixed",
+        "marital_status": "Married",
+        "mobile_number": "001-541-618-3909",
+        "addresses": [],
+        "akas": [],
+        "landlines": [
+          "+1-373-656-1526x655",
+          "962.753.8096x6414"
+        ]
+      },
+      "results": [
+        {
+          "rank": 1,
+          "milvus_id": 464916172200633464,
+          "identity_idx": 110,
+          "is_match": true,
+          "record": {
+            "name": "Sean",
+            "lastname": "Davis",
+            "dob": "1979-02-03",
+            "gender": "Male",
+            "race": "Mixed",
+            "marital_status": "Widowed",
+            "mobile_number": "001-541-618-3909",
+            "addresses": [],
+            "akas": [],
+            "landlines": [
+              "+1-373-656-1526x655",
+              "962.753.8096x6414"
+            ],
+            "similarity": 0.4638
+          }
+        },
+        {
+          "rank": 2,
+          "milvus_id": 464916172200633463,
+          "identity_idx": 110,
+          "is_match": true,
+          "record": {
+            "name": "San",
+            "lastname": "Davik",
+            "dob": "1979-02-28",
+            "gender": "Other",
+            "race": "Mixed",
+            "marital_status": "Widowed",
+            "mobile_number": "001-541-618-3909",
+            "addresses": [],
+            "akas": [],
+            "landlines": [
+              "+1-373-656-1526x655",
+              "962.753.8096x6414"
+            ],
+            "similarity": 0.2786
+          }
+        },
+        {
+          "rank": 3,
+          "milvus_id": 464916172200633701,
+          "identity_idx": 189,
+          "is_match": false,
+          "record": {
+            "name": "Alyssa",
+            "lastname": "Watkins",
+            "dob": "1980-06-16",
+            "gender": "Non-binary",
+            "race": "Mixed",
+            "marital_status": "Single",
+            "mobile_number": "(305)436-4991",
+            "addresses": [
+              "95348 Clarence Islands, Port Davidview, PW 65862",
+              "8961 Kennedy Plaza, Manuelville, DC 72067",
+              "5123 Hubbard Parks Apt. 554, South Melissa, SC 06479",
+              "36024 Graham Street Suite 467, Thomasstad, CA 58374",
+              "08715 Trujillo Throughway Suite 837, East Connormouth, ME 30420"
+            ],
+            "akas": [
+              "Lisa Caldwell",
+              "Melvin Weeks",
+              "John Kenndey"
+            ],
+            "landlines": [],
+            "similarity": 0.2486
+          }
+        },
+        {
+          "rank": 4,
+          "milvus_id": 464916172200633602,
+          "identity_idx": 156,
+          "is_match": false,
+          "record": {
+            "name": "Alllen",
+            "lastname": "Hicks",
+            "dob": "1982-02-19",
+            "gender": "Non-binary",
+            "race": "Hispanic",
+            "marital_status": "Married",
+            "mobile_number": "734.511.4613x3155",
+            "addresses": [
+              "PSC 9967, Box 2562, APO AE 24198",
+              "3343 Jonathan Inlet, Lesterport, ND 38324",
+              "9396 Jackson Vista Apt. 835, South Mariaberg, LA 44150",
+              "29003 Anderson Ferry, Port Carlosfort, IA 84399",
+              "2648 Christina Point Suite 585, East Breanna, ME 22824"
+            ],
+            "akas": [
+              "Claudia Wilson",
+              "Robert Simpson"
+            ],
+            "landlines": [
+              "(873)337-4570x16527",
+              "768.514.9802"
+            ],
+            "similarity": 0.2398
+          }
+        },
+        {
+          "rank": 5,
+          "milvus_id": 464916172200633158,
+          "identity_idx": 8,
+          "is_match": false,
+          "record": {
+            "name": "Theodore",
+            "lastname": "Lreon",
+            "dob": "1971-02-05",
+            "gender": "Non-binary",
+            "race": "Other",
+            "marital_status": "Married",
+            "mobile_number": "(626)900-8026x5893",
+            "addresses": [
+              "20895 George Views Suite 389, East Christopherview, AS 64235",
+              "3379 Patricia Forges, Danielbury, TN 40935",
+              "3311 Marquez Mills Apt. 696, New Kathyborough, FM 88753"
+            ],
+            "akas": [
+              "Evan Nelson",
+              "Brenda RPerkins",
+              "David Skinner"
+            ],
+            "landlines": [
+              "001-730-925-2094x5237",
+              "001-895-231-9260x098"
+            ],
+            "similarity": 0.2376
+          }
+        }
+      ]
+    },
+    {
+      "query_num": 3,
+      "query_milvus_id": 464916172200633623,
+      "identity_idx": 163,
+      "query_record": {
+        "name": "Melissa",
+        "lastname": "Baker",
+        "dob": "1994-08-07",
+        "gender": "Female",
+        "race": "Asian",
+        "marital_status": "Married",
+        "mobile_number": "991.200.5932x5722",
+        "addresses": [
+          "005 Cantrell Terrace, Davisport, NV 87750",
+          "6397 Michael Turnpike Apt. 164, South Sue, RI 06083",
+          "7270 Amy Manor, Ortizmouth, PW 33186",
+          "4416 Austin Cove, Haleymouth, SC 27336",
+          "4051 Jacob Points Apt. 273, West Douglaschester, IL 55842"
+        ],
+        "akas": [
+          "Laura Davila",
+          "Tammy Werner",
+          "William Wood"
+        ],
+        "landlines": [
+          "(617)342-9220",
+          "(278)821-5392x66937"
+        ]
+      },
+      "results": [
+        {
+          "rank": 1,
+          "milvus_id": 464916172200633621,
+          "identity_idx": 163,
+          "is_match": true,
+          "record": {
+            "name": "Melissa",
+            "lastname": "Baker",
+            "dob": "1988-08-07",
+            "gender": "Male",
+            "race": "Mixed",
+            "marital_status": "Married",
+            "mobile_number": "991.200.5932x5722",
+            "addresses": [
+              "005 Cantrell Terrace, Davisport, NV 87750",
+              "6397 Michael Turnpike Apt. 164, South Sue, RI 06083",
+              "7270 Amy Manor, Ortizmouth, PW 33186",
+              "4051 Jacob Points Apt. 273, West Douglaschester, IL 55842"
+            ],
+            "akas": [
+              "Laura Davila",
+              "Tammy Werner",
+              "William Wood"
+            ],
+            "landlines": [
+              "(617)342-9220",
+              "(278)821-5392x66937"
+            ],
+            "similarity": 0.6888
+          }
+        },
+        {
+          "rank": 2,
+          "milvus_id": 464916172200633622,
+          "identity_idx": 163,
+          "is_match": true,
+          "record": {
+            "name": "Melissa",
+            "lastname": "Bakr",
+            "dob": "1992-08-07",
+            "gender": "Other",
+            "race": "Mixed",
+            "marital_status": "Divorced",
+            "mobile_number": "991.200.5932x5722",
+            "addresses": [
+              "005 Cantrell Terrace, Davisport, NV 87750",
+              "6397 Michael Turnpike Apt. 164, South Sue, RI 06083",
+              "7270 Amy Manor, Ortizmouth, PW 33186",
+              "4416 Austin Cove, Haleymouth, SC 27336",
+              "4051 Jacob Points Apt. 273, West Douglaschester, IL 55842"
+            ],
+            "akas": [
+              "Laura Davila",
+              "Tammy Werner",
+              "William Wood"
+            ],
+            "landlines": [
+              "(617)342-9220",
+              "(278)821-5392x66937"
+            ],
+            "similarity": 0.4334
+          }
+        },
+        {
+          "rank": 3,
+          "milvus_id": 464916172200633640,
+          "identity_idx": 169,
+          "is_match": false,
+          "record": {
+            "name": "Melissa",
+            "lastname": "Gonzalez",
+            "dob": "1957-04-24",
+            "gender": "Female",
+            "race": "Asian",
+            "marital_status": "Married",
+            "mobile_number": "001-943-901-6556x238",
+            "addresses": [
+              "34616 Grace Forge, South Alexanderside, MO 59306",
+              "20095 Peter Unions, Griffithland, OK 47738"
+            ],
+            "akas": [],
+            "landlines": [
+              "083-189-0794x1179",
+              "477-966-6505"
+            ],
+            "similarity": 0.3972
+          }
+        },
+        {
+          "rank": 4,
+          "milvus_id": 464916172200633639,
+          "identity_idx": 169,
+          "is_match": false,
+          "record": {
+            "name": "Melissa",
+            "lastname": "Gonzalez",
+            "dob": "1957-05-06",
+            "gender": "Female",
+            "race": "Asian",
+            "marital_status": "Widowed",
+            "mobile_number": "001-943-901-6556x238",
+            "addresses": [
+              "34687 Grace Forge, South Alexanderside, MO 59306",
+              "20095 Peter Unions, Griffithland, OK 47738"
+            ],
+            "akas": [],
+            "landlines": [
+              "556-347-4370x1945",
+              "477-966-6505"
+            ],
+            "similarity": 0.3622
+          }
+        },
+        {
+          "rank": 5,
+          "milvus_id": 464916172200633524,
+          "identity_idx": 130,
+          "is_match": false,
+          "record": {
+            "name": "George",
+            "lastname": "Johnsoj",
+            "dob": "1985-10-22",
+            "gender": "Female",
+            "race": "Asian",
+            "marital_status": "Married",
+            "mobile_number": "818.312.3357",
+            "addresses": [],
+            "akas": [],
+            "landlines": [
+              "001-779-917-9138x601"
+            ],
+            "similarity": 0.2728
+          }
+        }
+      ]
+    },
+    {
+      "query_num": 4,
+      "query_milvus_id": 464916172200633619,
+      "identity_idx": 162,
+      "query_record": {
+        "name": "Maria",
+        "lastname": "Dean",
+        "dob": "2005-12-03",
+        "gender": "Other",
+        "race": "White",
+        "marital_status": "Married",
+        "mobile_number": "522.617.5626x99620",
+        "addresses": [
+          "38297 Taylor Way, Michaelbury, VA 56415",
+          "828 Melissa Stravenue, North Justinton, FM 18278",
+          "61587 Nicholas Locks Apt. 713, Williamfurt, OK 32658"
+        ],
+        "akas": [
+          "Kari Simmons",
+          "Rebecca Dean",
+          "Taylor Morales"
+        ],
+        "landlines": []
+      },
+      "results": [
+        {
+          "rank": 1,
+          "milvus_id": 464916172200633620,
+          "identity_idx": 162,
+          "is_match": true,
+          "record": {
+            "name": "Maria",
+            "lastname": "Sean",
+            "dob": "2005-12-17",
+            "gender": "Non-binary",
+            "race": "White",
+            "marital_status": "Divorced",
+            "mobile_number": "522.617.5626x99620",
+            "addresses": [
+              "38297 Taylor Way, Michaelbury, VA 56415",
+              "858 Melissa Stravenue, North Justinton, FM 18278",
+              "61587 Nicholas Locks Apt. 713, Williamfurt, OK 32658"
+            ],
+            "akas": [
+              "Kari Simmons",
+              "Rebecca Dean",
+              "Taylor Morales"
+            ],
+            "landlines": [],
+            "similarity": 0.45
+          }
+        },
+        {
+          "rank": 2,
+          "milvus_id": 464916172200633618,
+          "identity_idx": 162,
+          "is_match": true,
+          "record": {
+            "name": "Marxa",
+            "lastname": "Dena",
+            "dob": "2005-12-17",
+            "gender": "Other",
+            "race": "White",
+            "marital_status": "Single",
+            "mobile_number": "293.296.3322x59906",
+            "addresses": [
+              "38297 Taylor Way, Michaelbury, VA 56415",
+              "858 Melissa Stravenue, North Justinton, FM 18278",
+              "61587 Nicholas Locks Apt. 713, Williamfurt, OK 32658"
+            ],
+            "akas": [
+              "Kari Simmons",
+              "Rebecca Dean",
+              "Taylor Morales"
+            ],
+            "landlines": [],
+            "similarity": 0.27
+          }
+        },
+        {
+          "rank": 3,
+          "milvus_id": 464916172200633149,
+          "identity_idx": 5,
+          "is_match": false,
+          "record": {
+            "name": "Ashley",
+            "lastname": "Alvare",
+            "dob": "2007-01-20",
+            "gender": "Other",
+            "race": "Black",
+            "marital_status": "Married",
+            "mobile_number": "(442)465-3793",
+            "addresses": [
+              "69061 Janet Trail Apt. 054, Campbellmouth, ME 70662",
+              "8769 Taylor Course Suite 588, West Crystalview, VI 38373",
+              "0393 Compton Fields, Zacharychester, KY 35092"
+            ],
+            "akas": [],
+            "landlines": [
+              "(878)570-3686x050"
+            ],
+            "similarity": 0.261
+          }
+        },
+        {
+          "rank": 4,
+          "milvus_id": 464916172200633268,
+          "identity_idx": 45,
+          "is_match": false,
+          "record": {
+            "name": "Brandi",
+            "lastname": "Fre",
+            "dob": "2003-03-04",
+            "gender": "Other",
+            "race": "Mixed",
+            "marital_status": "Married",
+            "mobile_number": "4289143531",
+            "addresses": [
+              "Unit 3543 Box 7882, DPO AA 46546",
+              "101 Hayes Square Apt. 908, Victoriashire, VT 08999",
+              "207 Aguilar Expressway Suite 999, Wangshire, AS 49766"
+            ],
+            "akas": [
+              "Lsa Campbell"
+            ],
+            "landlines": [],
+            "similarity": 0.2474
+          }
+        },
+        {
+          "rank": 5,
+          "milvus_id": 464916172200633181,
+          "identity_idx": 16,
+          "is_match": false,
+          "record": {
+            "name": "Roger",
+            "lastname": "Lynyh",
+            "dob": "2001-06-13",
+            "gender": "Other",
+            "race": "White",
+            "marital_status": "Widowed",
+            "mobile_number": "+1-578-710-4802",
+            "addresses": [
+              "Unit 7498 Box 8558, DPO AE 88024",
+              "330 Webb Isle Suite 760, Laurieview, CT 19895",
+              "72188 Gutierrez Locks, Knightport, CO 32285",
+              "150 Sullivan Meadows Apt. 670, Sharonville, ME 31392",
+              "9366 Justin Ridge Apt. 529, Brittneyland, CT 11261"
+            ],
+            "akas": [
+              "Nancy Morno",
+              "Kimberly Kaufman"
+            ],
+            "landlines": [
+              "353-815-7905x719",
+              "(946)693-6561x83359"
+            ],
+            "similarity": 0.2302
+          }
+        }
+      ]
+    },
+    {
+      "query_num": 5,
+      "query_milvus_id": 464916172200633379,
+      "identity_idx": 82,
+      "query_record": {
+        "name": "David",
+        "lastname": "Wilils",
+        "dob": "1967-01-11",
+        "gender": "Male",
+        "race": "Mixed",
+        "marital_status": "Married",
+        "mobile_number": "+1-583-807-4837",
+        "addresses": [],
+        "akas": [
+          "Jessica Robinson",
+          "Megan Stokes"
+        ],
+        "landlines": [
+          "001-376-783-6759x0177",
+          "(444)561-4409"
+        ]
+      },
+      "results": [
+        {
+          "rank": 1,
+          "milvus_id": 464916172200633378,
+          "identity_idx": 82,
+          "is_match": true,
+          "record": {
+            "name": "David",
+            "lastname": "Willis",
+            "dob": "1966-12-26",
+            "gender": "Male",
+            "race": "Mixed",
+            "marital_status": "Married",
+            "mobile_number": "+3-583-808-8837",
+            "addresses": [],
+            "akas": [
+              "Jessica Robinson"
+            ],
+            "landlines": [
+              "001-376-783-6759x0177",
+              "(444)561-4409"
+            ],
+            "similarity": 0.4946
+          }
+        },
+        {
+          "rank": 2,
+          "milvus_id": 464916172200633380,
+          "identity_idx": 82,
+          "is_match": true,
+          "record": {
+            "name": "David",
+            "lastname": "Willis",
+            "dob": "1966-12-26",
+            "gender": "Female",
+            "race": "Mixed",
+            "marital_status": "Married",
+            "mobile_number": "+1-583-800-4837",
+            "addresses": [],
+            "akas": [
+              "Megan Stokes"
+            ],
+            "landlines": [
+              "001-376-783-6759x0177",
+              "(444)561-4409"
+            ],
+            "similarity": 0.444
+          }
+        },
+        {
+          "rank": 3,
+          "milvus_id": 464916172200633227,
+          "identity_idx": 31,
+          "is_match": false,
+          "record": {
+            "name": "David",
+            "lastname": "Jhones",
+            "dob": "1962-09-05",
+            "gender": "Male",
+            "race": "Hispanic",
+            "marital_status": "Widowed",
+            "mobile_number": "(770)230-2930x112",
+            "addresses": [
+              "573 Bernard Brook, North Annetteberg, IN 54336"
+            ],
+            "akas": [
+              "Benjamin Mclaughlin",
+              "Daniel Wood"
+            ],
+            "landlines": [],
+            "similarity": 0.3732
+          }
+        },
+        {
+          "rank": 4,
+          "milvus_id": 464916172200633225,
+          "identity_idx": 31,
+          "is_match": false,
+          "record": {
+            "name": "David",
+            "lastname": "Jones",
+            "dob": "1965-09-05",
+            "gender": "Non-binary",
+            "race": "Other",
+            "marital_status": "Widowed",
+            "mobile_number": "(174)092-5455x449",
+            "addresses": [
+              "573 Bernard Brook, North Annetteberg, IN 50336"
+            ],
+            "akas": [
+              "Benjamin Mclaughlin",
+              "Daniel Wood"
+            ],
+            "landlines": [],
+            "similarity": 0.3396
+          }
+        },
+        {
+          "rank": 5,
+          "milvus_id": 464916172200633187,
+          "identity_idx": 18,
+          "is_match": false,
+          "record": {
+            "name": "David",
+            "lastname": "Wright",
+            "dob": "1997-10-11",
+            "gender": "Male",
+            "race": "Other",
+            "marital_status": "Single",
+            "mobile_number": "+1-476-461-3662x8081",
+            "addresses": [
+              "86712 Aaron Fall, East Kellystad, TX 90372",
+              "PSC 5910, Box 2451, APO AE 76898",
+              "032 Holloway Overpass, West Brittneyhaven, CA 80813",
+              "9428 Tyler Fork, Antoniomouth, TN 21840"
+            ],
+            "akas": [
+              "Carol Torres",
+              "Richard Golden"
+            ],
+            "landlines": [],
+            "similarity": 0.3136
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,365 @@
+{
+  "config": {
+    "vector_mode": "float",
+    "n_identities": 100,
+    "variants_per_identity": 3,
+    "total_records": 300,
+    "noise_fraction": 0.3,
+    "n_samples": 5,
+    "top_k": 2,
+    "hdim": 10000,
+    "seed": 42
+  },
+  "queries": [
+    {
+      "query_num": 1,
+      "query_milvus_id": 464916172200486422,
+      "identity_idx": 69,
+      "query_record": {
+        "name": "Samantha",
+        "lastname": "Bryant",
+        "dob": "1962-10-11",
+        "gender": "Female",
+        "race": "White",
+        "marital_status": "Married",
+        "mobile_number": "+8-206-861-5818x273",
+        "addresses": [
+          "5598 Allen Harbor, New Patrick, FM 14442"
+        ],
+        "akas": [
+          "Tammy Alvarado"
+        ],
+        "landlines": []
+      },
+      "results": [
+        {
+          "rank": 1,
+          "milvus_id": 464916172200486424,
+          "identity_idx": 69,
+          "is_match": true,
+          "record": {
+            "name": "Samantha",
+            "lastname": "Bryant",
+            "dob": "1962-10-11",
+            "gender": "Female",
+            "race": "Mixed",
+            "marital_status": "Married",
+            "mobile_number": "+1-813-411-9642x585",
+            "addresses": [
+              "5598 Allen Harbor, New Patrick, FM 14442"
+            ],
+            "akas": [
+              "Tammy Alvarado"
+            ],
+            "landlines": [],
+            "similarity": 0.5864
+          }
+        },
+        {
+          "rank": 2,
+          "milvus_id": 464916172200486423,
+          "identity_idx": 69,
+          "is_match": true,
+          "record": {
+            "name": "Samantha",
+            "lastname": "Bryant",
+            "dob": "1962-09-18",
+            "gender": "Female",
+            "race": "Other",
+            "marital_status": "Married",
+            "mobile_number": "+1-813-411-9642x585",
+            "addresses": [
+              "5598 Allen Harbor, New Patrick, FM 14442",
+              "93371 Shelly River, Kevinfort, WV 26977"
+            ],
+            "akas": [
+              "Tammy Alvarado"
+            ],
+            "landlines": [],
+            "similarity": 0.5722
+          }
+        }
+      ]
+    },
+    {
+      "query_num": 2,
+      "query_milvus_id": 464916172200486380,
+      "identity_idx": 55,
+      "query_record": {
+        "name": "Marcus",
+        "lastname": "Coleman",
+        "dob": "1966-09-18",
+        "gender": "Other",
+        "race": "White",
+        "marital_status": "Single",
+        "mobile_number": "001-762-327-2362x66933",
+        "addresses": [],
+        "akas": [
+          "Robert Stokes"
+        ],
+        "landlines": [
+          "541.886.5205x7563",
+          "(320)737-5830x945"
+        ]
+      },
+      "results": [
+        {
+          "rank": 1,
+          "milvus_id": 464916172200486381,
+          "identity_idx": 55,
+          "is_match": true,
+          "record": {
+            "name": "Marcus",
+            "lastname": "Coleman",
+            "dob": "1966-08-21",
+            "gender": "Other",
+            "race": "White",
+            "marital_status": "Single",
+            "mobile_number": "001-762-328-2362x65937",
+            "addresses": [],
+            "akas": [
+              "Kevin Soto"
+            ],
+            "landlines": [
+              "541.886.5205x7563",
+              "(320)737-5830x945"
+            ],
+            "similarity": 0.6556
+          }
+        },
+        {
+          "rank": 2,
+          "milvus_id": 464916172200486382,
+          "identity_idx": 55,
+          "is_match": true,
+          "record": {
+            "name": "Mwarcus",
+            "lastname": "Coleman",
+            "dob": "1966-09-01",
+            "gender": "Other",
+            "race": "White",
+            "marital_status": "Married",
+            "mobile_number": "001-762-327-2362x66933",
+            "addresses": [],
+            "akas": [
+              "Rbert Stokes",
+              "Kevin Soto"
+            ],
+            "landlines": [
+              "541.886.5205x7563",
+              "(320)737-5830x945"
+            ],
+            "similarity": 0.5298
+          }
+        }
+      ]
+    },
+    {
+      "query_num": 3,
+      "query_milvus_id": 464916172200486460,
+      "identity_idx": 81,
+      "query_record": {
+        "name": "Laah",
+        "lastname": "Richardson",
+        "dob": "1962-12-24",
+        "gender": "Male",
+        "race": "Other",
+        "marital_status": "Divorced",
+        "mobile_number": "263-235-1571x840",
+        "addresses": [],
+        "akas": [
+          "Eduard Obrien",
+          "Bryan Jones"
+        ],
+        "landlines": []
+      },
+      "results": [
+        {
+          "rank": 1,
+          "milvus_id": 464916172200486459,
+          "identity_idx": 81,
+          "is_match": true,
+          "record": {
+            "name": "Leah",
+            "lastname": "Rcihardson",
+            "dob": "1962-12-24",
+            "gender": "Non-binary",
+            "race": "Other",
+            "marital_status": "Divorced",
+            "mobile_number": "263-235-1571x840",
+            "addresses": [],
+            "akas": [
+              "Eduardo Obrien",
+              "Bryan Jones"
+            ],
+            "landlines": [],
+            "similarity": 0.4296
+          }
+        },
+        {
+          "rank": 2,
+          "milvus_id": 464916172200486478,
+          "identity_idx": 87,
+          "is_match": false,
+          "record": {
+            "name": "Michael",
+            "lastname": "Rhodes",
+            "dob": "1952-04-05",
+            "gender": "Male",
+            "race": "Other",
+            "marital_status": "Divorced",
+            "mobile_number": "(807)521-8153x998",
+            "addresses": [],
+            "akas": [
+              "Robert Thomas",
+              "Melissa Santos"
+            ],
+            "landlines": [],
+            "similarity": 0.3974
+          }
+        }
+      ]
+    },
+    {
+      "query_num": 4,
+      "query_milvus_id": 464916172200486458,
+      "identity_idx": 81,
+      "query_record": {
+        "name": "Leah",
+        "lastname": "Richardson",
+        "dob": "1962-12-24",
+        "gender": "Other",
+        "race": "Hispanic",
+        "marital_status": "Divorced",
+        "mobile_number": "253-275-1571x840",
+        "addresses": [],
+        "akas": [
+          "Eduardo Obrien",
+          "Bryan Jones"
+        ],
+        "landlines": []
+      },
+      "results": [
+        {
+          "rank": 1,
+          "milvus_id": 464916172200486459,
+          "identity_idx": 81,
+          "is_match": true,
+          "record": {
+            "name": "Leah",
+            "lastname": "Rcihardson",
+            "dob": "1962-12-24",
+            "gender": "Non-binary",
+            "race": "Other",
+            "marital_status": "Divorced",
+            "mobile_number": "263-235-1571x840",
+            "addresses": [],
+            "akas": [
+              "Eduardo Obrien",
+              "Bryan Jones"
+            ],
+            "landlines": [],
+            "similarity": 0.3994
+          }
+        },
+        {
+          "rank": 2,
+          "milvus_id": 464916172200486486,
+          "identity_idx": 90,
+          "is_match": false,
+          "record": {
+            "name": "Scott",
+            "lastname": "Neal",
+            "dob": "1984-06-03",
+            "gender": "Other",
+            "race": "Hispanic",
+            "marital_status": "Divorced",
+            "mobile_number": "001-408-700-4635x8068",
+            "addresses": [
+              "96096 Sheila Loaf Apt. 658, South Jerry, VT 17059",
+              "482 Harris Course Apt. 609, North Christine, ND 10825",
+              "275 John Forges, Jamesbury, VA 50060",
+              "1209 Daniel Ranch, North Donaldview, MH 24176",
+              "3617 Robert Oval Apt. 366, Cynthiamouth, AS 21617"
+            ],
+            "akas": [
+              "Kathleen Roy",
+              "Andrew Harris"
+            ],
+            "landlines": [
+              "685.444.5770"
+            ],
+            "similarity": 0.3868
+          }
+        }
+      ]
+    },
+    {
+      "query_num": 5,
+      "query_milvus_id": 464916172200486338,
+      "identity_idx": 41,
+      "query_record": {
+        "name": "Micahel",
+        "lastname": "Jackson",
+        "dob": "1936-06-27",
+        "gender": "Non-binary",
+        "race": "Asian",
+        "marital_status": "Single",
+        "mobile_number": "722.251.2073x46549",
+        "addresses": [
+          "17656 Randy Branch Suite 125, Washingtonland, CO 72384"
+        ],
+        "akas": [],
+        "landlines": []
+      },
+      "results": [
+        {
+          "rank": 1,
+          "milvus_id": 464916172200486339,
+          "identity_idx": 41,
+          "is_match": true,
+          "record": {
+            "name": "Michael",
+            "lastname": "Jackson",
+            "dob": "1936-07-25",
+            "gender": "Non-binary",
+            "race": "Black",
+            "marital_status": "Single",
+            "mobile_number": "722.251.2073x46549",
+            "addresses": [
+              "17656 Randy Branch Suite 125, Washingtonland, CO 72384"
+            ],
+            "akas": [],
+            "landlines": [],
+            "similarity": 0.5932
+          }
+        },
+        {
+          "rank": 2,
+          "milvus_id": 464916172200486397,
+          "identity_idx": 60,
+          "is_match": false,
+          "record": {
+            "name": "Helen",
+            "lastname": "Oewns",
+            "dob": "1971-01-04",
+            "gender": "Non-binary",
+            "race": "Asian",
+            "marital_status": "Single",
+            "mobile_number": "001-944-585-6451x0173",
+            "addresses": [],
+            "akas": [
+              "Luke Hansen",
+              "Austin Patterson"
+            ],
+            "landlines": [
+              "001-612-559-0203x5713",
+              "001-524-606-4242x9563"
+            ],
+            "similarity": 0.3512
+          }
+        }
+      ]
+    }
+  ]
+}

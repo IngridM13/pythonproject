@@ -1,0 +1,215 @@
+{
+  "mode": "binary",
+  "config": {
+    "fields": [
+      "name",
+      "lastname",
+      "dob"
+    ],
+    "noise_levels": [
+      0,
+      10,
+      20,
+      30,
+      40,
+      50,
+      60,
+      70,
+      80,
+      90
+    ],
+    "n_identities": 200,
+    "variants_per_identity": 3,
+    "top_k": 5,
+    "hdim": 10000,
+    "seed": 42
+  },
+  "results": {
+    "name": [
+      {
+        "noise_level": 0,
+        "recall_at_k": 1.0,
+        "mrr": 1.0,
+        "hit_at_1": 1.0
+      },
+      {
+        "noise_level": 10,
+        "recall_at_k": 1.0,
+        "mrr": 0.993333,
+        "hit_at_1": 0.99
+      },
+      {
+        "noise_level": 20,
+        "recall_at_k": 1.0,
+        "mrr": 0.992917,
+        "hit_at_1": 0.99
+      },
+      {
+        "noise_level": 30,
+        "recall_at_k": 1.0,
+        "mrr": 0.992917,
+        "hit_at_1": 0.99
+      },
+      {
+        "noise_level": 40,
+        "recall_at_k": 1.0,
+        "mrr": 0.992917,
+        "hit_at_1": 0.99
+      },
+      {
+        "noise_level": 50,
+        "recall_at_k": 1.0,
+        "mrr": 0.992917,
+        "hit_at_1": 0.99
+      },
+      {
+        "noise_level": 60,
+        "recall_at_k": 1.0,
+        "mrr": 0.992917,
+        "hit_at_1": 0.99
+      },
+      {
+        "noise_level": 70,
+        "recall_at_k": 1.0,
+        "mrr": 0.993333,
+        "hit_at_1": 0.99
+      },
+      {
+        "noise_level": 80,
+        "recall_at_k": 1.0,
+        "mrr": 0.992917,
+        "hit_at_1": 0.99
+      },
+      {
+        "noise_level": 90,
+        "recall_at_k": 1.0,
+        "mrr": 0.992917,
+        "hit_at_1": 0.99
+      }
+    ],
+    "lastname": [
+      {
+        "noise_level": 0,
+        "recall_at_k": 1.0,
+        "mrr": 1.0,
+        "hit_at_1": 1.0
+      },
+      {
+        "noise_level": 10,
+        "recall_at_k": 1.0,
+        "mrr": 0.98625,
+        "hit_at_1": 0.975
+      },
+      {
+        "noise_level": 20,
+        "recall_at_k": 1.0,
+        "mrr": 0.99125,
+        "hit_at_1": 0.985
+      },
+      {
+        "noise_level": 30,
+        "recall_at_k": 1.0,
+        "mrr": 0.99375,
+        "hit_at_1": 0.99
+      },
+      {
+        "noise_level": 40,
+        "recall_at_k": 1.0,
+        "mrr": 0.987917,
+        "hit_at_1": 0.98
+      },
+      {
+        "noise_level": 50,
+        "recall_at_k": 1.0,
+        "mrr": 0.9935,
+        "hit_at_1": 0.99
+      },
+      {
+        "noise_level": 60,
+        "recall_at_k": 1.0,
+        "mrr": 0.99125,
+        "hit_at_1": 0.985
+      },
+      {
+        "noise_level": 70,
+        "recall_at_k": 1.0,
+        "mrr": 0.991667,
+        "hit_at_1": 0.985
+      },
+      {
+        "noise_level": 80,
+        "recall_at_k": 1.0,
+        "mrr": 0.98875,
+        "hit_at_1": 0.98
+      },
+      {
+        "noise_level": 90,
+        "recall_at_k": 1.0,
+        "mrr": 0.991,
+        "hit_at_1": 0.985
+      }
+    ],
+    "dob": [
+      {
+        "noise_level": 0,
+        "recall_at_k": 1.0,
+        "mrr": 1.0,
+        "hit_at_1": 1.0
+      },
+      {
+        "noise_level": 10,
+        "recall_at_k": 1.0,
+        "mrr": 1.0,
+        "hit_at_1": 1.0
+      },
+      {
+        "noise_level": 20,
+        "recall_at_k": 1.0,
+        "mrr": 1.0,
+        "hit_at_1": 1.0
+      },
+      {
+        "noise_level": 30,
+        "recall_at_k": 1.0,
+        "mrr": 1.0,
+        "hit_at_1": 1.0
+      },
+      {
+        "noise_level": 40,
+        "recall_at_k": 1.0,
+        "mrr": 1.0,
+        "hit_at_1": 1.0
+      },
+      {
+        "noise_level": 50,
+        "recall_at_k": 1.0,
+        "mrr": 1.0,
+        "hit_at_1": 1.0
+      },
+      {
+        "noise_level": 60,
+        "recall_at_k": 1.0,
+        "mrr": 1.0,
+        "hit_at_1": 1.0
+      },
+      {
+        "noise_level": 70,
+        "recall_at_k": 1.0,
+        "mrr": 1.0,
+        "hit_at_1": 1.0
+      },
+      {
+        "noise_level": 80,
+        "recall_at_k": 1.0,
+        "mrr": 1.0,
+        "hit_at_1": 1.0
+      },
+      {
+        "noise_level": 90,
+        "recall_at_k": 1.0,
+        "mrr": 1.0,
+        "hit_at_1": 1.0
+      }
+    ]
+  }
+}
