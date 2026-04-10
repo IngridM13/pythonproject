@@ -116,7 +116,7 @@ results10-scalability-noisy-dupes:
 	done
 
 experiment11-nk-sweep:
-	$(PYTEST) tests/experiments/test_recall_nk_sweep.py -v -s
+	$(PYTEST) tests/experiments/test_exp11_recall_nk_sweep.py -v -s
 
 results11-nk-sweep:
 	@file=$$(ls -t test_results/recall_nk_sweep_*.json 2>/dev/null | head -1); \

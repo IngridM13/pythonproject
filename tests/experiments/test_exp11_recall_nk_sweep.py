@@ -1,5 +1,5 @@
 """
-2D sweep experiment: collection size (N) × top_k → Recall@k.
+Experiment 11 — 2D sweep: collection size (N) × top_k → Recall@k.
 
 Isolates the independent effects of N (number of identities) and k (top-k
 search depth) on deduplication recall, keeping all other variables fixed.
@@ -26,7 +26,7 @@ Prints a pivot table per mode to stdout.
 
 Run
 ---
-    pytest tests/experiments/test_recall_nk_sweep.py -v -s
+    pytest tests/experiments/test_exp11_recall_nk_sweep.py -v -s
 """
 
 import json
@@ -210,9 +210,9 @@ def _print_pivot(mode: str, rows: list) -> None:
 # Test
 # ---------------------------------------------------------------------------
 
-class TestRecallNKSweep:
+class TestExp11RecallNKSweep:
 
-    def test_recall_nk_sweep(self):
+    def test_exp11_recall_nk_sweep(self):
         all_results = []
 
         for mode in MODES:
@@ -226,7 +226,7 @@ class TestRecallNKSweep:
                 for n in N_VALUES:
                     total_records = n * VARIANTS
                     print(
-                        f"\n[SWEEP] mode={mode}  N={n}  "
+                        f"\n[EXP11] mode={mode}  N={n}  "
                         f"records={total_records}  "
                         f"k_values={K_VALUES}"
                     )
@@ -318,7 +318,7 @@ class TestRecallNKSweep:
             "results": all_results,
         }
         output_path.write_text(json.dumps(report, indent=2))
-        print(f"\n[SWEEP] Results saved to {output_path.name}")
+        print(f"\n[EXP11] Results saved to {output_path.name}")
 
         # Sanity assertion: at least one result should have recall > 0
         assert any(r["recall_at_k"] > 0 for r in all_results), (

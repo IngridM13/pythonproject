@@ -291,9 +291,9 @@ Float vectors at 10,000 dims use ~40 KB per record. At N=100,000 the collection 
 
 ---
 
-## NK Sweep (unnumbered)
+## Experiment 11 — NK Sweep
 
-**File**: `test_recall_nk_sweep.py` | **Run**: `make experiment-nk-sweep`
+**File**: `test_exp11_recall_nk_sweep.py` | **Run**: `make experiment11-nk-sweep`
 
 **Question**: How does recall change as both collection size N and search depth K vary simultaneously?
 
