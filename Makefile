@@ -130,3 +130,11 @@ results12-recall-n-sweep:
 	@file=$$(ls -t test_results/exp12_recall_n_sweep_*.json 2>/dev/null | head -1); \
 	if [ -n "$$file" ]; then python scripts/show_results.py $$file; \
 	else echo "No exp12 results found in test_results/"; fi
+
+experiment13-separability:
+	python tests/experiments/test_exp13_separability_analysis.py
+
+results13-separability:
+	@file=$$(ls -t results/exp13_separability_*.json 2>/dev/null | head -1); \
+	if [ -n "$$file" ]; then python scripts/show_results.py $$file; \
+	else echo "No exp13_separability results found in results/"; fi
