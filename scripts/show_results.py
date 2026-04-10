@@ -647,6 +647,69 @@ def print_date_encoding_section(path: Path):
     print("-" * 80)
 
 
+def print_recall_n_sweep_section(path: Path) -> None:
+    with open(path) as f:
+        data = json.load(f)
+
+    cfg     = data["config"]
+    results = data["results"]
+
+    print()
+    print("=" * 72)
+    print(" Recall@1 vs Collection Size  (Exp 12 — N sweep)")
+    print("=" * 72)
+    print(f"  File        : {path.name}")
+    print(f"  Modes       : {', '.join(cfg['modes'])}")
+    print(f"  N values    : {cfg['n_values']}")
+    print(f"  M queries   : {cfg['m_queries']}")
+    print(f"  Noise       : {cfg['noise_level']:.0%}")
+    print(f"  HDC dim     : {cfg['hdim']}")
+    print(f"  Seed        : {cfg['seed']}")
+    print("=" * 72)
+
+    col_mode   =  8
+    col_n      =  8
+    col_recall = 10
+    col_hits   = 12
+    col_insert = 10
+    col_query  = 11
+
+    header = (
+        f"  {'Mode':<{col_mode}}  "
+        f"{'N':>{col_n}}  "
+        f"{'Recall@1':>{col_recall}}  "
+        f"{'Hits':>{col_hits}}  "
+        f"{'Insert(s)':>{col_insert}}  "
+        f"{'AvgQ(ms)':>{col_query}}  "
+        f"Chart"
+    )
+    divider = "  " + "-" * (col_mode + col_n + col_recall + col_hits + col_insert + col_query + 12) + "  " + "-" * BAR_WIDTH
+
+    modes = cfg["modes"]
+    for mode in modes:
+        print(f"\n  ── mode: {mode} {'─' * 55}")
+        print(header)
+        print(divider)
+        mode_rows = [r for r in results if r["mode"] == mode]
+        for r in mode_rows:
+            recall = r["recall_at_1"]
+            hits   = r["hits"]
+            m      = r["m_queries"]
+            c      = recall_color(recall)
+            print(
+                f"  {mode:<{col_mode}}  "
+                f"{r['n']:>{col_n}}  "
+                f"{c}{recall:>{col_recall}.1%}{RESET}  "
+                f"{hits:>5}/{m:<{col_hits - 6}}  "
+                f"{r['insert_time_s']:>{col_insert}.2f}  "
+                f"{r['avg_query_time_ms']:>{col_query}.1f}  "
+                f"{c}{bar(recall)}{RESET}"
+            )
+
+    print()
+    print("-" * 72)
+
+
 def print_nk_sweep_section(path: Path) -> None:
     with open(path) as f:
         data = json.load(f)
@@ -711,6 +774,8 @@ def main():
             print_date_encoding_section(path)
         elif path.name.startswith("recall_nk_sweep_"):
             print_nk_sweep_section(path)
+        elif path.name.startswith("exp12_recall_n_sweep_"):
+            print_recall_n_sweep_section(path)
         else:
             mode = print_recall_section(path)
             print_bench_section(mode)
