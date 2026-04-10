@@ -1,4 +1,5 @@
-PYTEST := .venv311/bin/python -m pytest
+PYTEST := .venv/bin/python -m pytest
+PYTHON := .venv/bin/python
 
 up:
 	docker-compose -f infra/docker-compose.yml up -d
@@ -25,13 +26,13 @@ experiment01-recall-under-noise:
 	$(PYTEST) tests/experiments/test_exp01_recall_under_noise.py -v -s
 
 results01-recall-under-noise:
-	python scripts/show_results.py
+	$(PYTHON) scripts/show_results.py
 
 results01-float:
-	python scripts/show_results.py $(shell ls -t test_results/recall_under_noise_float_*.json | head -1)
+	$(PYTHON) scripts/show_results.py $(shell ls -t test_results/recall_under_noise_float_*.json | head -1)
 
 results01-binary:
-	python scripts/show_results.py $(shell ls -t test_results/recall_under_noise_binary_*.json | head -1)
+	$(PYTHON) scripts/show_results.py $(shell ls -t test_results/recall_under_noise_binary_*.json | head -1)
 
 experiment02-dedup-recall:
 	$(PYTEST) tests/experiments/test_exp02_dedup_recall.py -v -s
@@ -39,7 +40,7 @@ experiment02-dedup-recall:
 results02-dedup-recall:
 	@for mode in binary float; do \
 		file=$$(ls -t test_results/dedup_recall_$${mode}_*.json 2>/dev/null | head -1); \
-		if [ -n "$$file" ]; then python scripts/show_results.py $$file; fi \
+		if [ -n "$$file" ]; then $(PYTHON) scripts/show_results.py $$file; fi \
 	done
 
 experiment03-weights:
@@ -48,7 +49,7 @@ experiment03-weights:
 results03-weights:
 	@for mode in binary float; do \
 		file=$$(ls -t test_results/field_weighting_$${mode}_*.json 2>/dev/null | head -1); \
-		if [ -n "$$file" ]; then python scripts/show_results.py $$file; fi \
+		if [ -n "$$file" ]; then $(PYTHON) scripts/show_results.py $$file; fi \
 	done
 
 experiment04-scalability:
@@ -57,7 +58,7 @@ experiment04-scalability:
 results04-scalability:
 	@for mode in binary float; do \
 		file=$$(ls -t test_results/scalability_$${mode}_*.json 2>/dev/null | head -1); \
-		if [ -n "$$file" ]; then python scripts/show_results.py $$file; fi \
+		if [ -n "$$file" ]; then $(PYTHON) scripts/show_results.py $$file; fi \
 	done
 
 experiment05-ranking:
@@ -66,7 +67,7 @@ experiment05-ranking:
 results05-ranking:
 	@for mode in binary float; do \
 		file=$$(ls -t test_results/ranking_metrics_$${mode}_*.json 2>/dev/null | head -1); \
-		if [ -n "$$file" ]; then python scripts/show_results.py $$file; fi \
+		if [ -n "$$file" ]; then $(PYTHON) scripts/show_results.py $$file; fi \
 	done
 
 experiment06-per-field-noise:
@@ -75,7 +76,7 @@ experiment06-per-field-noise:
 results06-per-field-noise:
 	@for mode in binary float; do \
 		file=$$(ls -t test_results/per_field_noise_$${mode}_*.json 2>/dev/null | head -1); \
-		if [ -n "$$file" ]; then python scripts/show_results.py $$file; fi \
+		if [ -n "$$file" ]; then $(PYTHON) scripts/show_results.py $$file; fi \
 	done
 
 experiment07-per-field-sweep:
@@ -84,7 +85,7 @@ experiment07-per-field-sweep:
 results07-per-field-sweep:
 	@for mode in binary float; do \
 		file=$$(ls -t test_results/per_field_sweep_$${mode}_*.json 2>/dev/null | head -1); \
-		if [ -n "$$file" ]; then python scripts/show_results.py $$file; fi \
+		if [ -n "$$file" ]; then $(PYTHON) scripts/show_results.py $$file; fi \
 	done
 
 experiment08-dimensionality:
@@ -93,7 +94,7 @@ experiment08-dimensionality:
 results08-dimensionality:
 	@for mode in binary float; do \
 		file=$$(ls -t test_results/dimensionality_$${mode}_*.json 2>/dev/null | head -1); \
-		if [ -n "$$file" ]; then python scripts/show_results.py $$file; fi \
+		if [ -n "$$file" ]; then $(PYTHON) scripts/show_results.py $$file; fi \
 	done
 
 experiment09-date-encoding:
@@ -102,7 +103,7 @@ experiment09-date-encoding:
 results09-date-encoding:
 	@for mode in binary float; do \
 		file=$$(ls -t test_results/date_encoding_$${mode}_*.json 2>/dev/null | head -1); \
-		if [ -n "$$file" ]; then python scripts/show_results.py $$file; fi \
+		if [ -n "$$file" ]; then $(PYTHON) scripts/show_results.py $$file; fi \
 	done
 
 
@@ -112,7 +113,7 @@ experiment10-scalability-noisy-dupes:
 results10-scalability-noisy-dupes:
 	@for mode in binary float; do \
 		file=$$(ls -t test_results/exp10_scalability_noisy_dupes/exp10_$${mode}_*.json 2>/dev/null | head -1); \
-		if [ -n "$$file" ]; then python scripts/show_results.py $$file; fi \
+		if [ -n "$$file" ]; then $(PYTHON) scripts/show_results.py $$file; fi \
 	done
 
 experiment11-nk-sweep:
@@ -120,7 +121,7 @@ experiment11-nk-sweep:
 
 results11-nk-sweep:
 	@file=$$(ls -t test_results/recall_nk_sweep_*.json 2>/dev/null | head -1); \
-	if [ -n "$$file" ]; then python scripts/show_results.py $$file; \
+	if [ -n "$$file" ]; then $(PYTHON) scripts/show_results.py $$file; \
 	else echo "No recall_nk_sweep results found in test_results/"; fi
 
 experiment12-recall-n-sweep:
@@ -128,13 +129,13 @@ experiment12-recall-n-sweep:
 
 results12-recall-n-sweep:
 	@file=$$(ls -t test_results/exp12_recall_n_sweep_*.json 2>/dev/null | head -1); \
-	if [ -n "$$file" ]; then python scripts/show_results.py $$file; \
+	if [ -n "$$file" ]; then $(PYTHON) scripts/show_results.py $$file; \
 	else echo "No exp12 results found in test_results/"; fi
 
 experiment13-separability:
-	python tests/experiments/test_exp13_separability_analysis.py
+	$(PYTHON) tests/experiments/test_exp13_separability_analysis.py
 
 results13-separability:
 	@file=$$(ls -t results/exp13_separability_*.json 2>/dev/null | head -1); \
-	if [ -n "$$file" ]; then python scripts/show_results.py $$file; \
+	if [ -n "$$file" ]; then $(PYTHON) scripts/show_results.py $$file; \
 	else echo "No exp13_separability results found in results/"; fi
