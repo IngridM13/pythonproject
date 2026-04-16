@@ -1,0 +1,81 @@
+{
+  "experiment": "Experiment 12 \u2014 Recall@1 under noise across collection sizes",
+  "timestamp": "20260408_155943",
+  "config": {
+    "n_values": [
+      1000,
+      5000,
+      10000
+    ],
+    "m_queries": 200,
+    "noise_level": 0.2,
+    "hdim": 10000,
+    "seed": 42,
+    "modes": [
+      "binary",
+      "float"
+    ]
+  },
+  "results": [
+    {
+      "mode": "binary",
+      "n": 1000,
+      "m_queries": 200,
+      "noise_level": 0.2,
+      "recall_at_1": 1.0,
+      "hits": 200,
+      "avg_query_time_ms": 5.288,
+      "insert_time_s": 203.4075
+    },
+    {
+      "mode": "binary",
+      "n": 5000,
+      "m_queries": 200,
+      "noise_level": 0.2,
+      "recall_at_1": 1.0,
+      "hits": 200,
+      "avg_query_time_ms": 9.417,
+      "insert_time_s": 1014.9872
+    },
+    {
+      "mode": "binary",
+      "n": 10000,
+      "m_queries": 200,
+      "noise_level": 0.2,
+      "recall_at_1": 1.0,
+      "hits": 200,
+      "avg_query_time_ms": 13.543,
+      "insert_time_s": 2028.2231
+    },
+    {
+      "mode": "float",
+      "n": 1000,
+      "m_queries": 200,
+      "noise_level": 0.2,
+      "recall_at_1": 1.0,
+      "hits": 200,
+      "avg_query_time_ms": 4.845,
+      "insert_time_s": 202.9626
+    },
+    {
+      "mode": "float",
+      "n": 5000,
+      "m_queries": 200,
+      "noise_level": 0.2,
+      "recall_at_1": 0.97,
+      "hits": 194,
+      "avg_query_time_ms": 8.047,
+      "insert_time_s": 1011.3856
+    },
+    {
+      "mode": "float",
+      "n": 10000,
+      "m_queries": 200,
+      "noise_level": 0.2,
+      "recall_at_1": 0.86,
+      "hits": 172,
+      "avg_query_time_ms": 9.195,
+      "insert_time_s": 2024.1566
+    }
+  ]
+}

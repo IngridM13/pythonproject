@@ -1,0 +1,92 @@
+{
+  "config": {
+    "vector_mode": "binary",
+    "n_people": 10000,
+    "hdim": 10000,
+    "seed": 42,
+    "noise_levels": [
+      0.0,
+      0.1,
+      0.2,
+      0.3,
+      0.4,
+      0.5,
+      0.6,
+      0.7,
+      0.8,
+      0.9,
+      1.0
+    ],
+    "threshold": 0.0,
+    "near_dupe_fraction": 0.0,
+    "n_near_dupes": 0
+  },
+  "results": [
+    {
+      "noise_level": 0.0,
+      "recall_at_1": 1.0,
+      "hits": 10000,
+      "total": 10000
+    },
+    {
+      "noise_level": 0.1,
+      "recall_at_1": 0.9499,
+      "hits": 9499,
+      "total": 10000
+    },
+    {
+      "noise_level": 0.2,
+      "recall_at_1": 0.8822,
+      "hits": 8822,
+      "total": 10000
+    },
+    {
+      "noise_level": 0.3,
+      "recall_at_1": 0.7859,
+      "hits": 7859,
+      "total": 10000
+    },
+    {
+      "noise_level": 0.4,
+      "recall_at_1": 0.6583,
+      "hits": 6583,
+      "total": 10000
+    },
+    {
+      "noise_level": 0.5,
+      "recall_at_1": 0.4785,
+      "hits": 4785,
+      "total": 10000
+    },
+    {
+      "noise_level": 0.6,
+      "recall_at_1": 0.2871,
+      "hits": 2871,
+      "total": 10000
+    },
+    {
+      "noise_level": 0.7,
+      "recall_at_1": 0.1288,
+      "hits": 1288,
+      "total": 10000
+    },
+    {
+      "noise_level": 0.8,
+      "recall_at_1": 0.0304,
+      "hits": 304,
+      "total": 10000
+    },
+    {
+      "noise_level": 0.9,
+      "recall_at_1": 0.0024,
+      "hits": 24,
+      "total": 10000
+    },
+    {
+      "noise_level": 1.0,
+      "recall_at_1": 0.0,
+      "hits": 0,
+      "total": 10000
+    }
+  ]
+}
