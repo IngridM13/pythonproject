@@ -8,7 +8,7 @@ and negative similarities (best false positives) across collection sizes and mod
 For each (mode, N) pair:
   1. Insert N canonical records into a fresh Milvus collection.
   2. Select M=200 random query sources (seeded, no replacement).
-  3. For each query: inject 30% noise, search with limit=N (full collection sweep),
+  3. For each query: inject noise (configurable via EXP13_NOISE, default 0.30),
      capture sim_pos, sim_neg, gap, and rank of the ground truth.
   4. Aggregate gap distribution statistics and save to JSON.
 
@@ -37,7 +37,7 @@ Environment variables
 
 Output
 ------
-    results/exp13_separability_{timestamp}.json
+    test_results/exp13_separability_{timestamp}.json
 """
 
 import json
@@ -274,6 +274,7 @@ def _run_one(
         entry = {
             "mode": mode,
             "N": n,
+            "noise": noise,
             "gaps":    [round(g, 6) for g in gaps],
             "sim_pos": [round(s, 6) for s in sim_pos_list],
             "sim_neg": [round(s, 6) for s in sim_neg_list],
@@ -353,7 +354,9 @@ def _print_summary(all_results: list) -> None:
 
     print("\n" + "=" * 80)
     print("  EXPERIMENT 13 — SEPARABILITY SUMMARY")
-    print("  noise=30%  |  sim normalised to [0,1]  |  gap = sim_pos - sim_neg")
+    noise_vals = sorted({r.get("noise", "?") for r in all_results})
+    noise_str  = ", ".join(f"{v:.0%}" if isinstance(v, float) else str(v) for v in noise_vals)
+    print(f"  noise={noise_str}  |  sim normalised to [0,1]  |  gap = sim_pos - sim_neg")
     print("=" * 80)
     print(header)
     print(divider)
@@ -370,8 +373,8 @@ def _print_summary(all_results: list) -> None:
 
 
 def _save_results(report: dict) -> Path:
-    """Serialise report to results/exp13_separability_{timestamp}.json."""
-    output_dir = _PROJECT_ROOT / "results"
+    """Serialise report to test_results/exp13_separability_{timestamp}.json."""
+    output_dir = _PROJECT_ROOT / "test_results"
     output_dir.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     output_path = output_dir / f"exp13_separability_{timestamp}.json"

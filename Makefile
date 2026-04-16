@@ -29,10 +29,14 @@ results01-recall-under-noise:
 	$(PYTHON) scripts/show_results.py
 
 results01-float:
-	$(PYTHON) scripts/show_results.py $(shell ls -t test_results/recall_under_noise_float_*.json | head -1)
+	@file=$$(ls -t test_results/recall_under_noise_float_*.json 2>/dev/null | head -1); \
+	if [ -n "$$file" ]; then $(PYTHON) scripts/show_results.py $$file; \
+	else echo "No recall_under_noise_float results found in test_results/"; fi
 
 results01-binary:
-	$(PYTHON) scripts/show_results.py $(shell ls -t test_results/recall_under_noise_binary_*.json | head -1)
+	@file=$$(ls -t test_results/recall_under_noise_binary_*.json 2>/dev/null | head -1); \
+	if [ -n "$$file" ]; then $(PYTHON) scripts/show_results.py $$file; \
+	else echo "No recall_under_noise_binary results found in test_results/"; fi
 
 experiment02-dedup-recall:
 	$(PYTEST) tests/experiments/test_exp02_dedup_recall.py -v -s
@@ -136,6 +140,6 @@ experiment13-separability:
 	$(PYTHON) tests/experiments/test_exp13_separability_analysis.py
 
 results13-separability:
-	@file=$$(ls -t results/exp13_separability_*.json 2>/dev/null | head -1); \
+	@file=$$(ls -t test_results/exp13_separability_*.json 2>/dev/null | head -1); \
 	if [ -n "$$file" ]; then $(PYTHON) scripts/show_results.py $$file; \
-	else echo "No exp13_separability results found in results/"; fi
+	else echo "No exp13_separability results found in test_results/"; fi
