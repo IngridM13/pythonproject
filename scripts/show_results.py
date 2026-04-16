@@ -7,8 +7,6 @@ Usage:
     python scripts/show_results.py <path-to-json>   # specific file
 """
 
-from __future__ import annotations
-
 import json
 import sys
 from pathlib import Path

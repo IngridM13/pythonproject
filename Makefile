@@ -1,5 +1,5 @@
-PYTEST := .venv/bin/python -m pytest
-PYTHON := .venv/bin/python
+PYTEST := .venv311/bin/python -m pytest
+PYTHON := .venv311/bin/python
 
 up:
 	docker-compose -f infra/docker-compose.yml up -d
