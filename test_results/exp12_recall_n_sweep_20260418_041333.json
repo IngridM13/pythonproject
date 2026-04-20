@@ -1,0 +1,102 @@
+{
+  "experiment": "Experiment 12 \u2014 Recall@1 under noise across collection sizes",
+  "timestamp": "20260418_041333",
+  "config": {
+    "n_values": [
+      1000,
+      5000,
+      10000,
+      50000
+    ],
+    "m_queries": 200,
+    "noise_level": 0.2,
+    "hdim": 10000,
+    "seed": 42,
+    "modes": [
+      "binary",
+      "float"
+    ]
+  },
+  "results": [
+    {
+      "mode": "binary",
+      "n": 1000,
+      "m_queries": 200,
+      "noise_level": 0.2,
+      "recall_at_1": 1.0,
+      "hits": 200,
+      "avg_query_time_ms": 3.167,
+      "insert_time_s": 203.8003
+    },
+    {
+      "mode": "binary",
+      "n": 5000,
+      "m_queries": 200,
+      "noise_level": 0.2,
+      "recall_at_1": 1.0,
+      "hits": 200,
+      "avg_query_time_ms": 8.676,
+      "insert_time_s": 1011.6143
+    },
+    {
+      "mode": "binary",
+      "n": 10000,
+      "m_queries": 200,
+      "noise_level": 0.2,
+      "recall_at_1": 1.0,
+      "hits": 200,
+      "avg_query_time_ms": 10.944,
+      "insert_time_s": 2025.0895
+    },
+    {
+      "mode": "binary",
+      "n": 50000,
+      "m_queries": 200,
+      "noise_level": 0.2,
+      "recall_at_1": 1.0,
+      "hits": 200,
+      "avg_query_time_ms": 31.744,
+      "insert_time_s": 10117.2959
+    },
+    {
+      "mode": "float",
+      "n": 1000,
+      "m_queries": 200,
+      "noise_level": 0.2,
+      "recall_at_1": 1.0,
+      "hits": 200,
+      "avg_query_time_ms": 4.482,
+      "insert_time_s": 202.7183
+    },
+    {
+      "mode": "float",
+      "n": 5000,
+      "m_queries": 200,
+      "noise_level": 0.2,
+      "recall_at_1": 0.97,
+      "hits": 194,
+      "avg_query_time_ms": 8.801,
+      "insert_time_s": 1013.2335
+    },
+    {
+      "mode": "float",
+      "n": 10000,
+      "m_queries": 200,
+      "noise_level": 0.2,
+      "recall_at_1": 0.905,
+      "hits": 181,
+      "avg_query_time_ms": 7.196,
+      "insert_time_s": 2023.9633
+    },
+    {
+      "mode": "float",
+      "n": 50000,
+      "m_queries": 200,
+      "noise_level": 0.2,
+      "recall_at_1": 0.935,
+      "hits": 187,
+      "avg_query_time_ms": 12.181,
+      "insert_time_s": 10119.8096
+    }
+  ]
+}

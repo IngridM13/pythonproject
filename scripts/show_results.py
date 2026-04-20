@@ -710,6 +710,72 @@ def print_recall_n_sweep_section(path: Path) -> None:
     print("-" * 72)
 
 
+def print_separability_section(path: Path) -> None:
+    with open(path) as f:
+        data = json.load(f)
+
+    meta    = data["metadata"]
+    results = data["results"]
+
+    print()
+    print("=" * 80)
+    print(" Separability Analysis  (Exp 13 — gap between match and best impostor)")
+    print("=" * 80)
+    print(f"  File        : {path.name}")
+    print(f"  Modes       : {', '.join(meta['modes'])}")
+    print(f"  N values    : {meta['N_values']}")
+    print(f"  M queries   : {meta['M']}")
+    print(f"  Noise       : {meta['noise']:.0%}")
+    print(f"  HDC dim     : {meta['dims']}")
+    print(f"  Seed        : {meta['seed']}")
+    print("=" * 80)
+
+    col_n      =  8
+    col_gap    = 10
+    col_std    =  9
+    col_p25    =  8
+    col_p75    =  8
+    col_pct    = 10
+    col_coll   = 10
+    col_rec    =  9
+
+    header = (
+        f"  {'N':>{col_n}}  "
+        f"{'Gap_mean':>{col_gap}}  "
+        f"{'Gap_std':>{col_std}}  "
+        f"{'Gap_p25':>{col_p25}}  "
+        f"{'Gap_p75':>{col_p75}}  "
+        f"{'Positive':>{col_pct}}  "
+        f"{'Collision':>{col_coll}}  "
+        f"{'Recall@1':>{col_rec}}  "
+        f"Chart"
+    )
+    divider = "  " + "-" * (col_n + col_gap + col_std + col_p25 + col_p75 + col_pct + col_coll + col_rec + 16) + "  " + "-" * BAR_WIDTH
+
+    modes = meta["modes"]
+    for mode in modes:
+        print(f"\n  ── mode: {mode} {'─' * 63}")
+        print(header)
+        print(divider)
+        for r in (x for x in results if x["mode"] == mode):
+            recall = r["recall_at_1"]
+            c = recall_color(recall)
+            print(
+                f"  {r['N']:>{col_n}}  "
+                f"{r['gap_mean']:>{col_gap}.4f}  "
+                f"{r['gap_std']:>{col_std}.4f}  "
+                f"{r['gap_p25']:>{col_p25}.4f}  "
+                f"{r['gap_p75']:>{col_p75}.4f}  "
+                f"{r['pct_gap_positive']:>{col_pct-1}.1f}%  "
+                f"{r['pct_collision']:>{col_coll-1}.1f}%  "
+                f"{c}{recall:>{col_rec}.1%}{RESET}  "
+                f"{c}{bar(recall)}{RESET}"
+            )
+
+    print()
+    print("-" * 80)
+
+
 def print_nk_sweep_section(path: Path) -> None:
     with open(path) as f:
         data = json.load(f)
@@ -776,6 +842,8 @@ def main():
             print_nk_sweep_section(path)
         elif path.name.startswith("exp12_recall_n_sweep_"):
             print_recall_n_sweep_section(path)
+        elif path.name.startswith("exp13_separability_"):
+            print_separability_section(path)
         else:
             mode = print_recall_section(path)
             print_bench_section(mode)

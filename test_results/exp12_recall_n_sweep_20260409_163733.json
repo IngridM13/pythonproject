@@ -1,0 +1,39 @@
+{
+  "experiment": "Experiment 12 \u2014 Recall@1 under noise across collection sizes",
+  "timestamp": "20260409_163733",
+  "config": {
+    "n_values": [
+      20000
+    ],
+    "m_queries": 200,
+    "noise_level": 0.0,
+    "hdim": 10000,
+    "seed": 42,
+    "modes": [
+      "binary",
+      "float"
+    ]
+  },
+  "results": [
+    {
+      "mode": "binary",
+      "n": 20000,
+      "m_queries": 200,
+      "noise_level": 0.0,
+      "recall_at_1": 1.0,
+      "hits": 200,
+      "avg_query_time_ms": 16.156,
+      "insert_time_s": 4046.7244
+    },
+    {
+      "mode": "float",
+      "n": 20000,
+      "m_queries": 200,
+      "noise_level": 0.0,
+      "recall_at_1": 1.0,
+      "hits": 200,
+      "avg_query_time_ms": 10.871,
+      "insert_time_s": 4045.0971
+    }
+  ]
+}
