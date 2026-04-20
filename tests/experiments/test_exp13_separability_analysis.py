@@ -130,10 +130,10 @@ def _search_full(
 
     mode = get_vector_mode()
     if mode == "binary":
-        search_params = {"metric_type": "HAMMING", "params": {}}
+        search_params = {"metric_type": "HAMMING", "params": {"nprobe": 128}}
         metric = "HAMMING"
     else:
-        search_params = {"metric_type": "IP", "params": {"ef": 128}}
+        search_params = {"metric_type": "IP", "params": {"nprobe": 128}}
         metric = "IP"
 
     results = col.search(
