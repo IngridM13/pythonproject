@@ -819,6 +819,107 @@ def print_nk_sweep_section(path: Path) -> None:
     print()
 
 
+def print_float_capacity_section(path: Path) -> None:
+    with open(path) as f:
+        data = json.load(f)
+
+    cfg     = data["config"]
+    results = data["results"]
+    hw      = data.get("hardware", {})
+
+    print()
+    print("=" * 84)
+    print(" Float Capacity Analysis  (Exp 14a — Recall vs N, mode=float, nprobe=128)")
+    print("=" * 84)
+    print(f"  File        : {path.name}")
+    print(f"  N values    : {cfg['n_values']}")
+    print(f"  Noise values: {cfg['noise_values']}")
+    print(f"  M queries   : {cfg['m_queries']}")
+    print(f"  HDC dim     : {cfg['hdim']}")
+    print(f"  nprobe/nlist: {cfg.get('nprobe', 128)}/{cfg.get('nlist', 128)}")
+    print(f"  Seed        : {cfg['seed']}")
+    if hw:
+        print(f"  Hardware    : {hw.get('mac','?')}  Docker RAM: {hw.get('docker_ram_gb','?')} GB  "
+              f"Peak mem: {hw.get('peak_mem_observed') or '—'}")
+    print("=" * 84)
+
+    col_n    =  8
+    col_r1   = 10
+    col_r5   = 10
+    col_mrr  =  8
+    col_qms  = 10
+    col_ins  = 10
+    col_hits = 10
+
+    header = (
+        f"  {'N':>{col_n}}  "
+        f"{'Recall@1':>{col_r1}}  "
+        f"{'Recall@5':>{col_r5}}  "
+        f"{'MRR':>{col_mrr}}  "
+        f"{'AvgQ(ms)':>{col_qms}}  "
+        f"{'Insert(s)':>{col_ins}}  "
+        f"{'Hits':>{col_hits}}  "
+        f"Chart"
+    )
+    divider = "  " + "-" * (col_n + col_r1 + col_r5 + col_mrr + col_qms + col_ins + col_hits + 14) + "  " + "-" * BAR_WIDTH
+
+    noise_vals = sorted({r["noise"] for r in results})
+    for noise in noise_vals:
+        print(f"\n  ── noise={noise:.0%} {'─' * 65}")
+        print(header)
+        print(divider)
+        for r in (x for x in results if x["noise"] == noise):
+            recall = r["recall_at_1"]
+            c = recall_color(recall)
+            print(
+                f"  {r['N']:>{col_n},}  "
+                f"{c}{recall:>{col_r1}.1%}{RESET}  "
+                f"{r['recall_at_5']:>{col_r5}.1%}  "
+                f"{r['mrr']:>{col_mrr}.3f}  "
+                f"{r['avg_query_ms']:>{col_qms}.1f}  "
+                f"{r['insert_seconds']:>{col_ins}.1f}  "
+                f"{r.get('hits','—'):>{col_hits}}  "
+                f"{c}{bar(recall)}{RESET}"
+            )
+
+    # Analysis
+    print()
+    print("  ANALYSIS")
+    print("  " + "─" * 60)
+    for noise in noise_vals:
+        rows = [r for r in results if r["noise"] == noise]
+        if not rows:
+            continue
+        print(f"\n  noise={noise:.0%}")
+        below = [r for r in rows if r["recall_at_1"] < 0.99]
+        if below:
+            print(f"    Recall@1 first drops below 99% at N={below[0]['N']:,}  "
+                  f"(recall={below[0]['recall_at_1']:.3f})")
+        else:
+            print(f"    Recall@1 stays >= 99% across all N values tested.")
+        if len(rows) >= 2:
+            n_span = rows[-1]["N"] - rows[0]["N"]
+            r_span = rows[-1]["recall_at_1"] - rows[0]["recall_at_1"]
+            if n_span > 0:
+                rate_pp = r_span / (n_span / 50_000) * 100
+                print(f"    Degradation rate: {rate_pp:+.2f} pp per 50K records")
+
+    if len(noise_vals) >= 2:
+        print(f"\n  Cross-noise (Δ = {noise_vals[1]:.0%} minus {noise_vals[0]:.0%}):")
+        r_by = {(r["noise"], r["N"]): r for r in results}
+        print(f"    {'N':>8}  {'Δ Recall@1':>12}  {'Δ MRR':>10}")
+        print(f"    {'─'*8}  {'─'*12}  {'─'*10}")
+        for n in sorted({r["N"] for r in results}):
+            r0 = r_by.get((noise_vals[0], n))
+            r1 = r_by.get((noise_vals[1], n))
+            if r0 and r1:
+                print(f"    {n:>8,}  {r1['recall_at_1']-r0['recall_at_1']:>+12.3f}  "
+                      f"{r1['mrr']-r0['mrr']:>+10.3f}")
+
+    print()
+    print("-" * 84)
+
+
 def main():
     if len(sys.argv) > 1:
         path = Path(sys.argv[1])
@@ -844,6 +945,8 @@ def main():
             print_recall_n_sweep_section(path)
         elif path.name.startswith("exp13_separability_"):
             print_separability_section(path)
+        elif path.name.startswith("exp14a_float_capacity_"):
+            print_float_capacity_section(path)
         else:
             mode = print_recall_section(path)
             print_bench_section(mode)
