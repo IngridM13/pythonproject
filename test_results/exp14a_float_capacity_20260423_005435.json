@@ -1,0 +1,133 @@
+{
+  "experiment": "Experiment 14a \u2014 Float Capacity Analysis",
+  "timestamp": "20260423_005435",
+  "config": {
+    "mode": "float",
+    "n_values": [
+      50000,
+      100000,
+      150000,
+      200000
+    ],
+    "noise_values": [
+      0.2,
+      0.3
+    ],
+    "m_queries": 200,
+    "hdim": 10000,
+    "seed": 42,
+    "nprobe": 128,
+    "nlist": 128
+  },
+  "hardware": {
+    "mac": "M5",
+    "docker_ram_gb": 18,
+    "peak_mem_observed": "9.502GiB / 17.54GiB"
+  },
+  "results": [
+    {
+      "N": 50000,
+      "noise": 0.2,
+      "recall_at_1": 1.0,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "hit_at_1": 1.0,
+      "avg_query_ms": 29.371,
+      "insert_seconds": 10140.77,
+      "hits": "200/200",
+      "mem_before": "791.8MiB / 17.54GiB",
+      "mem_after": "9.115GiB / 17.54GiB"
+    },
+    {
+      "N": 100000,
+      "noise": 0.2,
+      "recall_at_1": 1.0,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "hit_at_1": 1.0,
+      "avg_query_ms": 46.24,
+      "insert_seconds": 20273.17,
+      "hits": "200/200",
+      "mem_before": "7.338GiB / 17.54GiB",
+      "mem_after": "11.01GiB / 17.54GiB"
+    },
+    {
+      "N": 150000,
+      "noise": 0.2,
+      "recall_at_1": 1.0,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "hit_at_1": 1.0,
+      "avg_query_ms": 62.062,
+      "insert_seconds": 30375.64,
+      "hits": "200/200",
+      "mem_before": "7.464GiB / 17.54GiB",
+      "mem_after": "13.04GiB / 17.54GiB"
+    },
+    {
+      "N": 200000,
+      "noise": 0.2,
+      "recall_at_1": 1.0,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "hit_at_1": 1.0,
+      "avg_query_ms": 1147.664,
+      "insert_seconds": 40499.85,
+      "hits": "200/200",
+      "mem_before": "7.578GiB / 17.54GiB",
+      "mem_after": "13.04GiB / 17.54GiB"
+    },
+    {
+      "N": 50000,
+      "noise": 0.3,
+      "recall_at_1": 0.98,
+      "recall_at_5": 1.0,
+      "mrr": 0.987,
+      "hit_at_1": 0.98,
+      "avg_query_ms": 30.047,
+      "insert_seconds": 10118.84,
+      "hits": "196/200",
+      "mem_before": "5.612GiB / 17.54GiB",
+      "mem_after": "7.363GiB / 17.54GiB"
+    },
+    {
+      "N": 100000,
+      "noise": 0.3,
+      "recall_at_1": 0.975,
+      "recall_at_5": 1.0,
+      "mrr": 0.985833,
+      "hit_at_1": 0.975,
+      "avg_query_ms": 51.557,
+      "insert_seconds": 20248.55,
+      "hits": "195/200",
+      "mem_before": "5.536GiB / 17.54GiB",
+      "mem_after": "9.502GiB / 17.54GiB"
+    },
+    {
+      "N": 150000,
+      "noise": 0.3,
+      "recall_at_1": 0.975,
+      "recall_at_5": 1.0,
+      "mrr": 0.982667,
+      "hit_at_1": 0.975,
+      "avg_query_ms": 272.943,
+      "insert_seconds": 30364.72,
+      "hits": "195/200",
+      "mem_before": "5.863GiB / 17.54GiB",
+      "mem_after": "12.03GiB / 17.54GiB"
+    },
+    {
+      "N": 200000,
+      "noise": 0.3,
+      "recall_at_1": 0.96,
+      "recall_at_5": 1.0,
+      "mrr": 0.974333,
+      "hit_at_1": 0.96,
+      "avg_query_ms": 98.3,
+      "insert_seconds": 40485.37,
+      "hits": "192/200",
+      "mem_before": "5.998GiB / 17.54GiB",
+      "mem_after": "13.61GiB / 17.54GiB"
+    }
+  ]
+}
