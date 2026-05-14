@@ -145,9 +145,9 @@ def test_vector_similarity_with_list_order(with_vector_mode):
 
         # Medir tiempo de codificación
         start_time = time.time()
-        encoding1 = encode_person(normalizado1, mode=with_vector_mode)
-        encoding2 = encode_person(normalizado2, mode=with_vector_mode)
-        encoding3 = encode_person(normalizado3, mode=with_vector_mode)
+        encoding1 = encode_person(normalizado1)
+        encoding2 = encode_person(normalizado2)
+        encoding3 = encode_person(normalizado3)
         encoding_time = time.time() - start_time
 
         # Convertir a tensores si es necesario

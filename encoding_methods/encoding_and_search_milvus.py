@@ -15,6 +15,10 @@ from hdc.bipolar_hdc import HyperDimensionalComputingBipolar
 # Global dictionary to cache hypervectors
 hv_dict = {}
 
+# Module-level singletons — instantiated once at import time
+_hdc_binary = HyperDimensionalComputingBinary(dim=HDC_DIM)
+_hdc_bipolar = HyperDimensionalComputingBipolar(dim=HDC_DIM)
+
 
 # --- PyTorch Bit Packing Helpers (Replacing NumPy packbits/unpackbits) ---
 
@@ -138,28 +142,23 @@ def _merge_attrs(person: Dict[str, Any]) -> Dict[str, Any]:
 
 # --- Encoding Factory Functions ---
 
-def encode_date(date_obj, mode="binary"):
-    hdc_bipolar = HyperDimensionalComputingBipolar()
-    hdc_binary = HyperDimensionalComputingBinary()
-    if mode == "binary":
-        return hdc_binary.encode_date_binary(date_obj)
+def encode_date(date_obj):
+    if get_vector_mode() == "binary":
+        return _hdc_binary.encode_date_binary(date_obj)
     else:
-        return hdc_bipolar.encode_date_bipolar(date_obj)
+        return _hdc_bipolar.encode_date_bipolar(date_obj)
 
 
-def encode_person(person, mode="binary", field_weights=NAME_AND_DATE_WEIGHTS, excluded_fields=None):
-    hdc_bipolar = HyperDimensionalComputingBipolar(dim=HDC_DIM)
-    hdc_binary = HyperDimensionalComputingBinary(dim=HDC_DIM)
-
+def encode_person(person, field_weights=NAME_AND_DATE_WEIGHTS, excluded_fields=None):
     vector_mode = get_vector_mode()
     if vector_mode == "binary":
-        return hdc_binary.encode_person_binary(
+        return _hdc_binary.encode_person_binary(
             person,
             field_weights=field_weights,
             excluded_fields=excluded_fields,
         )
     elif vector_mode == "float":
-        return hdc_bipolar.encode_person_generalized(
+        return _hdc_bipolar.encode_person_generalized(
             person,
             field_weights=field_weights,
             excluded_fields=excluded_fields,

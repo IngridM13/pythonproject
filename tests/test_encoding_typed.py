@@ -923,7 +923,7 @@ def test_date_similarity_ordering_bipolar():
         try:
             # Try batch encoding if available (assuming encode_date supports it)
             encodings_tensor = torch.stack([
-                torch.tensor(encode_date(d, mode=mode), device=device).float()
+                torch.tensor(encode_date(d), device=device).float()
                 for d in dates
             ])
         except Exception as e:
@@ -931,7 +931,7 @@ def test_date_similarity_ordering_bipolar():
             print(f"Batch encoding not supported, using individual encoding: {e}")
             encodings = []
             for d in dates:
-                enc = encode_date(d, mode=mode)
+                enc = encode_date(d)
                 # Ensure it's a tensor and on the right device
                 if not isinstance(enc, torch.Tensor):
                     enc = torch.tensor(enc, device=device)
