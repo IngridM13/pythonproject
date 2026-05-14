@@ -158,7 +158,7 @@ def encode_person(person, field_weights=NAME_AND_DATE_WEIGHTS, excluded_fields=N
             excluded_fields=excluded_fields,
         )
     elif vector_mode == "float":
-        return _hdc_bipolar.encode_person_generalized(
+        return _hdc_bipolar.encode_person_bipolar(
             person,
             field_weights=field_weights,
             excluded_fields=excluded_fields,

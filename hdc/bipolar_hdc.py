@@ -272,7 +272,7 @@ class HyperDimensionalComputingBipolar:
 
         return res if is_list else res[0]
 
-    def encode_person_generalized(
+    def encode_person_bipolar(
         self,
         raw_person: Dict[str, Any],
         field_weights: Optional[Dict[str, int]] = None,
