@@ -162,8 +162,8 @@ class HyperDimensionalComputingBipolar:
         return hv_tensor
 
     def _deterministic_hash(self, key_str: str) -> int:
-        h = hashlib.md5(str(key_str).encode("utf-8")).digest()
-        return int.from_bytes(h[:8], "little") % (2 ** 32)
+        full_hash = int(hashlib.sha256(str(key_str).encode('utf-8')).hexdigest(), 16)
+        return full_hash % (2 ** 32)
 
     def _tie_breaker_bipolar(self, key: str, dim: int) -> torch.Tensor:
         seed = self._deterministic_hash(f"tb:{key}")
