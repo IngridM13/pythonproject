@@ -143,3 +143,11 @@ results13-separability:
 	@file=$$(ls -t test_results/exp13_separability_*.json 2>/dev/null | head -1); \
 	if [ -n "$$file" ]; then $(PYTHON) scripts/show_results.py $$file; \
 	else echo "No exp13_separability results found in test_results/"; fi
+
+experiment14a-float-capacity:
+	$(PYTHON) tests/experiments/test_exp14a_float_capacity.py
+
+results14a-float-capacity:
+	@file=$$(ls -t test_results/exp14a_float_capacity_*.json 2>/dev/null | head -1); \
+	if [ -n "$$file" ]; then $(PYTHON) scripts/show_results.py $$file; \
+	else echo "No exp14a results found in test_results/"; fi
