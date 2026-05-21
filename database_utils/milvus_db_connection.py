@@ -86,7 +86,7 @@ def ensure_people_collection(collection_name: str = COLLECTION) -> Collection:
                 try:
                     # Crear índice para hv según el modo
                     if VECTOR_MODE == "binary":
-                        col.create_index("hv", {"index_type": "BIN_IVF_FLAT", "metric_type": "HAMMING", "params": {}})
+                        col.create_index("hv", {"index_type": "BIN_IVF_FLAT", "metric_type": "HAMMING", "params": {"nlist": 128}})
                     else:  # float
                         col.create_index("hv",
                                          {"index_type": "IVF_FLAT", "metric_type": "IP", "params": {"nlist": 128}})
@@ -144,7 +144,7 @@ def ensure_people_collection(collection_name: str = COLLECTION) -> Collection:
     # Crear índices para los campos vectoriales
     print(">>> Creando índices...")
     if VECTOR_MODE == "binary":
-        col.create_index("hv", {"index_type": "BIN_IVF_FLAT", "metric_type": "HAMMING", "params": {}})
+        col.create_index("hv", {"index_type": "BIN_IVF_FLAT", "metric_type": "HAMMING", "params": {"nlist": 128}})
     else:  # float
         col.create_index("hv", {"index_type": "IVF_FLAT", "metric_type": "IP", "params": {"nlist": 128}})
 
