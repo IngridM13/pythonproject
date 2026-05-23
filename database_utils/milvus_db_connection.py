@@ -35,10 +35,6 @@ def get_vector_mode():
 
 
 def ensure_people_collection(collection_name: str = COLLECTION) -> Collection:
-    cache_key = f"{collection_name}_{VECTOR_MODE}"
-    if cache_key in _collection_cache:
-        return _collection_cache[cache_key]
-
     """
     Schema Milvus equivalente a la tabla Postgres previamente definida.
     Arrays (address, akas, landlines) van en el JSON 'attrs'.
@@ -50,6 +46,10 @@ def ensure_people_collection(collection_name: str = COLLECTION) -> Collection:
     Returns:
         Collection: La colección de Milvus
     """
+    cache_key = f"{collection_name}_{VECTOR_MODE}"
+    if cache_key in _collection_cache:
+        return _collection_cache[cache_key]
+
     connect()
 
     # Primero verificamos si la colección existe
