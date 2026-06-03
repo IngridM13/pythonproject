@@ -143,8 +143,8 @@ class TestFieldWeighting:
 
         for mode in ["binary", "float"]:
             # Switch vector mode
-            original_mode = milvus_conn.VECTOR_MODE
-            milvus_conn.VECTOR_MODE = mode
+            original_mode = os.environ.get("MILVUS_VECTOR_MODE")
+            os.environ["MILVUS_VECTOR_MODE"] = mode
 
             try:
                 mode_results = []
@@ -233,4 +233,7 @@ class TestFieldWeighting:
                     print(f"{row['variant']:<{col_width}}  {row['recall_at_k']:.3f}")
 
             finally:
-                milvus_conn.VECTOR_MODE = original_mode
+                if original_mode is None:
+                    os.environ.pop("MILVUS_VECTOR_MODE", None)
+                else:
+                    os.environ["MILVUS_VECTOR_MODE"] = original_mode

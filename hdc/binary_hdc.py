@@ -472,6 +472,9 @@ class HyperDimensionalComputingBinary:
                 if field_weights is not None:
                     weight = field_weights.get(key, 1)
 
+                # Appending bound_hv `weight` times grows len(vectors) proportionally,
+                # so threshold = len/2 still implements a correct weighted majority vote.
+                # This is mathematically equivalent to bipolar's scalar multiplication (acc += v * w).
                 for _ in range(weight):
                     all_field_vectors.append(bound_hv)
 
