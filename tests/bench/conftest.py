@@ -18,17 +18,16 @@ def with_vector_mode(request):
     Configura el modo de vector para las pruebas.
     Valores aceptados (en parametrize): 'binary', 'float'
     """
-    import database_utils.milvus_db_connection as milvus_conn
-    original_mode = milvus_conn.VECTOR_MODE
-    
-    # Set vector mode for test
     mode = request.param
-    milvus_conn.VECTOR_MODE = mode
-    
+    original_mode = os.environ.get("MILVUS_VECTOR_MODE")
+    os.environ["MILVUS_VECTOR_MODE"] = mode
+
     yield mode
-    
-    # Restore original
-    milvus_conn.VECTOR_MODE = original_mode
+
+    if original_mode is None:
+        os.environ.pop("MILVUS_VECTOR_MODE", None)
+    else:
+        os.environ["MILVUS_VECTOR_MODE"] = original_mode
 
 def _sanitize_filename_part(s: str, max_len: int = 80) -> str:
     # deja letras, números, guión y guión bajo; el resto a "_"

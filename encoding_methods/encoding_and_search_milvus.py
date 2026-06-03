@@ -7,13 +7,10 @@ from typing import Any, Dict, List, Union
 from datetime import datetime, date as date_cls, timedelta
 
 from configs.settings import HDC_DIM as DIMENSION, HDC_DIM, NAME_AND_DATE_WEIGHTS
-from database_utils.milvus_db_connection import ensure_people_collection, VECTOR_MODE, get_vector_mode
+from database_utils.milvus_db_connection import ensure_people_collection, get_vector_mode
 from hdc.binary_hdc import HyperDimensionalComputingBinary
 from utils.person_data_normalization import parse_date, normalize_person_data
 from hdc.bipolar_hdc import HyperDimensionalComputingBipolar
-
-# Global dictionary to cache hypervectors
-hv_dict = {}
 
 # Module-level singletons — instantiated once at import time
 _hdc_binary = HyperDimensionalComputingBinary(dim=HDC_DIM)

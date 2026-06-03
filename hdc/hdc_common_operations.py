@@ -17,9 +17,11 @@ def binary_random(d, rng=None):
         return torch.randint(0, 2, (d,), dtype=torch.int8)
 
 def flip_inplace(v, idx):
-    """Inverts sign at v[idx]."""
+    """Inverts sign at v[idx]. Only valid for bipolar vectors {-1, +1}."""
     if not isinstance(v, torch.Tensor):
         v = torch.tensor(v, dtype=torch.int8)
+    if not torch.all((v == 1) | (v == -1)):
+        raise ValueError("flip_inplace requires a bipolar vector with values in {-1, +1}")
     v[idx] = -v[idx]
     return v
 

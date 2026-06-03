@@ -51,15 +51,16 @@ def dataframe_row_to_person_dict(row) -> dict:
 
 @pytest.fixture(scope="class", params=["binary", "float"])
 def with_vector_mode(request):
-    import database_utils.milvus_db_connection as milvus_conn
-    original_mode = milvus_conn.VECTOR_MODE
-
     mode = request.param
-    milvus_conn.VECTOR_MODE = mode
+    original_mode = os.environ.get("MILVUS_VECTOR_MODE")
+    os.environ["MILVUS_VECTOR_MODE"] = mode
 
     yield mode
 
-    milvus_conn.VECTOR_MODE = original_mode
+    if original_mode is None:
+        os.environ.pop("MILVUS_VECTOR_MODE", None)
+    else:
+        os.environ["MILVUS_VECTOR_MODE"] = original_mode
 
 
 @pytest.fixture(scope="class")

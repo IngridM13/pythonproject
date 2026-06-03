@@ -18,8 +18,6 @@ load_dotenv()
 MILVUS_URI = os.getenv("MILVUS_URI", "http://localhost:19530")
 COLLECTION = "people"
 ALIAS = "default"
-VECTOR_MODE = os.getenv("MILVUS_VECTOR_MODE", "binary")  # "binary" or "float"
-
 # Cache of collection_name -> Collection for collections already set up in this process.
 # Avoids repeating index creation and schema validation on every store_person() call.
 _collection_cache: dict = {}
@@ -30,8 +28,9 @@ def connect():
         print(f"Connecting to Milvus at {MILVUS_URI}...")
         connections.connect(alias=ALIAS, uri=MILVUS_URI)
 
-def get_vector_mode():
-    return VECTOR_MODE
+def get_vector_mode() -> str:
+    """Returns the active vector mode, read from the environment on each call."""
+    return os.getenv("MILVUS_VECTOR_MODE", "binary")
 
 
 def ensure_people_collection(collection_name: str = COLLECTION) -> Collection:
@@ -46,7 +45,7 @@ def ensure_people_collection(collection_name: str = COLLECTION) -> Collection:
     Returns:
         Collection: La colección de Milvus
     """
-    cache_key = f"{collection_name}_{VECTOR_MODE}"
+    cache_key = f"{collection_name}_{get_vector_mode()}"
     if cache_key in _collection_cache:
         return _collection_cache[cache_key]
 
@@ -68,10 +67,10 @@ def ensure_people_collection(collection_name: str = COLLECTION) -> Collection:
 
             if hv_field:
                 # Verificar si el tipo de campo coincide con el VECTOR_MODE actual
-                if VECTOR_MODE == "binary" and hv_field.dtype != DataType.BINARY_VECTOR:
+                if get_vector_mode() == "binary" and hv_field.dtype != DataType.BINARY_VECTOR:
                     print(f">>> Tipo de vector actual (float) no coincide con el modo deseado (binary)")
                     vector_type_mismatch = True
-                elif VECTOR_MODE == "float" and hv_field.dtype != DataType.FLOAT_VECTOR:
+                elif get_vector_mode() == "float" and hv_field.dtype != DataType.FLOAT_VECTOR:
                     print(f">>> Tipo de vector actual (binary) no coincide con el modo deseado (float)")
                     vector_type_mismatch = True
 
@@ -85,7 +84,7 @@ def ensure_people_collection(collection_name: str = COLLECTION) -> Collection:
                 # Intentamos crear los índices necesarios si no hay inconsistencia de tipos
                 try:
                     # Crear índice para hv según el modo
-                    if VECTOR_MODE == "binary":
+                    if get_vector_mode() == "binary":
                         col.create_index("hv", {"index_type": "BIN_IVF_FLAT", "metric_type": "HAMMING", "params": {"nlist": 128}})
                     else:  # float
                         col.create_index("hv",
@@ -98,7 +97,7 @@ def ensure_people_collection(collection_name: str = COLLECTION) -> Collection:
                 # Cargar la colección
                 try:
                     col.load()
-                    _collection_cache[f"{collection_name}_{VECTOR_MODE}"] = col
+                    _collection_cache[f"{collection_name}_{get_vector_mode()}"] = col
                     return col
                 except MilvusException as e:
                     print(f">>> Error al cargar colección: {e}")
@@ -128,7 +127,7 @@ def ensure_people_collection(collection_name: str = COLLECTION) -> Collection:
     ]
 
     # Campo para hypervector según el modo
-    if VECTOR_MODE == "binary":
+    if get_vector_mode() == "binary":
         print(f">>> Creando colección {collection_name} con campo 'hv' como BINARY_VECTOR")
         if HDC_DIM % 8 != 0:
             raise ValueError(f"Binary vectors require HDC_DIM to be a multiple of 8. Current: {HDC_DIM}")
@@ -143,7 +142,7 @@ def ensure_people_collection(collection_name: str = COLLECTION) -> Collection:
 
     # Crear índices para los campos vectoriales
     print(">>> Creando índices...")
-    if VECTOR_MODE == "binary":
+    if get_vector_mode() == "binary":
         col.create_index("hv", {"index_type": "BIN_IVF_FLAT", "metric_type": "HAMMING", "params": {"nlist": 128}})
     else:  # float
         col.create_index("hv", {"index_type": "IVF_FLAT", "metric_type": "IP", "params": {"nlist": 128}})
@@ -158,5 +157,5 @@ def ensure_people_collection(collection_name: str = COLLECTION) -> Collection:
     print(f">>> Cargando colección {collection_name}...")
     col.load()
 
-    _collection_cache[f"{collection_name}_{VECTOR_MODE}"] = col
+    _collection_cache[f"{collection_name}_{get_vector_mode()}"] = col
     return col

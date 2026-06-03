@@ -320,6 +320,8 @@ class HyperDimensionalComputingBipolar:
             if field_weights is not None:
                 weight = field_weights.get(key, 1)
 
+            # Scalar multiplication (acc += v * w) is equivalent to binary's repetition approach
+            # (appending v `weight` times), both implement a weighted majority vote.
             self.bundle_add(bundle_acc, bound_hv, weights=[weight])
 
         return self.bundle_finalize(bundle_acc, tie_key="person_bundle")
