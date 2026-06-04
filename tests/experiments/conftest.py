@@ -49,18 +49,10 @@ def dataframe_row_to_person_dict(row) -> dict:
 # Fixtures
 # ---------------------------------------------------------------------------
 
-@pytest.fixture(scope="class", params=["binary", "float"])
-def with_vector_mode(request):
-    mode = request.param
-    original_mode = os.environ.get("MILVUS_VECTOR_MODE")
-    os.environ["MILVUS_VECTOR_MODE"] = mode
-
-    yield mode
-
-    if original_mode is None:
-        os.environ.pop("MILVUS_VECTOR_MODE", None)
-    else:
-        os.environ["MILVUS_VECTOR_MODE"] = original_mode
+@pytest.fixture(scope="function", params=["binary", "float"])
+def with_vector_mode(request, monkeypatch):
+    monkeypatch.setenv("MILVUS_VECTOR_MODE", request.param)
+    yield request.param
 
 
 @pytest.fixture(scope="class")

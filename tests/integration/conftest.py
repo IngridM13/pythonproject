@@ -68,11 +68,6 @@ def milvus_client():
     """Cliente Milvus (por si lo necesito en tests)."""
     return MilvusClient(uri="http://localhost:19530")
 
-@pytest.fixture
-def with_vector_mode(request, monkeypatch):
-    """Fixture para cambiar temporalmente el modo de vector durante una prueba."""
-    monkeypatch.setenv("MILVUS_VECTOR_MODE", request.param)
-    yield request.param
 
 @pytest.fixture(scope="function")
 def test_people():

@@ -12,22 +12,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 from database_utils.milvus_db_connection import ensure_people_collection
 
 
-@pytest.fixture(scope="class")
-def with_vector_mode(request):
-    """
-    Configura el modo de vector para las pruebas.
-    Valores aceptados (en parametrize): 'binary', 'float'
-    """
-    mode = request.param
-    original_mode = os.environ.get("MILVUS_VECTOR_MODE")
-    os.environ["MILVUS_VECTOR_MODE"] = mode
-
-    yield mode
-
-    if original_mode is None:
-        os.environ.pop("MILVUS_VECTOR_MODE", None)
-    else:
-        os.environ["MILVUS_VECTOR_MODE"] = original_mode
 
 def _sanitize_filename_part(s: str, max_len: int = 80) -> str:
     # deja letras, números, guión y guión bajo; el resto a "_"
