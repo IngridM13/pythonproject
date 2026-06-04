@@ -39,7 +39,8 @@ SAMPLE_DATE = date(1990, 5, 15)
 class TestDeterminism:
     """Repeated calls with the same input must return identical tensors."""
 
-    def test_encode_person_binary_is_deterministic(self, sample_person):
+    @pytest.mark.parametrize("with_vector_mode", ["binary"], indirect=True)
+    def test_encode_person_binary_is_deterministic(self, with_vector_mode, sample_person):
         hv1 = encode_person(sample_person)
         hv2 = encode_person(sample_person)
         assert torch.equal(hv1, hv2)
@@ -50,7 +51,8 @@ class TestDeterminism:
         hv2 = encode_person(sample_person)
         assert torch.equal(hv1, hv2)
 
-    def test_encode_date_binary_is_deterministic(self):
+    @pytest.mark.parametrize("with_vector_mode", ["binary"], indirect=True)
+    def test_encode_date_binary_is_deterministic(self, with_vector_mode):
         hv1 = encode_date(SAMPLE_DATE)
         hv2 = encode_date(SAMPLE_DATE)
         assert torch.equal(hv1, hv2)
