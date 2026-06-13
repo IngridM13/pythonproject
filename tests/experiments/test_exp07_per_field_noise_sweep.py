@@ -60,7 +60,7 @@ from tests.experiments.experiment_utils import (
 # Test class
 # ---------------------------------------------------------------------------
 
-@pytest.mark.usefixtures("with_vector_mode")
+@pytest.mark.parametrize("with_vector_mode", ["binary", "float"], indirect=True)
 class TestPerFieldNoiseSweep:
 
     def test_per_field_noise_sweep(self, with_vector_mode, test_collection):

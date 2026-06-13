@@ -45,6 +45,11 @@ def test_metrics(with_vector_mode, request):
     Fixture que crea un TestMetricsCollector y guarda métricas a un archivo
     cuyo nombre incluye el "tipo" de test (search/insert/encoding/...).
     """
+    if with_vector_mode not in ("binary", "float"):
+        raise ValueError(
+            f"test_metrics requiere with_vector_mode en ('binary', 'float'), "
+            f"recibió: {with_vector_mode!r}"
+        )
     from tests.metrics.TestMetricsCollector import TestMetricsCollector
 
     metrics = TestMetricsCollector()

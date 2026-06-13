@@ -123,6 +123,11 @@ def test_metrics(with_vector_mode):
     """
     Prepara el collector para cada modo y guarda el JSON al terminar.
     """
+    if with_vector_mode not in ("binary", "float"):
+        raise ValueError(
+            f"test_metrics requiere with_vector_mode en ('binary', 'float'), "
+            f"recibió: {with_vector_mode!r}"
+        )
     metrics_collector.reset()
 
     yield metrics_collector

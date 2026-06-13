@@ -67,7 +67,7 @@ _FIELDS_TO_TEST = [
 # Test class
 # ---------------------------------------------------------------------------
 
-@pytest.mark.usefixtures("with_vector_mode")
+@pytest.mark.parametrize("with_vector_mode", ["binary", "float"], indirect=True)
 class TestPerFieldNoise:
 
     def test_per_field_noise(self, with_vector_mode, test_collection):

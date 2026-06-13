@@ -47,7 +47,7 @@ from tests.experiments.experiment_utils import generate_canonical_persons, inser
 # Test class
 # ---------------------------------------------------------------------------
 
-@pytest.mark.usefixtures("with_vector_mode")
+@pytest.mark.parametrize("with_vector_mode", ["binary", "float"], indirect=True)
 class TestRankingMetrics:
 
     def test_ranking_metrics(self, with_vector_mode, test_collection):

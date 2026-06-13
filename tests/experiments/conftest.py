@@ -49,12 +49,6 @@ def dataframe_row_to_person_dict(row) -> dict:
 # Fixtures
 # ---------------------------------------------------------------------------
 
-@pytest.fixture(scope="function", params=["binary", "float"])
-def with_vector_mode(request, monkeypatch):
-    monkeypatch.setenv("MILVUS_VECTOR_MODE", request.param)
-    yield request.param
-
-
 @pytest.fixture(scope="class")
 def test_collection(with_vector_mode):
     name = f"people_test_{uuid.uuid4().hex[:8]}"

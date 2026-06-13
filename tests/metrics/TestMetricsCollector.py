@@ -12,6 +12,9 @@ class TestMetricsCollector:
     """
 
     def __init__(self):
+        self._init_state()
+
+    def _init_state(self):
         self.metrics = {
             "configuracion": {
                 "encoding": None,
@@ -19,7 +22,7 @@ class TestMetricsCollector:
                 "seed": None
             },
             "build": {
-                "tiempo_encoding_total": 0.0,  # Inicializar en 0.0 para acumular
+                "tiempo_encoding_total": 0.0,
                 "tiempo_insercion_bd": 0.0,
                 "tamano_indice_memoria": None
             },
@@ -82,7 +85,7 @@ class TestMetricsCollector:
 
     def reset(self):
         """Limpia las métricas para una nueva ejecución."""
-        self.__init__()
+        self._init_state()
 
     def save_metrics(self, output_path: str):
         self.calculate_latency_percentiles()
