@@ -90,8 +90,8 @@ class TestExp12RecallNSweep:
         all_results = []
 
         for mode in modes:
-            original_mode = milvus_conn.VECTOR_MODE
-            milvus_conn.VECTOR_MODE = mode
+            original_mode = os.environ.get("MILVUS_VECTOR_MODE", "binary")
+            os.environ["MILVUS_VECTOR_MODE"] = mode
 
             try:
                 print(f"\n[EXP12] ── mode={mode} {'─' * 55}")
@@ -185,7 +185,7 @@ class TestExp12RecallNSweep:
                             print(f"[EXP12] Warning: could not drop {col_name}: {e}")
 
             finally:
-                milvus_conn.VECTOR_MODE = original_mode
+                os.environ["MILVUS_VECTOR_MODE"] = original_mode
 
         # --- Save JSON ---
         project_root = Path(__file__).resolve().parents[2]

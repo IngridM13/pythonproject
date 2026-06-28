@@ -63,12 +63,12 @@ from configs.settings import (
     EXP13_SEED,
     HDC_DIM,
     NAME_AND_DATE_WEIGHTS,
+    NPROBE_EXHAUSTIVE,
 )
 from database_utils.milvus_db_connection import (
     _collection_cache,
     ensure_people_collection,
     get_vector_mode,
-    get_nprobe,
 )
 from encoding_methods.encoding_and_search_milvus import (
     _encode_for_milvus,
@@ -130,12 +130,13 @@ def _search_full(
     qpayload = _encode_for_milvus(qhv)
 
     mode = get_vector_mode()
-    nprobe = get_nprobe()
+    # Exp 13 always uses exhaustive search (nprobe=nlist) to isolate encoder
+    # quality from ANN approximation effects — HDC_NPROBE is intentionally ignored.
     if mode == "binary":
-        search_params = {"metric_type": "HAMMING", "params": {"nprobe": nprobe}}
+        search_params = {"metric_type": "HAMMING", "params": {"nprobe": NPROBE_EXHAUSTIVE}}
         metric = "HAMMING"
     else:
-        search_params = {"metric_type": "IP", "params": {"nprobe": nprobe}}
+        search_params = {"metric_type": "IP", "params": {"nprobe": NPROBE_EXHAUSTIVE}}
         metric = "IP"
 
     results = col.search(
@@ -320,8 +321,8 @@ def run_experiment(
     all_results = []
 
     for mode in modes:
-        original_mode = milvus_conn.VECTOR_MODE
-        milvus_conn.VECTOR_MODE = mode
+        original_mode = os.environ.get("MILVUS_VECTOR_MODE", "binary")
+        os.environ["MILVUS_VECTOR_MODE"] = mode
 
         try:
             print(f"\n[EXP13] {'═' * 60}")
@@ -334,7 +335,7 @@ def run_experiment(
                 all_results.append(entry)
 
         finally:
-            milvus_conn.VECTOR_MODE = original_mode
+            os.environ["MILVUS_VECTOR_MODE"] = original_mode
 
     return all_results
 

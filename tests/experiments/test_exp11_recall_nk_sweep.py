@@ -216,9 +216,8 @@ class TestExp11RecallNKSweep:
         all_results = []
 
         for mode in MODES:
-            # Switch Milvus vector mode
-            original_mode       = milvus_conn.VECTOR_MODE
-            milvus_conn.VECTOR_MODE = mode
+            original_mode = os.environ.get("MILVUS_VECTOR_MODE", "binary")
+            os.environ["MILVUS_VECTOR_MODE"] = mode
 
             mode_rows = []
 
@@ -295,7 +294,7 @@ class TestExp11RecallNKSweep:
                         _drop_collection(col_name, mode)
 
             finally:
-                milvus_conn.VECTOR_MODE = original_mode
+                os.environ["MILVUS_VECTOR_MODE"] = original_mode
 
             _print_pivot(mode, mode_rows)
 
