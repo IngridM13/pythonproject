@@ -27,7 +27,7 @@ Environment variables
     DIM_SWEEP_N         Number of canonical identities (default: 200)
     DIM_SWEEP_V         Noisy variants per identity (default: 3)
     DIM_SWEEP_NOISE     Noise fraction passed to inject_noise (default: 0.30)
-    DIM_SWEEP_K         K for Recall@K (default: 5)
+    DIM_SWEEP_TOP_K         K for Recall@K (default: 5)
     DIM_SWEEP_SEED      RNG seed (default: 42)
 """
 
@@ -43,7 +43,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 import database_utils.milvus_db_connection as milvus_conn
 import encoding_methods.encoding_and_search_milvus as enc_module
 from configs.settings import (
-    DIM_SWEEP_K,
+    DIM_SWEEP_TOP_K,
     DIM_SWEEP_N,
     DIM_SWEEP_NOISE,
     DIM_SWEEP_SEED,
@@ -76,7 +76,7 @@ class TestDimensionalitySweep:
         n_identities          = int(os.environ.get("DIM_SWEEP_N",     DIM_SWEEP_N))
         variants_per_identity = int(os.environ.get("DIM_SWEEP_V",     DIM_SWEEP_V))
         noise_fraction        = float(os.environ.get("DIM_SWEEP_NOISE", DIM_SWEEP_NOISE))
-        top_k                 = int(os.environ.get("DIM_SWEEP_K",     DIM_SWEEP_K))
+        top_k                 = int(os.environ.get("DIM_SWEEP_TOP_K",     DIM_SWEEP_TOP_K))
         seed                  = int(os.environ.get("DIM_SWEEP_SEED",  DIM_SWEEP_SEED))
         total_records         = n_identities * variants_per_identity
 

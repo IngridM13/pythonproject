@@ -49,7 +49,7 @@ def dataframe_row_to_person_dict(row) -> dict:
 # Fixtures
 # ---------------------------------------------------------------------------
 
-@pytest.fixture(scope="class")
+@pytest.fixture
 def test_collection(with_vector_mode):
     name = f"people_test_{uuid.uuid4().hex[:8]}"
     print(f"\n[FIXTURE] Creating collection: {name}")

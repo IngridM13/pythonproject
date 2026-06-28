@@ -25,7 +25,7 @@ Environment variables
     PER_FIELD_N         Number of canonical identities (default: PER_FIELD_N from settings)
     PER_FIELD_V         Noisy variants per identity (default: PER_FIELD_V from settings)
     PER_FIELD_NOISE     Noise fraction for variant generation (default: PER_FIELD_NOISE from settings)
-    PER_FIELD_K         K for recall@K (default: PER_FIELD_K from settings)
+    PER_FIELD_TOP_K         K for recall@K (default: PER_FIELD_TOP_K from settings)
     PER_FIELD_SEED      RNG seed (default: PER_FIELD_SEED from settings)
 """
 
@@ -37,7 +37,7 @@ import pytest
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from configs.settings import HDC_DIM, PER_FIELD_N, PER_FIELD_V, PER_FIELD_NOISE, PER_FIELD_K, PER_FIELD_SEED
+from configs.settings import HDC_DIM, PER_FIELD_N, PER_FIELD_V, PER_FIELD_NOISE, PER_FIELD_TOP_K, PER_FIELD_SEED
 from tests.experiments.experiment_utils import (
     _inject_single_field_noise,
     _compute_metrics,
@@ -75,7 +75,7 @@ class TestPerFieldNoise:
         n_identities          = int(os.environ.get("PER_FIELD_N", PER_FIELD_N))
         variants_per_identity = int(os.environ.get("PER_FIELD_V", PER_FIELD_V))
         noise_fraction        = float(os.environ.get("PER_FIELD_NOISE", PER_FIELD_NOISE))
-        top_k                 = int(os.environ.get("PER_FIELD_K", PER_FIELD_K))
+        top_k                 = int(os.environ.get("PER_FIELD_TOP_K", PER_FIELD_TOP_K))
         seed                  = int(os.environ.get("PER_FIELD_SEED", PER_FIELD_SEED))
 
         mode = with_vector_mode

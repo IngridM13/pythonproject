@@ -26,7 +26,7 @@ Environment variables
     PER_FIELD_SWEEP_NOISE_LEVELS  Comma-separated ints 0-100 (default: PER_FIELD_SWEEP_NOISE_LEVELS from settings)
     PER_FIELD_SWEEP_N             Number of canonical identities (default: PER_FIELD_SWEEP_N from settings)
     PER_FIELD_SWEEP_V             Noisy variants per identity (default: PER_FIELD_SWEEP_V from settings)
-    PER_FIELD_SWEEP_K             K for Recall@K (default: PER_FIELD_SWEEP_K from settings)
+    PER_FIELD_SWEEP_TOP_K             K for Recall@K (default: PER_FIELD_SWEEP_TOP_K from settings)
     PER_FIELD_SWEEP_SEED          RNG seed (default: PER_FIELD_SWEEP_SEED from settings)
 """
 
@@ -44,7 +44,7 @@ from configs.settings import (
     PER_FIELD_SWEEP_NOISE_LEVELS,
     PER_FIELD_SWEEP_N,
     PER_FIELD_SWEEP_V,
-    PER_FIELD_SWEEP_K,
+    PER_FIELD_SWEEP_TOP_K,
     PER_FIELD_SWEEP_SEED,
 )
 from tests.experiments.experiment_utils import (
@@ -79,7 +79,7 @@ class TestPerFieldNoiseSweep:
 
         n_identities          = int(os.environ.get("PER_FIELD_SWEEP_N", PER_FIELD_SWEEP_N))
         variants_per_identity = int(os.environ.get("PER_FIELD_SWEEP_V", PER_FIELD_SWEEP_V))
-        top_k                 = int(os.environ.get("PER_FIELD_SWEEP_K", PER_FIELD_SWEEP_K))
+        top_k                 = int(os.environ.get("PER_FIELD_SWEEP_TOP_K", PER_FIELD_SWEEP_TOP_K))
         seed                  = int(os.environ.get("PER_FIELD_SWEEP_SEED", PER_FIELD_SWEEP_SEED))
 
         mode = with_vector_mode

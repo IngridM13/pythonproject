@@ -125,7 +125,7 @@ class TestFieldWeighting:
         n_identities          = 200
         variants_per_identity = 3
         noise_fraction        = 0.3
-        top_k                 = 5
+        top_k                 = 3
         seed                  = DEFAULT_SEED
         total_records         = n_identities * variants_per_identity
 

@@ -51,7 +51,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 import database_utils.milvus_db_connection as milvus_conn
 import encoding_methods.encoding_and_search_milvus as enc_module
 from configs.settings import (
-    DATE_ENC_K,
+    DATE_ENC_TOP_K,
     DATE_ENC_N,
     DATE_ENC_NOISE,
     DATE_ENC_SEED,
@@ -363,7 +363,7 @@ class TestDateEncoding:
         n_identities          = DATE_ENC_N
         variants_per_identity = DATE_ENC_V
         noise_fraction        = DATE_ENC_NOISE
-        top_k                 = DATE_ENC_K
+        top_k                 = DATE_ENC_TOP_K
         seed                  = DATE_ENC_SEED
         total_records         = n_identities * variants_per_identity
 
