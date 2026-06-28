@@ -93,9 +93,8 @@ class TestDimensionalitySweep:
         }
 
         for mode in ["binary", "float"]:
-            # Switch vector mode inline (same pattern as test_field_weighting.py)
-            original_mode = milvus_conn.VECTOR_MODE
-            milvus_conn.VECTOR_MODE = mode
+            original_mode = os.environ.get("MILVUS_VECTOR_MODE", "binary")
+            os.environ["MILVUS_VECTOR_MODE"] = mode
 
             try:
                 mode_results = []
@@ -238,4 +237,4 @@ class TestDimensionalitySweep:
                     )
 
             finally:
-                milvus_conn.VECTOR_MODE = original_mode
+                os.environ["MILVUS_VECTOR_MODE"] = original_mode

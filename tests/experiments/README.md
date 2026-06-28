@@ -234,7 +234,7 @@ Experiments use one of two collection setups:
 | Variable | Default | Description |
 |---|---|---|
 | `DIM_SWEEP_VALUES` | `1000,2000,5000,10000` | Comma-separated dimensions |
-| `DIM_SWEEP_N` | `200` | Number of canonical identities |
+| `DIM_SWEEP_N` | `1000` | Number of canonical identities |
 | `DIM_SWEEP_V` | `3` | Noisy variants per identity |
 | `DIM_SWEEP_NOISE` | `0.30` | Noise fraction |
 | `DIM_SWEEP_TOP_K` | `3` | K for Recall@K |
@@ -252,7 +252,7 @@ Experiments use one of two collection setups:
 
 | Variable | Default | Description |
 |---|---|---|
-| `DATE_ENC_N` | `200` | Number of canonical identities |
+| `DATE_ENC_N` | `1000` | Number of canonical identities |
 | `DATE_ENC_V` | `3` | Noisy variants per identity |
 | `DATE_ENC_NOISE` | `0.30` | Noise fraction |
 | `DATE_ENC_TOP_K` | `3` | K for Recall@K |
