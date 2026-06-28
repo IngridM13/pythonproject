@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Union
 from datetime import datetime, date as date_cls, timedelta
 
 from configs.settings import HDC_DIM as DIMENSION, HDC_DIM, NAME_AND_DATE_WEIGHTS
-from database_utils.milvus_db_connection import ensure_people_collection, get_vector_mode
+from database_utils.milvus_db_connection import ensure_people_collection, get_vector_mode, get_nprobe
 from hdc.binary_hdc import HyperDimensionalComputingBinary
 from utils.person_data_normalization import parse_date, normalize_person_data
 from hdc.bipolar_hdc import HyperDimensionalComputingBipolar
@@ -222,11 +222,12 @@ def find_closest_match_db(query_person, threshold=0.7, limit=5, collection_name:
     qhv = encode_person(normalized_query, field_weights=field_weights)
     qpayload = _encode_for_milvus(qhv)
 
+    nprobe = get_nprobe()
     if current_mode == "binary":
-        search_params = {"metric_type": "HAMMING", "params": {"nprobe": 128}}
+        search_params = {"metric_type": "HAMMING", "params": {"nprobe": nprobe}}
         metric = "HAMMING"
     else:
-        search_params = {"metric_type": "IP", "params": {"nprobe": 128}}
+        search_params = {"metric_type": "IP", "params": {"nprobe": nprobe}}
         metric = "IP"
 
     results = col.search(
@@ -234,7 +235,7 @@ def find_closest_match_db(query_person, threshold=0.7, limit=5, collection_name:
         anns_field="hv",
         param=search_params,
         limit=limit * 3,
-        output_fields=["name", "lastname", "dob", "gender"],
+        output_fields=["name", "lastname", "dob", "marital_status", "mobile_number", "gender", "race", "attrs"],
     )
     hits = results[0] if results else []
 
@@ -251,7 +252,11 @@ def find_closest_match_db(query_person, threshold=0.7, limit=5, collection_name:
                 "name": h.entity.get("name"),
                 "lastname": h.entity.get("lastname"),
                 "dob": h.entity.get("dob"),
+                "marital_status": h.entity.get("marital_status"),
+                "mobile_number": h.entity.get("mobile_number"),
                 "gender": h.entity.get("gender"),
+                "race": h.entity.get("race"),
+                "attrs": h.entity.get("attrs"),
                 "similarity": sim,
             })
     out.sort(key=lambda x: x["similarity"], reverse=True)

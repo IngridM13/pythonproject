@@ -9,6 +9,13 @@ DEFAULT_SEED=42
 # Defininicion de la hiperdimensionalidad hypervector
 HDC_DIM = 10000
 
+# nprobe controls ANN search approximation (IVF index).
+# NPROBE_ANN=8  → mode A: true approximate search (production-realistic, fast)
+# NPROBE_EXHAUSTIVE=128 → mode B: exhaustive (nprobe=nlist, reference quality)
+# Runtime value is read from env var HDC_NPROBE; these are the canonical defaults.
+NPROBE_ANN = 8
+NPROBE_EXHAUSTIVE = 128
+
 # Default field weights — name_and_date configuration
 # Improves dedup recall@5: binary 92.3% → 98.7%, float 95.7% → 99.3%
 NAME_AND_DATE_WEIGHTS: Dict[str, int] = {

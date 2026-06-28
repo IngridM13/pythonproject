@@ -1,6 +1,9 @@
 PYTEST := .venv311/bin/python -m pytest
 PYTHON := .venv311/bin/python
 
+# nprobe default — override with NPROBE=128 for exhaustive mode B
+NPROBE ?= 8
+
 up:
 	docker-compose -f infra/docker-compose.yml up -d
 
@@ -21,6 +24,38 @@ test-bench:
 
 test-functional:
 	$(PYTEST) tests/functional/
+
+# ---------------------------------------------------------------------------
+# Run ALL experiments — choose mode A (ANN, nprobe=8) or B (exhaustive, nprobe=128)
+#
+#   make experiments-ann          # mode A: true approximate search
+#   make experiments-exhaustive   # mode B: exhaustive reference
+# ---------------------------------------------------------------------------
+
+experiments-ann:
+	$(MAKE) _run-all-experiments NPROBE=8
+
+experiments-exhaustive:
+	$(MAKE) _run-all-experiments NPROBE=128
+
+_run-all-experiments:
+	@echo "=== Running ALL experiments with nprobe=$(NPROBE) ==="
+	HDC_NPROBE=$(NPROBE) $(PYTEST) tests/experiments/test_exp01_recall_under_noise.py -v -s
+	HDC_NPROBE=$(NPROBE) $(PYTEST) tests/experiments/test_exp02_dedup_recall.py -v -s
+	HDC_NPROBE=$(NPROBE) $(PYTEST) tests/experiments/test_exp03_field_weighting.py -v -s
+	HDC_NPROBE=$(NPROBE) $(PYTEST) tests/experiments/test_exp04_scalability.py -v -s
+	HDC_NPROBE=$(NPROBE) $(PYTEST) tests/experiments/test_exp05_ranking_metrics.py -v -s
+	HDC_NPROBE=$(NPROBE) $(PYTEST) tests/experiments/test_exp06_per_field_noise.py -v -s
+	HDC_NPROBE=$(NPROBE) $(PYTEST) tests/experiments/test_exp07_per_field_noise_sweep.py -v -s
+	HDC_NPROBE=$(NPROBE) $(PYTEST) tests/experiments/test_exp08_dimensionality.py -v -s
+	HDC_NPROBE=$(NPROBE) $(PYTEST) tests/experiments/test_exp09_date_encoding.py -v -s
+	HDC_NPROBE=$(NPROBE) $(PYTEST) tests/experiments/test_exp10_scalability_noisy_dupes.py -v -s
+	HDC_NPROBE=$(NPROBE) $(PYTEST) tests/experiments/test_exp11_recall_nk_sweep.py -v -s
+	HDC_NPROBE=$(NPROBE) $(PYTEST) tests/experiments/test_exp12_recall_n_sweep.py -v -s
+	HDC_NPROBE=$(NPROBE) $(PYTHON) tests/experiments/test_exp13_separability_analysis.py
+	@echo "=== All experiments completed (nprobe=$(NPROBE)) ==="
+
+# ---------------------------------------------------------------------------
 
 experiment01-recall-under-noise:
 	$(PYTEST) tests/experiments/test_exp01_recall_under_noise.py -v -s
@@ -144,10 +179,3 @@ results13-separability:
 	if [ -n "$$file" ]; then $(PYTHON) scripts/show_results.py $$file; \
 	else echo "No exp13_separability results found in test_results/"; fi
 
-experiment14a-float-capacity:
-	$(PYTHON) tests/experiments/test_exp14a_float_capacity.py
-
-results14a-float-capacity:
-	@file=$$(ls -t test_results/exp14a_float_capacity_*.json 2>/dev/null | head -1); \
-	if [ -n "$$file" ]; then $(PYTHON) scripts/show_results.py $$file; \
-	else echo "No exp14a results found in test_results/"; fi

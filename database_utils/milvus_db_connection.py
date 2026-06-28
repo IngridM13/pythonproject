@@ -33,6 +33,17 @@ def get_vector_mode() -> str:
     return os.getenv("MILVUS_VECTOR_MODE", "binary")
 
 
+def get_nprobe() -> int:
+    """Returns the nprobe value for ANN search, read from the environment on each call.
+
+    HDC_NPROBE=8   → mode A: approximate search (production-realistic)
+    HDC_NPROBE=128 → mode B: exhaustive search (nprobe=nlist, reference quality)
+    Defaults to 8 (NPROBE_ANN) when the env var is not set.
+    """
+    from configs.settings import NPROBE_ANN
+    return int(os.getenv("HDC_NPROBE", str(NPROBE_ANN)))
+
+
 def ensure_people_collection(collection_name: str = COLLECTION) -> Collection:
     """
     Schema Milvus equivalente a la tabla Postgres previamente definida.

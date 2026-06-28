@@ -68,6 +68,7 @@ from database_utils.milvus_db_connection import (
     _collection_cache,
     ensure_people_collection,
     get_vector_mode,
+    get_nprobe,
 )
 from encoding_methods.encoding_and_search_milvus import (
     _encode_for_milvus,
@@ -129,11 +130,12 @@ def _search_full(
     qpayload = _encode_for_milvus(qhv)
 
     mode = get_vector_mode()
+    nprobe = get_nprobe()
     if mode == "binary":
-        search_params = {"metric_type": "HAMMING", "params": {"nprobe": 128}}
+        search_params = {"metric_type": "HAMMING", "params": {"nprobe": nprobe}}
         metric = "HAMMING"
     else:
-        search_params = {"metric_type": "IP", "params": {"nprobe": 128}}
+        search_params = {"metric_type": "IP", "params": {"nprobe": nprobe}}
         metric = "IP"
 
     results = col.search(
