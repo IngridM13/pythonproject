@@ -1,0 +1,64 @@
+{
+  "mode": "float",
+  "config": {
+    "n_values": [
+      100,
+      500,
+      1000,
+      5000,
+      10000
+    ],
+    "variants_per_identity": 3,
+    "noise_fraction": 0.3,
+    "top_k": 3,
+    "hdim": 10000,
+    "seed": 42
+  },
+  "results": [
+    {
+      "n": 100,
+      "total_records": 300,
+      "recall_at_k": 0.99,
+      "hits": 297,
+      "total": 300,
+      "insert_time_s": 61.1909,
+      "query_time_s": 0.7724
+    },
+    {
+      "n": 500,
+      "total_records": 1500,
+      "recall_at_k": 0.973333,
+      "hits": 1460,
+      "total": 1500,
+      "insert_time_s": 304.6082,
+      "query_time_s": 6.1065
+    },
+    {
+      "n": 1000,
+      "total_records": 3000,
+      "recall_at_k": 0.905,
+      "hits": 2715,
+      "total": 3000,
+      "insert_time_s": 608.4251,
+      "query_time_s": 16.1232
+    },
+    {
+      "n": 5000,
+      "total_records": 15000,
+      "recall_at_k": 0.7764,
+      "hits": 11646,
+      "total": 15000,
+      "insert_time_s": 3039.9205,
+      "query_time_s": 63.8257
+    },
+    {
+      "n": 10000,
+      "total_records": 30000,
+      "recall_at_k": 0.703033,
+      "hits": 21091,
+      "total": 30000,
+      "insert_time_s": 6074.0258,
+      "query_time_s": 134.3794
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "experiment": "Experiment 10 \u2014 Scalability with Noisy Duplicates",
+  "timestamp": "20260703_205741",
+  "mode": "binary",
+  "config": {
+    "collection_sizes": [
+      10000,
+      50000,
+      100000
+    ],
+    "noise_ratio": 0.2,
+    "noise_level": 0.3,
+    "top_k": 3,
+    "duplicates_per_original": 3,
+    "hdim": 10000,
+    "seed": 42
+  },
+  "results": [
+    {
+      "mode": "binary",
+      "N": 10000,
+      "noise_ratio": 0.2,
+      "noise_level": 0.3,
+      "duplicates_per_original": 3,
+      "recall@1": 0.904905,
+      "recall@3": 0.998999,
+      "mrr": 0.9502,
+      "hit@1": 0.904905,
+      "avg_query_time_ms": 7.207,
+      "total_insert_time_s": 2446.9894
+    },
+    {
+      "mode": "binary",
+      "N": 50000,
+      "noise_ratio": 0.2,
+      "noise_level": 0.3,
+      "duplicates_per_original": 3,
+      "recall@1": 0.684668,
+      "recall@3": 0.775378,
+      "mrr": 0.728523,
+      "hit@1": 0.684668,
+      "avg_query_time_ms": 4.251,
+      "total_insert_time_s": 12293.3207
+    },
+    {
+      "mode": "binary",
+      "N": 100000,
+      "noise_ratio": 0.2,
+      "noise_level": 0.3,
+      "duplicates_per_original": 3,
+      "recall@1": 0.685319,
+      "recall@3": 0.771127,
+      "mrr": 0.726231,
+      "hit@1": 0.685319,
+      "avg_query_time_ms": 3.729,
+      "total_insert_time_s": 24308.8651
+    }
+  ]
+}

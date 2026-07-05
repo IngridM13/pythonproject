@@ -1,0 +1,180 @@
+{
+  "mode": "float",
+  "config": {
+    "n_identities": 1000,
+    "variants_per_identity": 3,
+    "noise_fraction": 0.3,
+    "top_k": 3,
+    "hdim": 10000,
+    "seed": 42,
+    "monotonicity_distances": [
+      0,
+      1,
+      7,
+      30,
+      90,
+      180,
+      365,
+      730
+    ],
+    "reference_date": "1985-06-15"
+  },
+  "results": [
+    {
+      "variant": "current",
+      "recall_at_k": 0.949,
+      "hits": 2847,
+      "total": 3000,
+      "monotonicity": {
+        "is_monotonic": true,
+        "violations": 0,
+        "distances": [
+          {
+            "dist_days": 0,
+            "similarity": 1.0,
+            "violation": false
+          },
+          {
+            "dist_days": 1,
+            "similarity": 1.0,
+            "violation": false
+          },
+          {
+            "dist_days": 7,
+            "similarity": 1.0,
+            "violation": false
+          },
+          {
+            "dist_days": 30,
+            "similarity": 0.9996,
+            "violation": false
+          },
+          {
+            "dist_days": 90,
+            "similarity": 0.9976,
+            "violation": false
+          },
+          {
+            "dist_days": 180,
+            "similarity": 0.9954,
+            "violation": false
+          },
+          {
+            "dist_days": 365,
+            "similarity": 0.987,
+            "violation": false
+          },
+          {
+            "dist_days": 730,
+            "similarity": 0.974,
+            "violation": false
+          }
+        ]
+      }
+    },
+    {
+      "variant": "circular",
+      "recall_at_k": 0.981,
+      "hits": 2943,
+      "total": 3000,
+      "monotonicity": {
+        "is_monotonic": false,
+        "violations": 2,
+        "distances": [
+          {
+            "dist_days": 0,
+            "similarity": 1.0,
+            "violation": false
+          },
+          {
+            "dist_days": 1,
+            "similarity": 0.975,
+            "violation": false
+          },
+          {
+            "dist_days": 7,
+            "similarity": 0.8114,
+            "violation": false
+          },
+          {
+            "dist_days": 30,
+            "similarity": 0.1226,
+            "violation": false
+          },
+          {
+            "dist_days": 90,
+            "similarity": -0.036,
+            "violation": false
+          },
+          {
+            "dist_days": 180,
+            "similarity": 0.1598,
+            "violation": true
+          },
+          {
+            "dist_days": 365,
+            "similarity": 0.9978,
+            "violation": true
+          },
+          {
+            "dist_days": 730,
+            "similarity": 0.9954,
+            "violation": false
+          }
+        ]
+      }
+    },
+    {
+      "variant": "circular_full",
+      "recall_at_k": 0.935,
+      "hits": 2805,
+      "total": 3000,
+      "monotonicity": {
+        "is_monotonic": false,
+        "violations": 2,
+        "distances": [
+          {
+            "dist_days": 0,
+            "similarity": 1.0,
+            "violation": false
+          },
+          {
+            "dist_days": 1,
+            "similarity": 0.9716,
+            "violation": false
+          },
+          {
+            "dist_days": 7,
+            "similarity": 0.8104,
+            "violation": false
+          },
+          {
+            "dist_days": 30,
+            "similarity": 0.1206,
+            "violation": false
+          },
+          {
+            "dist_days": 90,
+            "similarity": -0.0286,
+            "violation": false
+          },
+          {
+            "dist_days": 180,
+            "similarity": 0.1654,
+            "violation": true
+          },
+          {
+            "dist_days": 365,
+            "similarity": 0.9848,
+            "violation": true
+          },
+          {
+            "dist_days": 730,
+            "similarity": 0.9732,
+            "violation": false
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 {
   "experiment": "Experiment 10 \u2014 Scalability with Noisy Duplicates",
-  "timestamp": "20260319_042627",
+  "timestamp": "20260702_054419",
   "mode": "binary",
   "config": {
     "collection_sizes": [
@@ -10,7 +10,7 @@
     ],
     "noise_ratio": 0.2,
     "noise_level": 0.3,
-    "top_k": 5,
+    "top_k": 3,
     "duplicates_per_original": 3,
     "hdim": 10000,
     "seed": 42
@@ -22,13 +22,12 @@
       "noise_ratio": 0.2,
       "noise_level": 0.3,
       "duplicates_per_original": 3,
-      "recall@1": 0.832833,
-      "recall@5": 0.936937,
-      "recall@3": 0.936436,
-      "mrr": 0.883926,
-      "hit@1": 0.832833,
-      "avg_query_time_ms": 6.542,
-      "total_insert_time_s": 2430.3119
+      "recall@1": 0.851351,
+      "recall@3": 0.944444,
+      "mrr": 0.895979,
+      "hit@1": 0.851351,
+      "avg_query_time_ms": 6.186,
+      "total_insert_time_s": 2431.3819
     },
     {
       "mode": "binary",
@@ -36,13 +35,12 @@
       "noise_ratio": 0.2,
       "noise_level": 0.3,
       "duplicates_per_original": 3,
-      "recall@1": 0.709771,
-      "recall@5": 0.80358,
-      "recall@3": 0.79928,
-      "mrr": 0.753872,
-      "hit@1": 0.709771,
-      "avg_query_time_ms": 5.242,
-      "total_insert_time_s": 12151.8594
+      "recall@1": 0.70387,
+      "recall@3": 0.788479,
+      "mrr": 0.744991,
+      "hit@1": 0.70387,
+      "avg_query_time_ms": 4.77,
+      "total_insert_time_s": 12142.3071
     },
     {
       "mode": "binary",
@@ -50,13 +48,12 @@
       "noise_ratio": 0.2,
       "noise_level": 0.3,
       "duplicates_per_original": 3,
-      "recall@1": 0.681168,
-      "recall@5": 0.776978,
-      "recall@3": 0.770627,
-      "mrr": 0.725585,
-      "hit@1": 0.681168,
-      "avg_query_time_ms": 4.344,
-      "total_insert_time_s": 24291.7209
+      "recall@1": 0.694269,
+      "recall@3": 0.783378,
+      "mrr": 0.736899,
+      "hit@1": 0.694269,
+      "avg_query_time_ms": 3.89,
+      "total_insert_time_s": 24290.8558
     }
   ]
 }
