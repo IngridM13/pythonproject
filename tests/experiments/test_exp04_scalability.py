@@ -85,8 +85,8 @@ class TestScalability:
         }
 
         for mode in ["binary", "float"]:
-            original_mode = milvus_conn.VECTOR_MODE
-            milvus_conn.VECTOR_MODE = mode
+            original_mode = os.environ.get("MILVUS_VECTOR_MODE")
+            os.environ["MILVUS_VECTOR_MODE"] = mode
 
             try:
                 mode_results = []
@@ -207,4 +207,7 @@ class TestScalability:
                     )
 
             finally:
-                milvus_conn.VECTOR_MODE = original_mode
+                if original_mode is None:
+                    os.environ.pop("MILVUS_VECTOR_MODE", None)
+                else:
+                    os.environ["MILVUS_VECTOR_MODE"] = original_mode

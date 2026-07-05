@@ -57,8 +57,11 @@ _run-all-experiments:
 
 # ---------------------------------------------------------------------------
 
-experiment01-recall-under-noise:
-	$(PYTEST) tests/experiments/test_exp01_recall_under_noise.py -v -s
+experiment01-recall-under-noise-ann:
+	HDC_NPROBE=8 $(PYTEST) tests/experiments/test_exp01_recall_under_noise.py -v -s
+
+experiment01-recall-under-noise-exhaustive:
+	HDC_NPROBE=128 $(PYTEST) tests/experiments/test_exp01_recall_under_noise.py -v -s
 
 results01-recall-under-noise:
 	$(PYTHON) scripts/show_results.py
@@ -73,8 +76,11 @@ results01-binary:
 	if [ -n "$$file" ]; then $(PYTHON) scripts/show_results.py $$file; \
 	else echo "No recall_under_noise_binary results found in test_results/"; fi
 
-experiment02-dedup-recall:
-	$(PYTEST) tests/experiments/test_exp02_dedup_recall.py -v -s
+experiment02-dedup-recall-ann:
+	HDC_NPROBE=8 $(PYTEST) tests/experiments/test_exp02_dedup_recall.py -v -s
+
+experiment02-dedup-recall-exhaustive:
+	HDC_NPROBE=128 $(PYTEST) tests/experiments/test_exp02_dedup_recall.py -v -s
 
 results02-dedup-recall:
 	@for mode in binary float; do \
@@ -91,8 +97,11 @@ results03-weights:
 		if [ -n "$$file" ]; then $(PYTHON) scripts/show_results.py $$file; fi \
 	done
 
-experiment04-scalability:
-	$(PYTEST) tests/experiments/test_exp04_scalability.py -v -s
+experiment04-scalability-ann:
+	HDC_NPROBE=8 $(PYTEST) tests/experiments/test_exp04_scalability.py -v -s
+
+experiment04-scalability-exhaustive:
+	HDC_NPROBE=128 $(PYTEST) tests/experiments/test_exp04_scalability.py -v -s
 
 results04-scalability:
 	@for mode in binary float; do \
@@ -100,8 +109,11 @@ results04-scalability:
 		if [ -n "$$file" ]; then $(PYTHON) scripts/show_results.py $$file; fi \
 	done
 
-experiment05-ranking:
-	$(PYTEST) tests/experiments/test_exp05_ranking_metrics.py -v -s
+experiment05-ranking-ann:
+	HDC_NPROBE=8 $(PYTEST) tests/experiments/test_exp05_ranking_metrics.py -v -s
+
+experiment05-ranking-exhaustive:
+	HDC_NPROBE=128 $(PYTEST) tests/experiments/test_exp05_ranking_metrics.py -v -s
 
 results05-ranking:
 	@for mode in binary float; do \
@@ -118,8 +130,11 @@ results06-per-field-noise:
 		if [ -n "$$file" ]; then $(PYTHON) scripts/show_results.py $$file; fi \
 	done
 
-experiment07-per-field-sweep:
-	$(PYTEST) tests/experiments/test_exp07_per_field_noise_sweep.py -v -s
+experiment07-per-field-sweep-ann:
+	HDC_NPROBE=8 $(PYTEST) tests/experiments/test_exp07_per_field_noise_sweep.py -v -s
+
+experiment07-per-field-sweep-exhaustive:
+	HDC_NPROBE=128 $(PYTEST) tests/experiments/test_exp07_per_field_noise_sweep.py -v -s
 
 results07-per-field-sweep:
 	@for mode in binary float; do \
@@ -127,8 +142,11 @@ results07-per-field-sweep:
 		if [ -n "$$file" ]; then $(PYTHON) scripts/show_results.py $$file; fi \
 	done
 
-experiment08-dimensionality:
-	$(PYTEST) tests/experiments/test_exp08_dimensionality.py -v -s
+experiment08-dimensionality-ann:
+	HDC_NPROBE=8 $(PYTEST) tests/experiments/test_exp08_dimensionality.py -v -s
+
+experiment08-dimensionality-exhaustive:
+	HDC_NPROBE=128 $(PYTEST) tests/experiments/test_exp08_dimensionality.py -v -s
 
 results08-dimensionality:
 	@for mode in binary float; do \
@@ -146,8 +164,11 @@ results09-date-encoding:
 	done
 
 
-experiment10-scalability-noisy-dupes:
-	$(PYTEST) tests/experiments/test_exp10_scalability_noisy_dupes.py -v -s
+experiment10-scalability-noisy-dupes-ann:
+	HDC_NPROBE=8 $(PYTEST) tests/experiments/test_exp10_scalability_noisy_dupes.py -v -s
+
+experiment10-scalability-noisy-dupes-exhaustive:
+	HDC_NPROBE=128 $(PYTEST) tests/experiments/test_exp10_scalability_noisy_dupes.py -v -s
 
 results10-scalability-noisy-dupes:
 	@for mode in binary float; do \
@@ -155,16 +176,22 @@ results10-scalability-noisy-dupes:
 		if [ -n "$$file" ]; then $(PYTHON) scripts/show_results.py $$file; fi \
 	done
 
-experiment11-nk-sweep:
-	$(PYTEST) tests/experiments/test_exp11_recall_nk_sweep.py -v -s
+experiment11-nk-sweep-ann:
+	HDC_NPROBE=8 $(PYTEST) tests/experiments/test_exp11_recall_nk_sweep.py -v -s
+
+experiment11-nk-sweep-exhaustive:
+	HDC_NPROBE=128 $(PYTEST) tests/experiments/test_exp11_recall_nk_sweep.py -v -s
 
 results11-nk-sweep:
 	@file=$$(ls -t test_results/recall_nk_sweep_*.json 2>/dev/null | head -1); \
 	if [ -n "$$file" ]; then $(PYTHON) scripts/show_results.py $$file; \
 	else echo "No recall_nk_sweep results found in test_results/"; fi
 
-experiment12-recall-n-sweep:
-	$(PYTEST) tests/experiments/test_exp12_recall_n_sweep.py -v -s
+experiment12-recall-n-sweep-ann:
+	HDC_NPROBE=8 $(PYTEST) tests/experiments/test_exp12_recall_n_sweep.py -v -s
+
+experiment12-recall-n-sweep-exhaustive:
+	HDC_NPROBE=128 $(PYTEST) tests/experiments/test_exp12_recall_n_sweep.py -v -s
 
 results12-recall-n-sweep:
 	@file=$$(ls -t test_results/exp12_recall_n_sweep_*.json 2>/dev/null | head -1); \

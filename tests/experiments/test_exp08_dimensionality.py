@@ -42,6 +42,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 
 import database_utils.milvus_db_connection as milvus_conn
 import encoding_methods.encoding_and_search_milvus as enc_module
+from hdc.binary_hdc import HyperDimensionalComputingBinary
+from hdc.bipolar_hdc import HyperDimensionalComputingBipolar
 from configs.settings import (
     DIM_SWEEP_TOP_K,
     DIM_SWEEP_N,
@@ -100,13 +102,17 @@ class TestDimensionalitySweep:
                 mode_results = []
 
                 for dim in dim_values:
-                    # Patch module-level HDC_DIM / DIMENSION
-                    original_dim_enc    = enc_module.HDC_DIM
-                    original_dim_milvus = milvus_conn.HDC_DIM
+                    # Patch module-level HDC_DIM / DIMENSION and singletons
+                    original_dim_enc     = enc_module.HDC_DIM
+                    original_dim_milvus  = milvus_conn.HDC_DIM
+                    original_hdc_binary  = enc_module._hdc_binary
+                    original_hdc_bipolar = enc_module._hdc_bipolar
 
                     enc_module.HDC_DIM    = dim
                     enc_module.DIMENSION  = dim
                     milvus_conn.HDC_DIM   = dim
+                    enc_module._hdc_binary  = HyperDimensionalComputingBinary(dim=dim)
+                    enc_module._hdc_bipolar = HyperDimensionalComputingBipolar(dim=dim)
 
                     col_name = f"dim_{uuid.uuid4().hex[:10]}"
                     col = ensure_people_collection(col_name)
@@ -178,10 +184,12 @@ class TestDimensionalitySweep:
                                 f"{col_name}: {drop_err}"
                             )
 
-                        # Restore original HDC_DIM values
+                        # Restore original HDC_DIM values and singletons
                         enc_module.HDC_DIM    = original_dim_enc
                         enc_module.DIMENSION  = original_dim_enc
                         milvus_conn.HDC_DIM   = original_dim_milvus
+                        enc_module._hdc_binary  = original_hdc_binary
+                        enc_module._hdc_bipolar = original_hdc_bipolar
 
                 # --- Save JSON report ---
                 output_path = save_report("dimensionality", mode, {
