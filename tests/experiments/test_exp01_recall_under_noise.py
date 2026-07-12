@@ -52,7 +52,7 @@ def _parse_noise_levels(env_value: str) -> list:
 # Test class
 # ---------------------------------------------------------------------------
 
-@pytest.mark.usefixtures("with_vector_mode")
+@pytest.mark.parametrize("with_vector_mode", ["binary", "float"], indirect=True)
 class TestRecallUnderNoise:
 
     def test_recall_under_noise(self, with_vector_mode, test_collection):

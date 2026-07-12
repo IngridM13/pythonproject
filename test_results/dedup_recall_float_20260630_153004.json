@@ -1,0 +1,514 @@
+{
+  "config": {
+    "vector_mode": "float",
+    "n_identities": 1000,
+    "variants_per_identity": 3,
+    "total_records": 3000,
+    "noise_fraction": 0.3,
+    "top_k": 3,
+    "n_samples": 5,
+    "hdim": 10000,
+    "seed": 42
+  },
+  "results": {
+    "recall_at_3": 0.859,
+    "hits": 2577,
+    "total": 3000
+  },
+  "queries": [
+    {
+      "query_num": 1,
+      "query_milvus_id": 467355880900044359,
+      "identity_idx": 552,
+      "query_record": {
+        "name": "Michael",
+        "lastname": "White",
+        "dob": "1953-05-19",
+        "gender": "Male",
+        "race": "Asian",
+        "marital_status": "Widowed",
+        "mobile_number": "(641)998-6815",
+        "addresses": [
+          "76979 Williams Trace, Michaelberg, AK 43510",
+          "884 Edwards Estates Suite 305, South Patriciatown, NY 10393"
+        ],
+        "akas": [
+          "Ashley Scott",
+          "Bridget Vaughn",
+          "Christian Rhodes"
+        ],
+        "landlines": []
+      },
+      "results": [
+        {
+          "rank": 1,
+          "milvus_id": 467355880900044358,
+          "identity_idx": 552,
+          "is_match": true,
+          "record": {
+            "name": "Michael",
+            "lastname": "White",
+            "dob": "1954-05-19",
+            "gender": "Male",
+            "race": "White",
+            "marital_status": "Single",
+            "mobile_number": "(777)569-6337",
+            "addresses": [
+              "76979 Williams Trace, Michaelberg, AK 43510",
+              "884 Edwards Estates Suite 305, South Patriciatown, NY 10393"
+            ],
+            "akas": [
+              "Ashley Scott",
+              "Bridget Vaughn",
+              "Christian Rhodes"
+            ],
+            "landlines": [],
+            "similarity": 0.6508
+          }
+        },
+        {
+          "rank": 2,
+          "milvus_id": 467355880900044360,
+          "identity_idx": 552,
+          "is_match": true,
+          "record": {
+            "name": "Michael",
+            "lastname": "White",
+            "dob": "1953-05-18",
+            "gender": "Male",
+            "race": "Hispanic",
+            "marital_status": "Divorced",
+            "mobile_number": "(777)569-6337",
+            "addresses": [
+              "76979 Williams Trace, Michaelberg, AK 43510"
+            ],
+            "akas": [
+              "Ashley Scott",
+              "Bridget Vaughn",
+              "Christian Rhodes"
+            ],
+            "landlines": [],
+            "similarity": 0.6388
+          }
+        },
+        {
+          "rank": 3,
+          "milvus_id": 467355880900044120,
+          "identity_idx": 472,
+          "is_match": false,
+          "record": {
+            "name": "Michael",
+            "lastname": "Mathews",
+            "dob": "1936-01-09",
+            "gender": "Male",
+            "race": "Asian",
+            "marital_status": "Single",
+            "mobile_number": "001-485-470-7478x0772",
+            "addresses": [],
+            "akas": [],
+            "landlines": [],
+            "similarity": 0.3902
+          }
+        }
+      ]
+    },
+    {
+      "query_num": 2,
+      "query_milvus_id": 467355880900044025,
+      "identity_idx": 441,
+      "query_record": {
+        "name": "Tina",
+        "lastname": "Higgins",
+        "dob": "2001-03-05",
+        "gender": "Male",
+        "race": "Hispanic",
+        "marital_status": "Single",
+        "mobile_number": "(596)683-8900x60355",
+        "addresses": [
+          "71312 Williams Forks Apt. 653, Youngbury, MH 74582",
+          "37523 Michael Unions Suite 992, New Normanmouth, AZ 15878",
+          "443 Wood Port, Port Markburgh, NM 55732",
+          "PSC 3956, Box 8514, APO AP 18116",
+          "PSC 7048, Box 5513, APO AE 97418"
+        ],
+        "akas": [],
+        "landlines": []
+      },
+      "results": [
+        {
+          "rank": 1,
+          "milvus_id": 467355880900044026,
+          "identity_idx": 441,
+          "is_match": true,
+          "record": {
+            "name": "Tina",
+            "lastname": "Higgins",
+            "dob": "2001-03-05",
+            "gender": "Male",
+            "race": "Asian",
+            "marital_status": "Widowed",
+            "mobile_number": "(519)683-8900x60855",
+            "addresses": [
+              "71312 Williams Forks Apt. 653, Youngbury, MH 74582",
+              "37523 Michael Unions Suite 992, New Normanmouth, AZ 15878",
+              "443 Wood Port, Port Markburgh, NM 55732",
+              "PSC 3956, Box 8514, APO AP 18116",
+              "PSC 7048, Box 5513, APO AE 97415"
+            ],
+            "akas": [],
+            "landlines": [],
+            "similarity": 0.6206
+          }
+        },
+        {
+          "rank": 2,
+          "milvus_id": 467355880900044027,
+          "identity_idx": 441,
+          "is_match": true,
+          "record": {
+            "name": "Tina",
+            "lastname": "Higeins",
+            "dob": "2001-03-05",
+            "gender": "Male",
+            "race": "Asian",
+            "marital_status": "Single",
+            "mobile_number": "(519)683-8900x60855",
+            "addresses": [
+              "71312 Williams Forks Apt. 653, Youngbury, MH 74582",
+              "37523 Michael Unions Suite 992, New Normanmouth, AZ 15878",
+              "443 Wood Port, Port Markburgh, NM 55732",
+              "PSC 3956, Box 8514, APO AP 18116",
+              "PSC 7048, Box 5513, APO AE 97415"
+            ],
+            "akas": [],
+            "landlines": [],
+            "similarity": 0.4536
+          }
+        },
+        {
+          "rank": 3,
+          "milvus_id": 467355880900043930,
+          "identity_idx": 409,
+          "is_match": false,
+          "record": {
+            "name": "Audrey",
+            "lastname": "Dorsey",
+            "dob": "1997-11-05",
+            "gender": "Male",
+            "race": "Hispanic",
+            "marital_status": "Single",
+            "mobile_number": "001-389-979-2270x0874",
+            "addresses": [
+              "8048 Lewis Branch Suite 717, Spencerborough, PR 77733"
+            ],
+            "akas": [],
+            "landlines": [],
+            "similarity": 0.2788
+          }
+        }
+      ]
+    },
+    {
+      "query_num": 3,
+      "query_milvus_id": 467355880900045133,
+      "identity_idx": 810,
+      "query_record": {
+        "name": "Jacqueline",
+        "lastname": "Russell",
+        "dob": "1994-05-13",
+        "gender": "Male",
+        "race": "White",
+        "marital_status": "Married",
+        "mobile_number": "001-493-552-5060x242",
+        "addresses": [
+          "58099 Yolanda Summit, South Richard, MD 54981",
+          "2850 Amanda Street, Michellebury, NE 62334",
+          "PSC 1765, Box 3473, APO AP 32393",
+          "1804 Rodriguez Plains, North Stephanie, IN 93379"
+        ],
+        "akas": [
+          "Brian Hensley"
+        ],
+        "landlines": [
+          "309.781.7037x490",
+          "3628161175"
+        ]
+      },
+      "results": [
+        {
+          "rank": 1,
+          "milvus_id": 467355880900044746,
+          "identity_idx": 681,
+          "is_match": false,
+          "record": {
+            "name": "Kathleen",
+            "lastname": "Russell",
+            "dob": "1976-06-10",
+            "gender": "Other",
+            "race": "Black",
+            "marital_status": "Married",
+            "mobile_number": "089-776-683-3190x6961",
+            "addresses": [
+              "03499 Cowan Circles, West Davidshire, GA 53303",
+              "410 Roth Drives, Anthonyborough, AK 04157",
+              "5878 Harrington Row Suite 685, New Johnberg, OR 72631"
+            ],
+            "akas": [
+              "Elizabeth Bass",
+              "Christopher Serrano"
+            ],
+            "landlines": [],
+            "similarity": 0.3492
+          }
+        },
+        {
+          "rank": 2,
+          "milvus_id": 467355880900043844,
+          "identity_idx": 380,
+          "is_match": false,
+          "record": {
+            "name": "Tyler",
+            "lastname": "Gonzalez",
+            "dob": "1993-07-31",
+            "gender": "Male",
+            "race": "White",
+            "marital_status": "Married",
+            "mobile_number": "701-770-235-2657",
+            "addresses": [],
+            "akas": [
+              "Craig Potter",
+              "Elizabeth Stewart"
+            ],
+            "landlines": [],
+            "similarity": 0.276
+          }
+        },
+        {
+          "rank": 3,
+          "milvus_id": 467355880900042995,
+          "identity_idx": 97,
+          "is_match": false,
+          "record": {
+            "name": "Michaeal",
+            "lastname": "Townsend",
+            "dob": "2003-10-24",
+            "gender": "Male",
+            "race": "White",
+            "marital_status": "Married",
+            "mobile_number": "206.272.5548x1481",
+            "addresses": [
+              "20874 Gregory Place, Port Robert, SD 95441"
+            ],
+            "akas": [],
+            "landlines": [
+              "(820)721-5853"
+            ],
+            "similarity": 0.2692
+          }
+        }
+      ]
+    },
+    {
+      "query_num": 4,
+      "query_milvus_id": 467355880900044667,
+      "identity_idx": 655,
+      "query_record": {
+        "name": "Drew",
+        "lastname": "Murllins",
+        "dob": "1963-05-18",
+        "gender": "Female",
+        "race": "Asian",
+        "marital_status": "Widowed",
+        "mobile_number": "+1-292-434-2666x61952",
+        "addresses": [
+          "67850 Lopez Wells, Justinland, WA 78896",
+          "2397 William Cove Suite 052, Michaelland, DE 47216"
+        ],
+        "akas": [
+          "William Poole",
+          "Jessica Foster",
+          "Teresa Shaw"
+        ],
+        "landlines": [
+          "635.893.9944x09727",
+          "+1-249-853-3005"
+        ]
+      },
+      "results": [
+        {
+          "rank": 1,
+          "milvus_id": 467355880900044668,
+          "identity_idx": 655,
+          "is_match": true,
+          "record": {
+            "name": "Drew",
+            "lastname": "Mullins",
+            "dob": "1963-04-23",
+            "gender": "Female",
+            "race": "Asian",
+            "marital_status": "Single",
+            "mobile_number": "+1-292-434-2666x61952",
+            "addresses": [
+              "67850 Lopez Wells, Justinland, WA 78896",
+              "2397 William Cove Suite 052, Michaelland, DE 47216"
+            ],
+            "akas": [
+              "William Poole",
+              "Jessica Fosterz",
+              "Teresa Shaw"
+            ],
+            "landlines": [
+              "635.893.9944x09727",
+              "+1-249-853-3005"
+            ],
+            "similarity": 0.488
+          }
+        },
+        {
+          "rank": 2,
+          "milvus_id": 467355880900044669,
+          "identity_idx": 655,
+          "is_match": true,
+          "record": {
+            "name": "Drew",
+            "lastname": "Mullins",
+            "dob": "1963-04-26",
+            "gender": "Female",
+            "race": "Asian",
+            "marital_status": "Single",
+            "mobile_number": "+1-212-434-2664x61252",
+            "addresses": [
+              "67850 Lopez Wells, Justinland, WA 78896",
+              "2397 William Cove Suite 052, Michaelland, DE 47216"
+            ],
+            "akas": [
+              "William Poole",
+              "Jessica Foster",
+              "Teresa Shaw"
+            ],
+            "landlines": [
+              "635.893.9944x09727",
+              "+1-249-853-3005"
+            ],
+            "similarity": 0.4548
+          }
+        },
+        {
+          "rank": 3,
+          "milvus_id": 467355880900045468,
+          "identity_idx": 922,
+          "is_match": false,
+          "record": {
+            "name": "Sarahs",
+            "lastname": "Sbields",
+            "dob": "1973-06-30",
+            "gender": "Female",
+            "race": "Asian",
+            "marital_status": "Widowed",
+            "mobile_number": "581-454-6329",
+            "addresses": [
+              "Unit 3679 Box 0821, DPO AE 24230",
+              "414 Chang Mission, Williamsside, MH 00560"
+            ],
+            "akas": [],
+            "landlines": [
+              "3758040731"
+            ],
+            "similarity": 0.2874
+          }
+        }
+      ]
+    },
+    {
+      "query_num": 5,
+      "query_milvus_id": 467355880900044650,
+      "identity_idx": 649,
+      "query_record": {
+        "name": "annah",
+        "lastname": "Moor",
+        "dob": "1945-02-19",
+        "gender": "Female",
+        "race": "Other",
+        "marital_status": "Married",
+        "mobile_number": "298.341.6062",
+        "addresses": [
+          "09046 Watts Crest, New Richard, IA 10282",
+          "9717 Tammy Curve Suite 782, West Michaelfurt, NH 96864"
+        ],
+        "akas": [],
+        "landlines": []
+      },
+      "results": [
+        {
+          "rank": 1,
+          "milvus_id": 467355880900044651,
+          "identity_idx": 649,
+          "is_match": true,
+          "record": {
+            "name": "Hannah",
+            "lastname": "Moore",
+            "dob": "1945-02-19",
+            "gender": "Other",
+            "race": "Black",
+            "marital_status": "Married",
+            "mobile_number": "298.341.6062",
+            "addresses": [
+              "09046 Watts Crest, New Richard, IA 10282",
+              "9717 Tammy Curve Suite 782, West Michaelfurt, NH 96864"
+            ],
+            "akas": [],
+            "landlines": [],
+            "similarity": 0.2854
+          }
+        },
+        {
+          "rank": 2,
+          "milvus_id": 467355880900044649,
+          "identity_idx": 649,
+          "is_match": true,
+          "record": {
+            "name": "Hannah",
+            "lastname": "Moore",
+            "dob": "1945-03-18",
+            "gender": "Male",
+            "race": "Other",
+            "marital_status": "Married",
+            "mobile_number": "484.141.4429",
+            "addresses": [
+              "09046 Watts Crest, New Richard, IA 10282",
+              "9717 Tammy Curve Suite 782, West Michaelfurt, NH 96864"
+            ],
+            "akas": [],
+            "landlines": [],
+            "similarity": 0.2796
+          }
+        },
+        {
+          "rank": 3,
+          "milvus_id": 467355880900044660,
+          "identity_idx": 652,
+          "is_match": false,
+          "record": {
+            "name": "Tvresa",
+            "lastname": "Evans",
+            "dob": "1938-01-17",
+            "gender": "Female",
+            "race": "Other",
+            "marital_status": "Married",
+            "mobile_number": "(391)331-9115x0252",
+            "addresses": [
+              "6480 Shaw Glens, South Davidshire, IN 06387",
+              "643 Cannon Fords Suite 622, Jeanetteview, KY 16955",
+              "31204 Adam Isle, East Jillview, NC 54973"
+            ],
+            "akas": [],
+            "landlines": [
+              "(295)296-1144x995"
+            ],
+            "similarity": 0.272
+          }
+        }
+      ]
+    }
+  ]
+}

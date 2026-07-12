@@ -1,0 +1,59 @@
+{
+  "experiment": "Experiment 10 \u2014 Scalability with Noisy Duplicates",
+  "timestamp": "20260708_140029",
+  "mode": "float",
+  "config": {
+    "collection_sizes": [
+      10000,
+      50000,
+      100000
+    ],
+    "noise_ratio": 0.2,
+    "noise_level": 0.3,
+    "top_k": 3,
+    "duplicates_per_original": 3,
+    "hdim": 10000,
+    "seed": 42
+  },
+  "results": [
+    {
+      "mode": "float",
+      "N": 10000,
+      "noise_ratio": 0.2,
+      "noise_level": 0.3,
+      "duplicates_per_original": 3,
+      "recall@1": 0.907908,
+      "recall@3": 0.998999,
+      "mrr": 0.952619,
+      "hit@1": 0.907908,
+      "avg_query_time_ms": 12.667,
+      "total_insert_time_s": 2431.2917
+    },
+    {
+      "mode": "float",
+      "N": 50000,
+      "noise_ratio": 0.2,
+      "noise_level": 0.3,
+      "duplicates_per_original": 3,
+      "recall@1": 0.875688,
+      "recall@3": 0.9968,
+      "mrr": 0.93441,
+      "hit@1": 0.875688,
+      "avg_query_time_ms": 35.589,
+      "total_insert_time_s": 12160.1371
+    },
+    {
+      "mode": "float",
+      "N": 100000,
+      "noise_ratio": 0.2,
+      "noise_level": 0.3,
+      "duplicates_per_original": 3,
+      "recall@1": 0.865287,
+      "recall@3": 0.990099,
+      "mrr": 0.925226,
+      "hit@1": 0.865287,
+      "avg_query_time_ms": 65.807,
+      "total_insert_time_s": 24308.9258
+    }
+  ]
+}

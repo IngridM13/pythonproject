@@ -57,9 +57,9 @@ from configs.settings import (
     EXP10_TOP_K,
     HDC_DIM,
 )
-from database_utils.milvus_db_connection import ensure_people_collection
+from database_utils.milvus_db_connection import ensure_people_collection, get_nprobe
 from encoding_methods.encoding_and_search_milvus import find_closest_match_db, store_person
-from tests.experiments.experiment_utils import generate_canonical_persons
+from tests.experiments.experiment_utils import generate_canonical_persons, resolve_results_dir_and_suffix
 from tests.experiments.noise_injection import inject_noise
 
 
@@ -114,21 +114,25 @@ def evaluate_recall(
 
 
 def _save_results(
-    output_dir: Path,
     mode: str,
     config: dict,
     rows: list,
+    top_k: int,
     top_d: int,
 ) -> tuple:
     """Save CSV and JSON reports. Returns (csv_path, json_path)."""
+    nprobe = get_nprobe()
+    output_dir, suffix = resolve_results_dir_and_suffix(nprobe)
+    output_dir = output_dir / "exp10_scalability_noisy_dupes"
     output_dir.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     recall_d_col = f"recall@{top_d}"
-    csv_path = output_dir / f"exp10_{mode}_{timestamp}.csv"
+    recall_k_col = f"recall@{top_k}"
+    csv_path = output_dir / f"exp10_{mode}{suffix}_{timestamp}.csv"
     fieldnames = [
         "mode", "N", "noise_ratio", "noise_level", "duplicates_per_original",
-        "recall@1", "recall@5", recall_d_col, "mrr", "hit@1",
+        "recall@1", recall_k_col, recall_d_col, "mrr", "hit@1",
         "avg_query_time_ms", "total_insert_time_s",
     ]
     with csv_path.open("w", newline="") as f:
@@ -136,11 +140,12 @@ def _save_results(
         writer.writeheader()
         writer.writerows(rows)
 
-    json_path = output_dir / f"exp10_{mode}_{timestamp}.json"
+    json_path = output_dir / f"exp10_{mode}{suffix}_{timestamp}.json"
     json_path.write_text(json.dumps({
         "experiment": "Experiment 10 — Scalability with Noisy Duplicates",
         "timestamp":  timestamp,
         "mode":       mode,
+        "nprobe":     nprobe,
         "config":     config,
         "results":    rows,
     }, indent=2))
@@ -180,7 +185,6 @@ class TestExp10ScalabilityNoisyDupes:
             "seed":                    seed,
         }
 
-        output_dir = Path(__file__).resolve().parents[2] / "test_results" / "exp10_scalability_noisy_dupes"
         recall_d_col = f"recall@{duplicates_per_original}"
 
         print(
@@ -190,8 +194,8 @@ class TestExp10ScalabilityNoisyDupes:
         )
 
         for mode in modes:
-            original_mode = milvus_conn.VECTOR_MODE
-            milvus_conn.VECTOR_MODE = mode
+            original_mode = os.environ.get("MILVUS_VECTOR_MODE", "binary")
+            os.environ["MILVUS_VECTOR_MODE"] = mode
 
             try:
                 mode_rows = []
@@ -302,6 +306,7 @@ class TestExp10ScalabilityNoisyDupes:
                             f"avg_query={avg_q_ms:.1f}ms  insert={total_insert_time_s:.2f}s"
                         )
 
+                        recall_k_col = f"recall@{top_k}"
                         mode_rows.append({
                             "mode":                    mode,
                             "N":                       n,
@@ -309,7 +314,7 @@ class TestExp10ScalabilityNoisyDupes:
                             "noise_level":             noise_level,
                             "duplicates_per_original": duplicates_per_original,
                             "recall@1":                round(recall_at_1, 6),
-                            "recall@5":                round(recall_at_k, 6),
+                            recall_k_col:              round(recall_at_k, 6),
                             recall_d_col:              round(recall_at_d, 6),
                             "mrr":                     round(mrr, 6),
                             "hit@1":                   round(hit_at_1, 6),
@@ -324,7 +329,7 @@ class TestExp10ScalabilityNoisyDupes:
                             print(f"[EXP10] Warning: could not drop {col_name}: {drop_err}")
 
                 # --- Save results ---
-                csv_path, json_path = _save_results(output_dir, mode, config, mode_rows, duplicates_per_original)
+                csv_path, json_path = _save_results(mode, config, mode_rows, top_k, duplicates_per_original)
                 print(f"\n[EXP10] CSV  → {csv_path}")
                 print(f"[EXP10] JSON → {json_path}")
 
@@ -352,8 +357,9 @@ class TestExp10ScalabilityNoisyDupes:
                     f"{'-'*col_rd}  {'-'*col_mrr}  "
                     f"{'-'*col_ins}  {'-'*col_q}  {'-'*BAR_WIDTH}"
                 )
+                recall_k_col = f"recall@{top_k}"
                 for row in mode_rows:
-                    filled    = round(row["recall@5"] * BAR_WIDTH)
+                    filled    = round(row[recall_k_col] * BAR_WIDTH)
                     chart     = "#" * filled + "-" * (BAR_WIDTH - filled)
                     n_src     = int(row["N"] * noise_ratio) // duplicates_per_original
                     total_rec = row["N"] + n_src * duplicates_per_original
@@ -361,7 +367,7 @@ class TestExp10ScalabilityNoisyDupes:
                         f"  {row['N']:>{col_n}}  "
                         f"{total_rec:>{col_tot}}  "
                         f"{row['recall@1']:>{col_r1}.3f}  "
-                        f"{row['recall@5']:>{col_rk}.3f}  "
+                        f"{row[recall_k_col]:>{col_rk}.3f}  "
                         f"{row[recall_d_col]:>{col_rd}.3f}  "
                         f"{row['mrr']:>{col_mrr}.3f}  "
                         f"{row['total_insert_time_s']:>{col_ins}.2f}  "
@@ -370,4 +376,4 @@ class TestExp10ScalabilityNoisyDupes:
                     )
 
             finally:
-                milvus_conn.VECTOR_MODE = original_mode
+                os.environ["MILVUS_VECTOR_MODE"] = original_mode

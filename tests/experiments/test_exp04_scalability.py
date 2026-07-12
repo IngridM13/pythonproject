@@ -25,7 +25,7 @@ Environment variables
     SCALABILITY_N_VALUES    Comma-separated list of N values (default: from settings)
     SCALABILITY_V           Noisy variants per identity (default: 3)
     SCALABILITY_NOISE       Noise fraction passed to inject_noise (default: 0.30)
-    SCALABILITY_K           K for recall@K (default: 5)
+    SCALABILITY_TOP_K           K for recall@K (default: 5)
     SCALABILITY_SEED        RNG seed (default: 42)
 """
 
@@ -41,7 +41,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 import database_utils.milvus_db_connection as milvus_conn
 from configs.settings import (
     HDC_DIM,
-    SCALABILITY_K,
+    SCALABILITY_TOP_K,
     SCALABILITY_N_VALUES,
     SCALABILITY_NOISE,
     SCALABILITY_SEED,
@@ -72,7 +72,7 @@ class TestScalability:
 
         variants_per_identity = int(os.environ.get("SCALABILITY_V", SCALABILITY_V))
         noise_fraction        = float(os.environ.get("SCALABILITY_NOISE", SCALABILITY_NOISE))
-        top_k                 = int(os.environ.get("SCALABILITY_K", SCALABILITY_K))
+        top_k                 = int(os.environ.get("SCALABILITY_TOP_K", SCALABILITY_TOP_K))
         seed                  = int(os.environ.get("SCALABILITY_SEED", SCALABILITY_SEED))
 
         config = {
@@ -85,8 +85,8 @@ class TestScalability:
         }
 
         for mode in ["binary", "float"]:
-            original_mode = milvus_conn.VECTOR_MODE
-            milvus_conn.VECTOR_MODE = mode
+            original_mode = os.environ.get("MILVUS_VECTOR_MODE")
+            os.environ["MILVUS_VECTOR_MODE"] = mode
 
             try:
                 mode_results = []
@@ -207,4 +207,7 @@ class TestScalability:
                     )
 
             finally:
-                milvus_conn.VECTOR_MODE = original_mode
+                if original_mode is None:
+                    os.environ.pop("MILVUS_VECTOR_MODE", None)
+                else:
+                    os.environ["MILVUS_VECTOR_MODE"] = original_mode

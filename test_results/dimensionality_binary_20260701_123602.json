@@ -1,0 +1,54 @@
+{
+  "mode": "binary",
+  "config": {
+    "dim_values": [
+      1000,
+      2000,
+      5000,
+      10000
+    ],
+    "n_identities": 1000,
+    "variants_per_identity": 3,
+    "noise_fraction": 0.3,
+    "top_k": 3,
+    "seed": 42
+  },
+  "results": [
+    {
+      "dim": 1000,
+      "total_records": 3000,
+      "recall_at_k": 0.922,
+      "mrr": 0.890222,
+      "hit_at_1": 0.864667,
+      "insert_time_s": 610.3088,
+      "query_time_s": 11.1106
+    },
+    {
+      "dim": 2000,
+      "total_records": 3000,
+      "recall_at_k": 0.931333,
+      "mrr": 0.900167,
+      "hit_at_1": 0.874667,
+      "insert_time_s": 607.7839,
+      "query_time_s": 11.4558
+    },
+    {
+      "dim": 5000,
+      "total_records": 3000,
+      "recall_at_k": 0.947,
+      "mrr": 0.924333,
+      "hit_at_1": 0.905333,
+      "insert_time_s": 607.7966,
+      "query_time_s": 7.5471
+    },
+    {
+      "dim": 10000,
+      "total_records": 3000,
+      "recall_at_k": 0.950333,
+      "mrr": 0.929167,
+      "hit_at_1": 0.912,
+      "insert_time_s": 608.4051,
+      "query_time_s": 9.9566
+    }
+  ]
+}

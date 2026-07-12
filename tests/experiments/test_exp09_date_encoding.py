@@ -51,7 +51,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 import database_utils.milvus_db_connection as milvus_conn
 import encoding_methods.encoding_and_search_milvus as enc_module
 from configs.settings import (
-    DATE_ENC_K,
+    DATE_ENC_TOP_K,
     DATE_ENC_N,
     DATE_ENC_NOISE,
     DATE_ENC_SEED,
@@ -363,7 +363,7 @@ class TestDateEncoding:
         n_identities          = DATE_ENC_N
         variants_per_identity = DATE_ENC_V
         noise_fraction        = DATE_ENC_NOISE
-        top_k                 = DATE_ENC_K
+        top_k                 = DATE_ENC_TOP_K
         seed                  = DATE_ENC_SEED
         total_records         = n_identities * variants_per_identity
 
@@ -382,8 +382,8 @@ class TestDateEncoding:
         canonical_persons = generate_canonical_persons(n_identities)
 
         for mode in ["binary", "float"]:
-            original_mode = milvus_conn.VECTOR_MODE
-            milvus_conn.VECTOR_MODE = mode
+            original_mode = os.environ.get("MILVUS_VECTOR_MODE", "binary")
+            os.environ["MILVUS_VECTOR_MODE"] = mode
 
             try:
                 mode_results = []
@@ -396,11 +396,11 @@ class TestDateEncoding:
                 for variant_cfg in DATE_VARIANTS:
                     variant_name = variant_cfg["name"]
 
-                    # Monkeypatch encoder classes in enc_module for this variant
-                    original_binary  = enc_module.HyperDimensionalComputingBinary
-                    original_bipolar = enc_module.HyperDimensionalComputingBipolar
-                    enc_module.HyperDimensionalComputingBinary  = variant_cfg["binary_class"]
-                    enc_module.HyperDimensionalComputingBipolar = variant_cfg["bipolar_class"]
+                    # Replace the module-level singletons so encode_person uses the variant encoder
+                    original_hdc_binary  = enc_module._hdc_binary
+                    original_hdc_bipolar = enc_module._hdc_bipolar
+                    enc_module._hdc_binary  = variant_cfg["binary_class"](dim=HDC_DIM)
+                    enc_module._hdc_bipolar = variant_cfg["bipolar_class"](dim=HDC_DIM)
 
                     try:
                         col_name = f"de_{uuid.uuid4().hex[:10]}"
@@ -483,8 +483,8 @@ class TestDateEncoding:
                                 print(f"[DATE] Warning: could not drop {col_name}: {drop_err}")
 
                     finally:
-                        enc_module.HyperDimensionalComputingBinary  = original_binary
-                        enc_module.HyperDimensionalComputingBipolar = original_bipolar
+                        enc_module._hdc_binary  = original_hdc_binary
+                        enc_module._hdc_bipolar = original_hdc_bipolar
 
                 # --- Save JSON report ---
                 output_path = save_report("date_encoding", mode, {
@@ -532,4 +532,4 @@ class TestDateEncoding:
                     )
 
             finally:
-                milvus_conn.VECTOR_MODE = original_mode
+                os.environ["MILVUS_VECTOR_MODE"] = original_mode

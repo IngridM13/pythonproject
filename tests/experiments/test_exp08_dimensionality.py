@@ -27,7 +27,7 @@ Environment variables
     DIM_SWEEP_N         Number of canonical identities (default: 200)
     DIM_SWEEP_V         Noisy variants per identity (default: 3)
     DIM_SWEEP_NOISE     Noise fraction passed to inject_noise (default: 0.30)
-    DIM_SWEEP_K         K for Recall@K (default: 5)
+    DIM_SWEEP_TOP_K         K for Recall@K (default: 5)
     DIM_SWEEP_SEED      RNG seed (default: 42)
 """
 
@@ -42,8 +42,10 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 
 import database_utils.milvus_db_connection as milvus_conn
 import encoding_methods.encoding_and_search_milvus as enc_module
+from hdc.binary_hdc import HyperDimensionalComputingBinary
+from hdc.bipolar_hdc import HyperDimensionalComputingBipolar
 from configs.settings import (
-    DIM_SWEEP_K,
+    DIM_SWEEP_TOP_K,
     DIM_SWEEP_N,
     DIM_SWEEP_NOISE,
     DIM_SWEEP_SEED,
@@ -76,7 +78,7 @@ class TestDimensionalitySweep:
         n_identities          = int(os.environ.get("DIM_SWEEP_N",     DIM_SWEEP_N))
         variants_per_identity = int(os.environ.get("DIM_SWEEP_V",     DIM_SWEEP_V))
         noise_fraction        = float(os.environ.get("DIM_SWEEP_NOISE", DIM_SWEEP_NOISE))
-        top_k                 = int(os.environ.get("DIM_SWEEP_K",     DIM_SWEEP_K))
+        top_k                 = int(os.environ.get("DIM_SWEEP_TOP_K",     DIM_SWEEP_TOP_K))
         seed                  = int(os.environ.get("DIM_SWEEP_SEED",  DIM_SWEEP_SEED))
         total_records         = n_identities * variants_per_identity
 
@@ -93,21 +95,24 @@ class TestDimensionalitySweep:
         }
 
         for mode in ["binary", "float"]:
-            # Switch vector mode inline (same pattern as test_field_weighting.py)
-            original_mode = milvus_conn.VECTOR_MODE
-            milvus_conn.VECTOR_MODE = mode
+            original_mode = os.environ.get("MILVUS_VECTOR_MODE", "binary")
+            os.environ["MILVUS_VECTOR_MODE"] = mode
 
             try:
                 mode_results = []
 
                 for dim in dim_values:
-                    # Patch module-level HDC_DIM / DIMENSION
-                    original_dim_enc    = enc_module.HDC_DIM
-                    original_dim_milvus = milvus_conn.HDC_DIM
+                    # Patch module-level HDC_DIM / DIMENSION and singletons
+                    original_dim_enc     = enc_module.HDC_DIM
+                    original_dim_milvus  = milvus_conn.HDC_DIM
+                    original_hdc_binary  = enc_module._hdc_binary
+                    original_hdc_bipolar = enc_module._hdc_bipolar
 
                     enc_module.HDC_DIM    = dim
                     enc_module.DIMENSION  = dim
                     milvus_conn.HDC_DIM   = dim
+                    enc_module._hdc_binary  = HyperDimensionalComputingBinary(dim=dim)
+                    enc_module._hdc_bipolar = HyperDimensionalComputingBipolar(dim=dim)
 
                     col_name = f"dim_{uuid.uuid4().hex[:10]}"
                     col = ensure_people_collection(col_name)
@@ -179,10 +184,12 @@ class TestDimensionalitySweep:
                                 f"{col_name}: {drop_err}"
                             )
 
-                        # Restore original HDC_DIM values
+                        # Restore original HDC_DIM values and singletons
                         enc_module.HDC_DIM    = original_dim_enc
                         enc_module.DIMENSION  = original_dim_enc
                         milvus_conn.HDC_DIM   = original_dim_milvus
+                        enc_module._hdc_binary  = original_hdc_binary
+                        enc_module._hdc_bipolar = original_hdc_bipolar
 
                 # --- Save JSON report ---
                 output_path = save_report("dimensionality", mode, {
@@ -238,4 +245,4 @@ class TestDimensionalitySweep:
                     )
 
             finally:
-                milvus_conn.VECTOR_MODE = original_mode
+                os.environ["MILVUS_VECTOR_MODE"] = original_mode

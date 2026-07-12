@@ -68,11 +68,6 @@ def milvus_client():
     """Cliente Milvus (por si lo necesito en tests)."""
     return MilvusClient(uri="http://localhost:19530")
 
-@pytest.fixture
-def with_vector_mode(request, monkeypatch):
-    """Fixture para cambiar temporalmente el modo de vector durante una prueba."""
-    monkeypatch.setenv("MILVUS_VECTOR_MODE", request.param)
-    yield request.param
 
 @pytest.fixture(scope="function")
 def test_people():
@@ -128,6 +123,11 @@ def test_metrics(with_vector_mode):
     """
     Prepara el collector para cada modo y guarda el JSON al terminar.
     """
+    if with_vector_mode not in ("binary", "float"):
+        raise ValueError(
+            f"test_metrics requiere with_vector_mode en ('binary', 'float'), "
+            f"recibió: {with_vector_mode!r}"
+        )
     metrics_collector.reset()
 
     yield metrics_collector

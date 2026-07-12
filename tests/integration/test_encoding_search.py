@@ -60,7 +60,7 @@ class TestEncodingSearch:
         print("[DEBUG-TEST] Ejecutando find_closest_match_db...")
 
         # Ejecución de la búsqueda
-        results = find_closest_match_db(query_person, collection_name=test_collection)
+        results = find_closest_match_db(query_person, threshold=0.7, collection_name=test_collection)
 
         print(f"[DEBUG-TEST] Búsqueda finalizada. Resultados obtenidos: {len(results)}")
 
@@ -72,7 +72,8 @@ class TestEncodingSearch:
         # Aserciones funcionales
         assert len(results) > 0
         assert results[0]['id'] == person_ids[0]
-        assert results[0]['similarity'] > 0.8
+        assert results[0]['similarity'] > 0.85, \
+            f"Match casi exacto esperaba similarity > 0.85, obtuvo {results[0]['similarity']:.4f}"
     def test_find_similar_by_date(self, with_vector_mode, test_collection, test_people):
         person_ids = []
         for person in test_people:

@@ -1,7 +1,7 @@
 import pytest
 import torch
 from datetime import date
-from encoding_methods.encoding_and_search_milvus import normalize_person_data
+from utils.person_data_normalization import normalize_person_data
 
 
 # ---------------------------------------------------------------------------

@@ -1,0 +1,535 @@
+{
+  "config": {
+    "vector_mode": "binary",
+    "n_identities": 1000,
+    "variants_per_identity": 3,
+    "total_records": 3000,
+    "noise_fraction": 0.3,
+    "top_k": 3,
+    "n_samples": 5,
+    "hdim": 10000,
+    "seed": 42
+  },
+  "results": {
+    "recall_at_3": 0.9503333333333334,
+    "hits": 2851,
+    "total": 3000
+  },
+  "queries": [
+    {
+      "query_num": 1,
+      "query_milvus_id": 467453718621493470,
+      "identity_idx": 552,
+      "query_record": {
+        "name": "Curtis",
+        "lastname": "Martinez",
+        "dob": "1983-04-18",
+        "gender": "Male",
+        "race": "Hispanic",
+        "marital_status": "Widowed",
+        "mobile_number": "+6-419-986-8154x8392",
+        "addresses": [
+          "21750 Robert Throughway Apt. 025, New Jamesfort, ID 28021",
+          "2444 Mitchell Rest, Port Josephchester, AK 58687",
+          "35107 Morris Tunnel Apt. 708, Christopherbury, TN 22319",
+          "45634 Cassidy Cliffs Suite 805, Amyland, VA 97049"
+        ],
+        "akas": [
+          "Heather Stewart"
+        ],
+        "landlines": []
+      },
+      "results": [
+        {
+          "rank": 1,
+          "milvus_id": 467453718621493469,
+          "identity_idx": 552,
+          "is_match": true,
+          "record": {
+            "name": "Curtis",
+            "lastname": "Martinez",
+            "dob": "1984-04-18",
+            "gender": "Male",
+            "race": "White",
+            "marital_status": "Single",
+            "mobile_number": "+1-603-221-3378x0068",
+            "addresses": [
+              "21750 Robert Throughway Apt. 025, New Jamesfort, ID 28021",
+              "2444 Mitchell Rest, Port Josephchester, AK 58687",
+              "35107 Morris Tunnel Apt. 708, Christopherbury, TN 22319",
+              "45634 Cassidy Cliffs Suite 805, Amyland, VA 97049"
+            ],
+            "akas": [
+              "Heather Stewart"
+            ],
+            "landlines": [],
+            "similarity": 0.8256
+          }
+        },
+        {
+          "rank": 2,
+          "milvus_id": 467453718621493471,
+          "identity_idx": 552,
+          "is_match": true,
+          "record": {
+            "name": "Curtis",
+            "lastname": "Martinez",
+            "dob": "1983-04-17",
+            "gender": "Male",
+            "race": "Mixed",
+            "marital_status": "Divorced",
+            "mobile_number": "+1-603-221-3378x0068",
+            "addresses": [
+              "21750 Robert Throughway Apt. 025, New Jamesfort, ID 28021",
+              "2444 Mitchell Rest, Port Josephchester, AK 58687",
+              "35107 Morris Tunnel Apt. 708, Christopherbury, TN 22319"
+            ],
+            "akas": [
+              "Heather Stewart"
+            ],
+            "landlines": [],
+            "similarity": 0.8249
+          }
+        },
+        {
+          "rank": 3,
+          "milvus_id": 467453718621493562,
+          "identity_idx": 583,
+          "is_match": false,
+          "record": {
+            "name": "Christopher",
+            "lastname": "Martinez",
+            "dob": "1940-03-25",
+            "gender": "Male",
+            "race": "Hispanic",
+            "marital_status": "Widowed",
+            "mobile_number": "8759569414",
+            "addresses": [
+              "953 Christensen Roads, Weberbury, KY 87253",
+              "97356 Matthew Fall Suite 655, West Tonyfurt, GA 48962",
+              "664 Joseph Tunnel, Jeffreyfurt, PR 76733"
+            ],
+            "akas": [
+              "Cody Valdez"
+            ],
+            "landlines": [
+              "(456)440-2542x60062",
+              "784.635.7993"
+            ],
+            "similarity": 0.7079
+          }
+        }
+      ]
+    },
+    {
+      "query_num": 2,
+      "query_milvus_id": 467453718621493136,
+      "identity_idx": 441,
+      "query_record": {
+        "name": "Vanessa",
+        "lastname": "Maxwell",
+        "dob": "1974-10-03",
+        "gender": "Other",
+        "race": "Black",
+        "marital_status": "Married",
+        "mobile_number": "793.419.2885",
+        "addresses": [
+          "0107 Eric Courts, Deannaside, IN 73675",
+          "176 Ferguson Green, Mendozamouth, NV 99296",
+          "32228 Cynthia Throughway, Jonberg, MI 73989"
+        ],
+        "akas": [],
+        "landlines": [
+          "+1-445-697-9898x2245"
+        ]
+      },
+      "results": [
+        {
+          "rank": 1,
+          "milvus_id": 467453718621493137,
+          "identity_idx": 441,
+          "is_match": true,
+          "record": {
+            "name": "Vanessa",
+            "lastname": "Maxwell",
+            "dob": "1974-10-03",
+            "gender": "Other",
+            "race": "Hispanic",
+            "marital_status": "Widowed",
+            "mobile_number": "759.419.9885",
+            "addresses": [
+              "0107 Eric Courts, Deannaside, IN 73675",
+              "176 Ferguson Green, Mendozamouth, NV 99296",
+              "32228 Cynthia Throughway, Jonberg, MI 73929"
+            ],
+            "akas": [],
+            "landlines": [
+              "+1-745-697-9898x2245"
+            ],
+            "similarity": 0.8244
+          }
+        },
+        {
+          "rank": 2,
+          "milvus_id": 467453718621493138,
+          "identity_idx": 441,
+          "is_match": true,
+          "record": {
+            "name": "Vanessa",
+            "lastname": "Maxeell",
+            "dob": "1974-10-03",
+            "gender": "Other",
+            "race": "Hispanic",
+            "marital_status": "Married",
+            "mobile_number": "759.419.9885",
+            "addresses": [
+              "0107 Eric Courts, Deannaside, IN 73675",
+              "176 Ferguson Green, Mendozamouth, NV 99296",
+              "32228 Cynthia Throughway, Jonberg, MI 73929"
+            ],
+            "akas": [],
+            "landlines": [
+              "+1-745-697-9898x2245"
+            ],
+            "similarity": 0.7303
+          }
+        },
+        {
+          "rank": 3,
+          "milvus_id": 467453718621492615,
+          "identity_idx": 267,
+          "is_match": false,
+          "record": {
+            "name": "Vanessa",
+            "lastname": "Thompson",
+            "dob": "1998-04-03",
+            "gender": "Other",
+            "race": "Black",
+            "marital_status": "Single",
+            "mobile_number": "(870)422-4102",
+            "addresses": [
+              "8564 Miller Courts Suite 397, New Ryan, KY 14127",
+              "Unit 7899 Box 6986, DPO AE 79362",
+              "113 Carpenter Station, Ochoaton, MI 85316"
+            ],
+            "akas": [
+              "Amy Lole"
+            ],
+            "landlines": [
+              "6937262724"
+            ],
+            "similarity": 0.7005
+          }
+        }
+      ]
+    },
+    {
+      "query_num": 3,
+      "query_milvus_id": 467453718621494244,
+      "identity_idx": 810,
+      "query_record": {
+        "name": "Stanley",
+        "lastname": "Russell",
+        "dob": "1942-03-03",
+        "gender": "Male",
+        "race": "Asian",
+        "marital_status": "Single",
+        "mobile_number": "(406)503-5763x281",
+        "addresses": [
+          "64790 Combs Union Apt. 573, South Shawnshire, MS 61028",
+          "2096 Brandon Falls Apt. 726, Jeffreyburgh, AR 48189",
+          "972 Pruitt River Suite 155, Williamsonburgh, WI 64581",
+          "54917 Harris Valley, Lake Mary, MT 01104"
+        ],
+        "akas": [
+          "Timothy Lee",
+          "Paula Hunt"
+        ],
+        "landlines": [
+          "001-490-925-1002"
+        ]
+      },
+      "results": [
+        {
+          "rank": 1,
+          "milvus_id": 467453718621494245,
+          "identity_idx": 810,
+          "is_match": true,
+          "record": {
+            "name": "Stanley",
+            "lastname": "Russell",
+            "dob": "1942-03-03",
+            "gender": "Non-binary",
+            "race": "Other",
+            "marital_status": "Married",
+            "mobile_number": "(406)593-5763x381",
+            "addresses": [
+              "64790 Combs Union Apt. 573, South Shawnshire, MS 61028",
+              "2096 Brandon Falls Apt. 726, Jeffreyburgh, AR 48189",
+              "972 Pruitt River Suite 155, Williamsonburgh, WI 64581",
+              "54917 Harris Valley, Lake Mary, MT 01104"
+            ],
+            "akas": [
+              "Paula Hunt"
+            ],
+            "landlines": [
+              "395-238-615-5681"
+            ],
+            "similarity": 0.7886
+          }
+        },
+        {
+          "rank": 2,
+          "milvus_id": 467453718621494243,
+          "identity_idx": 810,
+          "is_match": true,
+          "record": {
+            "name": "Stanely",
+            "lastname": "Russell",
+            "dob": "1942-03-03",
+            "gender": "Non-binary",
+            "race": "Mixed",
+            "marital_status": "Married",
+            "mobile_number": "(406)593-5763x381",
+            "addresses": [
+              "64790 Combs Union Apt. 573, South Shawnshire, MS 61028",
+              "2096 Brandon Falls Apt. 726, Jeffreyburgh, AR 48189",
+              "972 Pruitt River Suite 155, Williamsonburgh, WI 64581",
+              "54917 Harris Valley, Lake Mary, MT 01104"
+            ],
+            "akas": [
+              "Paula Hunt"
+            ],
+            "landlines": [
+              "001-490-925-1002"
+            ],
+            "similarity": 0.6919
+          }
+        },
+        {
+          "rank": 3,
+          "milvus_id": 467453718621493280,
+          "identity_idx": 489,
+          "is_match": false,
+          "record": {
+            "name": "Carrie",
+            "lastname": "Williams",
+            "dob": "1942-06-06",
+            "gender": "Male",
+            "race": "Asian",
+            "marital_status": "Single",
+            "mobile_number": "(026)816-6934",
+            "addresses": [],
+            "akas": [
+              "Amanda Blair",
+              "Jeffrey Hensley",
+              "Mallory Johnson"
+            ],
+            "landlines": [],
+            "similarity": 0.6594
+          }
+        }
+      ]
+    },
+    {
+      "query_num": 4,
+      "query_milvus_id": 467453718621493778,
+      "identity_idx": 655,
+      "query_record": {
+        "name": "Richard",
+        "lastname": "Jirmenez",
+        "dob": "1994-07-02",
+        "gender": "Male",
+        "race": "Black",
+        "marital_status": "Widowed",
+        "mobile_number": "001-378-343-7117x18569",
+        "addresses": [
+          "21405 Javier Corners Suite 604, Parkerbury, IL 72821"
+        ],
+        "akas": [
+          "Jeffrey Arnold"
+        ],
+        "landlines": [
+          "550-204-1951x130"
+        ]
+      },
+      "results": [
+        {
+          "rank": 1,
+          "milvus_id": 467453718621493780,
+          "identity_idx": 655,
+          "is_match": true,
+          "record": {
+            "name": "Richard",
+            "lastname": "Jimenez",
+            "dob": "1994-02-07",
+            "gender": "Male",
+            "race": "Black",
+            "marital_status": "Divorced",
+            "mobile_number": "001-372-344-7217x18569",
+            "addresses": [
+              "21405 Javier Corners Suite 604, Parkerbury, IL 72821"
+            ],
+            "akas": [
+              "Jeffrey Arnold"
+            ],
+            "landlines": [
+              "550-204-1951x130"
+            ],
+            "similarity": 0.738
+          }
+        },
+        {
+          "rank": 2,
+          "milvus_id": 467453718621493779,
+          "identity_idx": 655,
+          "is_match": true,
+          "record": {
+            "name": "Richard",
+            "lastname": "Jimenez",
+            "dob": "1994-02-07",
+            "gender": "Male",
+            "race": "Hispanic",
+            "marital_status": "Divorced",
+            "mobile_number": "001-378-343-7117x18569",
+            "addresses": [
+              "21405 Javier Corners Suite 604, Parkerbury, IL 72821"
+            ],
+            "akas": [
+              "Jeffrfy Arnold"
+            ],
+            "landlines": [
+              "550-204-1951x130"
+            ],
+            "similarity": 0.7307
+          }
+        },
+        {
+          "rank": 3,
+          "milvus_id": 467453718621493303,
+          "identity_idx": 496,
+          "is_match": false,
+          "record": {
+            "name": "Richard",
+            "lastname": "Jones",
+            "dob": "1998-09-05",
+            "gender": "Non-binary",
+            "race": "Hispanic",
+            "marital_status": "Widowed",
+            "mobile_number": "853.405.8147",
+            "addresses": [
+              "41600 Patrick Terrace, Port Jimmy, TX 65312"
+            ],
+            "akas": [
+              "MelissaB rock",
+              "Matthew White",
+              "Gina Leonard"
+            ],
+            "landlines": [
+              "762.513.5456x1431"
+            ],
+            "similarity": 0.7045
+          }
+        }
+      ]
+    },
+    {
+      "query_num": 5,
+      "query_milvus_id": 467453718621493761,
+      "identity_idx": 649,
+      "query_record": {
+        "name": "cott",
+        "lastname": "Murpy",
+        "dob": "1974-09-05",
+        "gender": "Female",
+        "race": "Black",
+        "marital_status": "Married",
+        "mobile_number": "(699)419-2157x864",
+        "addresses": [
+          "Unit 3857 Box 6264, DPO AP 09852"
+        ],
+        "akas": [],
+        "landlines": [
+          "846-402-3535",
+          "890.914.0812x35631"
+        ]
+      },
+      "results": [
+        {
+          "rank": 1,
+          "milvus_id": 467453718621493762,
+          "identity_idx": 649,
+          "is_match": true,
+          "record": {
+            "name": "Scott",
+            "lastname": "Murphy",
+            "dob": "1974-09-05",
+            "gender": "Female",
+            "race": "White",
+            "marital_status": "Married",
+            "mobile_number": "(699)419-2157x864",
+            "addresses": [
+              "Unit 3857 Box 6264, DPO AP 09852"
+            ],
+            "akas": [],
+            "landlines": [
+              "846-402-3535"
+            ],
+            "similarity": 0.6716
+          }
+        },
+        {
+          "rank": 2,
+          "milvus_id": 467453718621492952,
+          "identity_idx": 379,
+          "is_match": false,
+          "record": {
+            "name": "Melanie",
+            "lastname": "QJohnson",
+            "dob": "1963-11-23",
+            "gender": "Female",
+            "race": "Black",
+            "marital_status": "Married",
+            "mobile_number": "001-379-770-8770",
+            "addresses": [
+              "620 Michael Passage Apt. 543, New Jefferyburgh, VT 71720",
+              "231 James Divide, Lake Kevinland, AR 49935"
+            ],
+            "akas": [],
+            "landlines": [
+              "(479)989-6910x241"
+            ],
+            "similarity": 0.6561
+          }
+        },
+        {
+          "rank": 3,
+          "milvus_id": 467453718621494037,
+          "identity_idx": 741,
+          "is_match": false,
+          "record": {
+            "name": "Mid",
+            "lastname": "Vaughn",
+            "dob": "1980-09-14",
+            "gender": "Female",
+            "race": "Black",
+            "marital_status": "Married",
+            "mobile_number": "+9-896-380-8406x602",
+            "addresses": [
+              "442 Hernandez Shore Suite 204, South Justinstad, WI 94715",
+              "51337 Miranda Turnpike Suite 699, Grayville, WA 89113",
+              "PSC 0855, Box 7174, APO AP 86654"
+            ],
+            "akas": [
+              "Adriana Manning",
+              "Ashley Tucker",
+              "Jesus Cooper"
+            ],
+            "landlines": [],
+            "similarity": 0.6558999999999999
+          }
+        }
+      ]
+    }
+  ]
+}

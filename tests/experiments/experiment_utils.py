@@ -11,6 +11,8 @@ import random
 from datetime import datetime
 from pathlib import Path
 
+from configs.settings import NPROBE_EXHAUSTIVE
+from database_utils.milvus_db_connection import get_nprobe
 from dummy_data.generacion_base_de_datos import generate_data_chunk
 from encoding_methods.encoding_and_search_milvus import find_closest_match_db, store_person
 from tests.experiments.conftest import dataframe_row_to_person_dict
@@ -277,16 +279,37 @@ def run_dedup_recall(
     return recall_at_k, mrr, hit_at_1, hits, total
 
 
+def resolve_results_dir_and_suffix(nprobe: int = None) -> tuple[Path, str]:
+    """
+    Route a result file to the correct results directory / filename marker
+    based on the active nprobe mode.
+
+    Exhaustive runs (nprobe == NPROBE_EXHAUSTIVE, i.e. HDC_NPROBE=128) go to
+    test_results_128/ and get an "_exhaustive" filename marker, so ANN
+    (nprobe=8) and exhaustive results never collide or get mixed up once
+    written to disk. ANN runs keep the original test_results/ location with
+    no marker.
+    """
+    if nprobe is None:
+        nprobe = get_nprobe()
+    project_root = Path(__file__).resolve().parents[2]
+    if nprobe == NPROBE_EXHAUSTIVE:
+        return project_root / "test_results_128", "_exhaustive"
+    return project_root / "test_results", ""
+
+
 def save_report(prefix: str, mode: str, report: dict) -> Path:
     """
-    Serialise `report` to test_results/{prefix}_{mode}_{timestamp}.json.
+    Serialise `report` to {test_results|test_results_128}/{prefix}_{mode}[_exhaustive]_{timestamp}.json,
+    routed by the active nprobe mode (see resolve_results_dir_and_suffix).
 
     Returns the Path of the saved file.
     """
-    project_root = Path(__file__).resolve().parents[2]
-    output_dir   = project_root / "test_results"
+    nprobe = get_nprobe()
+    output_dir, suffix = resolve_results_dir_and_suffix(nprobe)
     output_dir.mkdir(exist_ok=True)
+    report.setdefault("nprobe", nprobe)
     timestamp   = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_path = output_dir / f"{prefix}_{mode}_{timestamp}.json"
+    output_path = output_dir / f"{prefix}_{mode}{suffix}_{timestamp}.json"
     output_path.write_text(json.dumps(report, indent=2))
     return output_path

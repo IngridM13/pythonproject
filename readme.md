@@ -41,7 +41,8 @@ Key environment variables (configure via `.env`):
 | Variable | Default | Description |
 |---|---|---|
 | `MILVUS_URI` | `http://localhost:19530` | Milvus connection URL |
-| `MILVUS_VECTOR_MODE` | `float` | `binary` or `float` |
+| `MILVUS_VECTOR_MODE` | `binary` | `binary` or `float` — controls vector type and index |
+| `HDC_NPROBE` | `8` | IVF search cells to probe: `8` = approximate (mode A), `128` = exhaustive (mode B) |
 | `SKIP_MILVUS_TESTS` | — | Set to `True` to skip tests requiring a live Milvus instance |
 
 ## Project Structure
@@ -72,15 +73,18 @@ A `Makefile` is provided for convenience:
 |---|---|
 | `make up` | Start Milvus |
 | `make down` | Stop Milvus |
-| `make test` | Run all test categories |
+| `make test` | Run unit + integration + functional tests |
 | `make test-unit` | Unit tests only |
 | `make test-integration` | Integration tests only |
 | `make test-bench` | Benchmarks only |
 | `make test-functional` | Functional tests only |
-| `make experiment` | Run the recall-under-noise experiment |
-| `make results` | Show latest experiment results |
-| `make results-float` | Show latest float mode results |
-| `make results-binary` | Show latest binary mode results |
+| `make experiments-ann` | Run all 13 experiments with nprobe=8 (approximate, mode A) |
+| `make experiments-exhaustive` | Run all 13 experiments with nprobe=128 (exhaustive, mode B) |
+| `make experiment01-recall-under-noise` | Run Experiment 1 only |
+| `make experiment06-per-field-noise` | Run Experiment 6 only (any experiment follows this pattern) |
+| `make results01-recall-under-noise` | Show latest results for Experiment 1 |
+
+See `tests/experiments/README.md` for the full list of experiment commands and configuration options.
 
 ## Running Tests
 
@@ -100,6 +104,29 @@ pytest tests/unit/test_encoding_methods.py::TestClassName::test_method_name
 ```
 
 ## Experiments
+
+The system includes 13 numbered research experiments covering recall under noise, deduplication, field sensitivity, scalability, and separability analysis. All experiments run against a live Milvus instance and support both `binary` and `float` vector modes.
+
+### Running experiments
+
+```bash
+# Run all experiments — approximate search (production-realistic)
+make experiments-ann
+
+# Run all experiments — exhaustive search (reference quality)
+make experiments-exhaustive
+
+# Run a single experiment
+HDC_NPROBE=8 make experiment01-recall-under-noise
+HDC_NPROBE=128 make experiment13-separability
+
+# View results for a specific experiment
+make results06-per-field-noise
+```
+
+`HDC_NPROBE` can be set per-command without modifying any file. Default is `8`. See `tests/experiments/README.md` for the full list of experiments, configuration variables, and output locations.
+
+---
 
 ### Recall Under Noise
 

@@ -49,21 +49,7 @@ def dataframe_row_to_person_dict(row) -> dict:
 # Fixtures
 # ---------------------------------------------------------------------------
 
-@pytest.fixture(scope="class", params=["binary", "float"])
-def with_vector_mode(request):
-    mode = request.param
-    original_mode = os.environ.get("MILVUS_VECTOR_MODE")
-    os.environ["MILVUS_VECTOR_MODE"] = mode
-
-    yield mode
-
-    if original_mode is None:
-        os.environ.pop("MILVUS_VECTOR_MODE", None)
-    else:
-        os.environ["MILVUS_VECTOR_MODE"] = original_mode
-
-
-@pytest.fixture(scope="class")
+@pytest.fixture
 def test_collection(with_vector_mode):
     name = f"people_test_{uuid.uuid4().hex[:8]}"
     print(f"\n[FIXTURE] Creating collection: {name}")

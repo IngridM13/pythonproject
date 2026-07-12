@@ -18,13 +18,16 @@ def test_connect_skips_if_connection_exists(mock_connections):
     connect()
     mock_connections.connect.assert_not_called()
 
-@patch('database_utils.milvus_db_connection._collection_cache', {})
-@patch('database_utils.milvus_db_connection.utility')
-@patch('database_utils.milvus_db_connection.Collection')
-def test_ensure_collection_creates_when_missing(mock_collection, mock_utility):
-    mock_utility.has_collection.return_value = False
-    ensure_people_collection()
-    mock_collection.assert_called_once()
+def test_ensure_collection_returns_cached_object(monkeypatch):
+    """Cache hit must return the stored collection without connecting to Milvus."""
+    import database_utils.milvus_db_connection as db
+
+    mock_col = MagicMock()
+    monkeypatch.setenv("MILVUS_VECTOR_MODE", "binary")
+    monkeypatch.setitem(db._collection_cache, "people_binary", mock_col)
+
+    result = ensure_people_collection()
+    assert result is mock_col
 
 # PyTorch-specific test
 def test_torch_tensor_creation():

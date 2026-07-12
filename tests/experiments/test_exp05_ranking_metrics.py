@@ -37,7 +37,7 @@ import pytest
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from configs.settings import HDC_DIM, RANKING_N, RANKING_V, RANKING_NOISE, RANKING_K, RANKING_SEED
+from configs.settings import HDC_DIM, RANKING_N, RANKING_V, RANKING_NOISE, RANKING_TOP_K, RANKING_SEED
 from encoding_methods.encoding_and_search_milvus import find_closest_match_db
 from tests.experiments.noise_injection import inject_noise
 from tests.experiments.experiment_utils import generate_canonical_persons, insert_noisy_variants, save_report
@@ -47,7 +47,7 @@ from tests.experiments.experiment_utils import generate_canonical_persons, inser
 # Test class
 # ---------------------------------------------------------------------------
 
-@pytest.mark.usefixtures("with_vector_mode")
+@pytest.mark.parametrize("with_vector_mode", ["binary", "float"], indirect=True)
 class TestRankingMetrics:
 
     def test_ranking_metrics(self, with_vector_mode, test_collection):
@@ -55,7 +55,7 @@ class TestRankingMetrics:
         n_identities          = int(os.environ.get("RANKING_N_IDENTITIES", RANKING_N))
         variants_per_identity = int(os.environ.get("RANKING_VARIANTS_PER_IDENTITY", RANKING_V))
         noise_fraction        = float(os.environ.get("RANKING_NOISE_FRACTION", RANKING_NOISE))
-        top_k                 = int(os.environ.get("RANKING_TOP_K", RANKING_K))
+        top_k                 = int(os.environ.get("RANKING_TOP_K", RANKING_TOP_K))
         seed                  = int(os.environ.get("RANKING_SEED", RANKING_SEED))
 
         mode = with_vector_mode

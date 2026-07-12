@@ -72,7 +72,7 @@ def _serialize_person(p: dict) -> dict:
 # Test class
 # ---------------------------------------------------------------------------
 
-@pytest.mark.usefixtures("with_vector_mode")
+@pytest.mark.parametrize("with_vector_mode", ["binary", "float"], indirect=True)
 class TestDedupRecall:
 
     def test_dedup_recall(self, with_vector_mode, test_collection):

@@ -37,7 +37,7 @@ Environment variables
 
 Output
 ------
-    test_results/exp13_separability_{timestamp}.json
+    test_results_128/exp13_separability_exhaustive_{timestamp}.json
 """
 
 import json
@@ -63,6 +63,7 @@ from configs.settings import (
     EXP13_SEED,
     HDC_DIM,
     NAME_AND_DATE_WEIGHTS,
+    NPROBE_EXHAUSTIVE,
 )
 from database_utils.milvus_db_connection import (
     _collection_cache,
@@ -129,11 +130,13 @@ def _search_full(
     qpayload = _encode_for_milvus(qhv)
 
     mode = get_vector_mode()
+    # Exp 13 always uses exhaustive search (nprobe=nlist) to isolate encoder
+    # quality from ANN approximation effects — HDC_NPROBE is intentionally ignored.
     if mode == "binary":
-        search_params = {"metric_type": "HAMMING", "params": {"nprobe": 128}}
+        search_params = {"metric_type": "HAMMING", "params": {"nprobe": NPROBE_EXHAUSTIVE}}
         metric = "HAMMING"
     else:
-        search_params = {"metric_type": "IP", "params": {"nprobe": 128}}
+        search_params = {"metric_type": "IP", "params": {"nprobe": NPROBE_EXHAUSTIVE}}
         metric = "IP"
 
     results = col.search(
@@ -318,8 +321,8 @@ def run_experiment(
     all_results = []
 
     for mode in modes:
-        original_mode = milvus_conn.VECTOR_MODE
-        milvus_conn.VECTOR_MODE = mode
+        original_mode = os.environ.get("MILVUS_VECTOR_MODE", "binary")
+        os.environ["MILVUS_VECTOR_MODE"] = mode
 
         try:
             print(f"\n[EXP13] {'═' * 60}")
@@ -332,7 +335,7 @@ def run_experiment(
                 all_results.append(entry)
 
         finally:
-            milvus_conn.VECTOR_MODE = original_mode
+            os.environ["MILVUS_VECTOR_MODE"] = original_mode
 
     return all_results
 
@@ -373,11 +376,15 @@ def _print_summary(all_results: list) -> None:
 
 
 def _save_results(report: dict) -> Path:
-    """Serialise report to test_results/exp13_separability_{timestamp}.json."""
-    output_dir = _PROJECT_ROOT / "test_results"
+    """Serialise report to test_results_128/exp13_separability_exhaustive_{timestamp}.json.
+
+    exp13 always searches with NPROBE_EXHAUSTIVE (HDC_NPROBE is intentionally
+    ignored, see above), so its results always belong in the exhaustive folder.
+    """
+    output_dir = _PROJECT_ROOT / "test_results_128"
     output_dir.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_path = output_dir / f"exp13_separability_{timestamp}.json"
+    output_path = output_dir / f"exp13_separability_exhaustive_{timestamp}.json"
     output_path.write_text(json.dumps(report, indent=2))
     return output_path
 
@@ -414,6 +421,7 @@ def main() -> None:
 
     report = {
         "metadata": {
+            "nprobe":   NPROBE_EXHAUSTIVE,
             "noise":    noise,
             "dims":     HDC_DIM,
             "M":        m_queries,

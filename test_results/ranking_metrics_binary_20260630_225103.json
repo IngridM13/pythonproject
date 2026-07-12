@@ -1,0 +1,18 @@
+{
+  "mode": "binary",
+  "config": {
+    "n_identities": 5000,
+    "variants_per_identity": 3,
+    "noise_fraction": 0.3,
+    "top_k": 3,
+    "hdim": 10000,
+    "seed": 42
+  },
+  "results": {
+    "recall_at_k": 0.7351333333333333,
+    "mrr": 0.7011555555555564,
+    "precision_at_k": 0.3477777777777724,
+    "hit_at_1": 0.6734,
+    "total_queries": 15000
+  }
+}
