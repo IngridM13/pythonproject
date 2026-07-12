@@ -6,4 +6,4 @@ tqdm
 pymilvus==2.6.14
 python-dateutil
 torch>=2.2.0,<2.3.0
-marshmallow<3.13.0
+marshmallow<3.13.0  # pymilvus ORM serialization; 3.13+ breaks the schema API used by the version pinned above

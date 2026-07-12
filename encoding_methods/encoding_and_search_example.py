@@ -1,3 +1,15 @@
+"""
+PROTOTYPE / ILLUSTRATIVE EXAMPLE — NOT PRODUCTION CODE
+-------------------------------------------------------
+This file is a self-contained demonstration of the HDC encoding concept.
+It uses a global shared RNG (torch.manual_seed + random.seed at module level),
+which means hypervector values depend on the ORDER in which keys are first
+encountered. Results will differ if call order changes.
+
+For reproducible, per-key deterministic encoding (SHA-256 seeded RNG) see:
+  hdc/binary_hdc.py   — HyperDimensionalComputingBinary
+  hdc/bipolar_hdc.py  — HyperDimensionalComputingBipolar
+"""
 import torch
 import torch.nn.functional as F
 import random
@@ -6,9 +18,12 @@ import random
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Set a fixed dimension for hypervectors
-DIMENSION = 10000 # no debería esto ir en el .env?
+DIMENSION = 10000
 
-# Generate a consistent dictionary of random hypervectors
+# Generate a consistent dictionary of random hypervectors.
+# NOTE: torch.manual_seed fixes the global RNG state, not a per-key seed.
+# Vectors are reproducible only if keys are looked up in the same order
+# across runs. For true per-key determinism use hdc/binary_hdc.py instead.
 torch.manual_seed(42)
 random.seed(42)
 hv_dict = {}

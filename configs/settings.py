@@ -6,7 +6,7 @@ CHUNK_SIZE = 500_000  # Process in chunks to optimize memory
 OUTPUT_FILE = "test_synthetic_dataset.csv"
 DEFAULT_SEED=42
 
-# Defininicion de la hiperdimensionalidad hypervector
+# Dimensión del hipervector
 HDC_DIM = 10000
 
 # nprobe controls ANN search approximation (IVF index).
