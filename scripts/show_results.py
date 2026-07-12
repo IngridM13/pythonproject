@@ -11,9 +11,14 @@ import json
 import sys
 from pathlib import Path
 
+_PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(_PROJECT_ROOT))
+
+from configs.settings import NPROBE_ANN, NPROBE_EXHAUSTIVE
 
 BAR_WIDTH = 40
-RESULTS_DIR = Path(__file__).resolve().parents[1] / "test_results"
+RESULTS_DIR     = _PROJECT_ROOT / "test_results"
+RESULTS_DIR_128 = _PROJECT_ROOT / "test_results_128"
 
 GREEN  = "\033[92m"
 YELLOW = "\033[93m"
@@ -21,18 +26,39 @@ RED    = "\033[91m"
 RESET  = "\033[0m"
 
 
-def find_latest_recall(mode: str = None) -> Path:
+def find_latest_recall(mode: str = None, results_dir: Path = RESULTS_DIR) -> Path | None:
     pattern = f"recall_under_noise_{mode}_*.json" if mode else "recall_under_noise_*.json"
-    files = sorted(RESULTS_DIR.glob(pattern), key=lambda f: f.stat().st_mtime)
-    if not files:
-        print(f"No recall result files found in test_results/")
-        sys.exit(1)
-    return files[-1]
+    files = sorted(results_dir.glob(pattern), key=lambda f: f.stat().st_mtime)
+    return files[-1] if files else None
 
 
 def find_latest_bench(mode: str, bench_type: str) -> Path | None:
     files = sorted(RESULTS_DIR.glob(f"test_metrics_{mode}_{bench_type}_*.json"), key=lambda f: f.stat().st_mtime)
     return files[-1] if files else None
+
+
+def infer_nprobe(data: dict, path: Path) -> int:
+    """
+    Best-effort nprobe lookup for a result file.
+
+    Prefers the "nprobe" value recorded in the report itself (written by
+    every experiment since save_report()/resolve_results_dir_and_suffix()
+    started recording it). Falls back to the directory/filename convention
+    (test_results_128/ or an "_exhaustive" marker means nprobe=128) for
+    older result files that predate the recorded field.
+    """
+    if "nprobe" in data:
+        return data["nprobe"]
+    cfg = data.get("config") or data.get("metadata") or {}
+    if "nprobe" in cfg:
+        return cfg["nprobe"]
+    if path.parent.name == "test_results_128" or "_exhaustive" in path.name:
+        return NPROBE_EXHAUSTIVE
+    return NPROBE_ANN
+
+
+def nprobe_label(nprobe: int) -> str:
+    return f"{nprobe} (exhaustive)" if nprobe == NPROBE_EXHAUSTIVE else f"{nprobe} (ANN)"
 
 
 def bar(recall: float) -> str:
@@ -60,6 +86,7 @@ def print_recall_section(path: Path):
     print(" Recall-Under-Noise Results")
     print("=" * 60)
     print(f"  File        : {path.name}")
+    print(f"  nprobe      : {nprobe_label(infer_nprobe(data, path))}")
     print(f"  Vector mode : {cfg['vector_mode']}")
     print(f"  Records     : {cfg['n_people']}")
     print(f"  HDC dim     : {cfg['hdim']}")
@@ -173,6 +200,7 @@ def print_dedup_section(path: Path):
     print(" Deduplication Recall Results")
     print("=" * 60)
     print(f"  File        : {path.name}")
+    print(f"  nprobe      : {nprobe_label(infer_nprobe(data, path))}")
     print(f"  Vector mode : {cfg['vector_mode']}")
     print(f"  Identities  : {cfg['n_identities']}")
     print(f"  Variants    : {cfg['variants_per_identity']}  (total records: {cfg['total_records']})")
@@ -238,6 +266,7 @@ def print_field_weighting_section(path: Path):
     print(" Field Weighting Ablation Results")
     print("=" * 60)
     print(f"  File        : {path.name}")
+    print(f"  nprobe      : {nprobe_label(infer_nprobe(data, path))}")
     print(f"  Vector mode : {mode}")
     print(f"  Identities  : {cfg['n_identities']}  x  {cfg['variants_per_identity']} variants")
     print(f"  Noise       : {cfg['noise_fraction']:.0%}")
@@ -277,6 +306,7 @@ def print_scalability_section(path: Path):
     print(" Scalability Results")
     print("=" * 60)
     print(f"  File        : {path.name}")
+    print(f"  nprobe      : {nprobe_label(infer_nprobe(data, path))}")
     print(f"  Vector mode : {mode}")
     print(f"  N values    : {cfg['n_values']}")
     print(f"  Variants    : {cfg['variants_per_identity']} per identity")
@@ -352,6 +382,7 @@ def print_ranking_section(path: Path):
     print(" Ranking Metrics Results")
     print("=" * 60)
     print(f"  File        : {path.name}")
+    print(f"  nprobe      : {nprobe_label(infer_nprobe(data, path))}")
     print(f"  Vector mode : {mode}")
     print(f"  Identities  : {cfg['n_identities']}  x  {cfg['variants_per_identity']} variants")
     print(f"  Noise       : {cfg['noise_fraction']:.0%}")
@@ -390,6 +421,7 @@ def print_per_field_noise_section(path: Path):
     print(" Per-Field Noise Sensitivity Results")
     print("=" * 90)
     print(f"  File        : {path.name}")
+    print(f"  nprobe      : {nprobe_label(infer_nprobe(data, path))}")
     print(f"  Vector mode : {mode}")
     print(f"  Identities  : {cfg['n_identities']}  x  {cfg['variants_per_identity']} variants")
     print(f"  Noise       : {cfg['noise_fraction']:.0%}")
@@ -465,6 +497,7 @@ def print_per_field_sweep_section(path: Path):
     print(" Per-Field Noise Sweep Results")
     print("=" * 85)
     print(f"  File        : {path.name}")
+    print(f"  nprobe      : {nprobe_label(infer_nprobe(data, path))}")
     print(f"  Vector mode : {mode}")
     print(f"  Fields      : {', '.join(cfg['fields'])}")
     print(f"  Noise levels: {cfg['noise_levels']}")
@@ -518,6 +551,7 @@ def print_dimensionality_section(path: Path):
     print(" Dimensionality Sweep Results")
     print("=" * 80)
     print(f"  File        : {path.name}")
+    print(f"  nprobe      : {nprobe_label(infer_nprobe(data, path))}")
     print(f"  Vector mode : {mode}")
     print(f"  Dim values  : {cfg['dim_values']}")
     print(f"  Identities  : {cfg['n_identities']}  x  {cfg['variants_per_identity']} variants")
@@ -587,6 +621,7 @@ def print_date_encoding_section(path: Path):
     print(" Date Encoding Comparison Results")
     print("=" * 80)
     print(f"  File        : {path.name}")
+    print(f"  nprobe      : {nprobe_label(infer_nprobe(data, path))}")
     print(f"  Vector mode : {mode}")
     print(f"  Identities  : {cfg['n_identities']}  x  {cfg['variants_per_identity']} variants")
     print(f"  Noise       : {cfg['noise_fraction']:.0%}")
@@ -659,6 +694,7 @@ def print_recall_n_sweep_section(path: Path) -> None:
     print(" Recall@1 vs Collection Size  (Exp 12 — N sweep)")
     print("=" * 72)
     print(f"  File        : {path.name}")
+    print(f"  nprobe      : {nprobe_label(infer_nprobe(data, path))}")
     print(f"  Modes       : {', '.join(cfg['modes'])}")
     print(f"  N values    : {cfg['n_values']}")
     print(f"  M queries   : {cfg['m_queries']}")
@@ -722,6 +758,7 @@ def print_separability_section(path: Path) -> None:
     print(" Separability Analysis  (Exp 13 — gap between match and best impostor)")
     print("=" * 80)
     print(f"  File        : {path.name}")
+    print(f"  nprobe      : {nprobe_label(infer_nprobe(data, path))}")
     print(f"  Modes       : {', '.join(meta['modes'])}")
     print(f"  N values    : {meta['N_values']}")
     print(f"  M queries   : {meta['M']}")
@@ -788,6 +825,7 @@ def print_nk_sweep_section(path: Path) -> None:
     print(" N × K Sweep Results  (Recall@k vs collection size)")
     print("=" * 70)
     print(f"  File            : {path.name}")
+    print(f"  nprobe          : {nprobe_label(infer_nprobe(data, path))}")
     print(f"  N values        : {cfg['n_values']}")
     print(f"  K values        : {cfg['k_values']}")
     print(f"  Noise fraction  : {cfg['noise_fraction']}")
@@ -829,14 +867,15 @@ def print_float_capacity_section(path: Path) -> None:
 
     print()
     print("=" * 84)
-    print(" Float Capacity Analysis  (Exp 14a — Recall vs N, mode=float, nprobe=128)")
+    print(" Float Capacity Analysis  (Exp 14a — Recall vs N, mode=float)")
     print("=" * 84)
     print(f"  File        : {path.name}")
+    print(f"  nprobe      : {nprobe_label(infer_nprobe(data, path))}")
     print(f"  N values    : {cfg['n_values']}")
     print(f"  Noise values: {cfg['noise_values']}")
     print(f"  M queries   : {cfg['m_queries']}")
     print(f"  HDC dim     : {cfg['hdim']}")
-    print(f"  nprobe/nlist: {cfg.get('nprobe', 128)}/{cfg.get('nlist', 128)}")
+    print(f"  nprobe/nlist: {cfg.get('nprobe', infer_nprobe(data, path))}/{cfg.get('nlist', 128)}")
     print(f"  Seed        : {cfg['seed']}")
     if hw:
         print(f"  Hardware    : {hw.get('mac','?')}  Docker RAM: {hw.get('docker_ram_gb','?')} GB  "
@@ -951,19 +990,29 @@ def main():
             mode = print_recall_section(path)
             print_bench_section(mode)
     else:
+        # Show both nprobe modes (ANN=8 from test_results/, exhaustive=128
+        # from test_results_128/) for each vector mode, when present.
         shown = False
         for mode in ("binary", "float"):
-            files = sorted(RESULTS_DIR.glob(f"recall_under_noise_{mode}_*.json"), key=lambda f: f.stat().st_mtime)
-            if files:
-                print_recall_section(files[-1])
-                print_bench_section(mode)
+            ann_files = sorted(RESULTS_DIR.glob(f"recall_under_noise_{mode}_*.json"), key=lambda f: f.stat().st_mtime)
+            exh_files = sorted(RESULTS_DIR_128.glob(f"recall_under_noise_{mode}_exhaustive_*.json"), key=lambda f: f.stat().st_mtime)
+            if ann_files:
+                print_recall_section(ann_files[-1])
                 shown = True
+            if exh_files:
+                print_recall_section(exh_files[-1])
+                shown = True
+            if ann_files or exh_files:
+                print_bench_section(mode)
         if not shown:
             # fall back to dedup results if no recall files exist
             for mode in ("binary", "float"):
-                files = sorted(RESULTS_DIR.glob(f"dedup_recall_{mode}_*.json"), key=lambda f: f.stat().st_mtime)
-                if files:
-                    print_dedup_section(files[-1])
+                ann_files = sorted(RESULTS_DIR.glob(f"dedup_recall_{mode}_*.json"), key=lambda f: f.stat().st_mtime)
+                exh_files = sorted(RESULTS_DIR_128.glob(f"dedup_recall_{mode}_exhaustive_*.json"), key=lambda f: f.stat().st_mtime)
+                if ann_files:
+                    print_dedup_section(ann_files[-1])
+                if exh_files:
+                    print_dedup_section(exh_files[-1])
 
 
 if __name__ == "__main__":

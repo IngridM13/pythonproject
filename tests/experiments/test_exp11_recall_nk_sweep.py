@@ -21,8 +21,9 @@ For each vector_mode in {binary, float}:
 
 Output
 ------
-Saves test_results/recall_nk_sweep_<timestamp>.json with a flat results list.
-Prints a pivot table per mode to stdout.
+Saves recall_nk_sweep[_exhaustive]_<timestamp>.json with a flat results list,
+to test_results/ (nprobe=8) or test_results_128/ (nprobe=128) depending on
+the active HDC_NPROBE mode. Prints a pivot table per mode to stdout.
 
 Run
 ---
@@ -44,9 +45,9 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 
 import database_utils.milvus_db_connection as milvus_conn
 from configs.settings import DEFAULT_SEED, HDC_DIM
-from database_utils.milvus_db_connection import _collection_cache, ensure_people_collection
+from database_utils.milvus_db_connection import _collection_cache, ensure_people_collection, get_nprobe
 from encoding_methods.encoding_and_search_milvus import find_closest_match_db, store_person
-from tests.experiments.experiment_utils import generate_canonical_persons
+from tests.experiments.experiment_utils import generate_canonical_persons, resolve_results_dir_and_suffix
 from tests.experiments.noise_injection import inject_noise
 
 # ---------------------------------------------------------------------------
@@ -299,13 +300,14 @@ class TestExp11RecallNKSweep:
             _print_pivot(mode, mode_rows)
 
         # --- Save JSON ---
-        project_root = Path(__file__).resolve().parents[2]
-        output_dir   = project_root / "test_results"
+        nprobe = get_nprobe()
+        output_dir, suffix = resolve_results_dir_and_suffix(nprobe)
         output_dir.mkdir(exist_ok=True)
         timestamp    = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_path  = output_dir / f"recall_nk_sweep_{timestamp}.json"
+        output_path  = output_dir / f"recall_nk_sweep{suffix}_{timestamp}.json"
 
         report = {
+            "nprobe": nprobe,
             "config": {
                 "n_values":              N_VALUES,
                 "k_values":              K_VALUES,

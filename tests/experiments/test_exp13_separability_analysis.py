@@ -37,7 +37,7 @@ Environment variables
 
 Output
 ------
-    test_results/exp13_separability_{timestamp}.json
+    test_results_128/exp13_separability_exhaustive_{timestamp}.json
 """
 
 import json
@@ -376,11 +376,15 @@ def _print_summary(all_results: list) -> None:
 
 
 def _save_results(report: dict) -> Path:
-    """Serialise report to test_results/exp13_separability_{timestamp}.json."""
-    output_dir = _PROJECT_ROOT / "test_results"
+    """Serialise report to test_results_128/exp13_separability_exhaustive_{timestamp}.json.
+
+    exp13 always searches with NPROBE_EXHAUSTIVE (HDC_NPROBE is intentionally
+    ignored, see above), so its results always belong in the exhaustive folder.
+    """
+    output_dir = _PROJECT_ROOT / "test_results_128"
     output_dir.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_path = output_dir / f"exp13_separability_{timestamp}.json"
+    output_path = output_dir / f"exp13_separability_exhaustive_{timestamp}.json"
     output_path.write_text(json.dumps(report, indent=2))
     return output_path
 
@@ -417,6 +421,7 @@ def main() -> None:
 
     report = {
         "metadata": {
+            "nprobe":   NPROBE_EXHAUSTIVE,
             "noise":    noise,
             "dims":     HDC_DIM,
             "M":        m_queries,

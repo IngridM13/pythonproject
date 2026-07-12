@@ -2,6 +2,10 @@ PYTEST := .venv311/bin/python -m pytest
 PYTHON := .venv311/bin/python
 
 # nprobe default — override with NPROBE=128 for exhaustive mode B
+# Experiment scripts route their own output based on HDC_NPROBE: nprobe=8 runs
+# write to test_results/, nprobe=128 runs write to test_results_128/ with an
+# "_exhaustive" filename marker (exp13 always runs exhaustive, unconditionally).
+# The resultsNN-* targets below look in both directories.
 NPROBE ?= 8
 
 up:
@@ -67,14 +71,18 @@ results01-recall-under-noise:
 	$(PYTHON) scripts/show_results.py
 
 results01-float:
-	@file=$$(ls -t test_results/recall_under_noise_float_*.json 2>/dev/null | head -1); \
-	if [ -n "$$file" ]; then $(PYTHON) scripts/show_results.py $$file; \
-	else echo "No recall_under_noise_float results found in test_results/"; fi
+	@ann=$$(ls -t test_results/recall_under_noise_float_*.json 2>/dev/null | head -1); \
+	exh=$$(ls -t test_results_128/recall_under_noise_float_exhaustive_*.json 2>/dev/null | head -1); \
+	if [ -z "$$ann" ] && [ -z "$$exh" ]; then echo "No recall_under_noise_float results found."; fi; \
+	if [ -n "$$ann" ]; then $(PYTHON) scripts/show_results.py $$ann; fi; \
+	if [ -n "$$exh" ]; then $(PYTHON) scripts/show_results.py $$exh; fi
 
 results01-binary:
-	@file=$$(ls -t test_results/recall_under_noise_binary_*.json 2>/dev/null | head -1); \
-	if [ -n "$$file" ]; then $(PYTHON) scripts/show_results.py $$file; \
-	else echo "No recall_under_noise_binary results found in test_results/"; fi
+	@ann=$$(ls -t test_results/recall_under_noise_binary_*.json 2>/dev/null | head -1); \
+	exh=$$(ls -t test_results_128/recall_under_noise_binary_exhaustive_*.json 2>/dev/null | head -1); \
+	if [ -z "$$ann" ] && [ -z "$$exh" ]; then echo "No recall_under_noise_binary results found."; fi; \
+	if [ -n "$$ann" ]; then $(PYTHON) scripts/show_results.py $$ann; fi; \
+	if [ -n "$$exh" ]; then $(PYTHON) scripts/show_results.py $$exh; fi
 
 experiment02-dedup-recall-ann:
 	HDC_NPROBE=8 $(PYTEST) tests/experiments/test_exp02_dedup_recall.py -v -s
@@ -84,8 +92,10 @@ experiment02-dedup-recall-exhaustive:
 
 results02-dedup-recall:
 	@for mode in binary float; do \
-		file=$$(ls -t test_results/dedup_recall_$${mode}_*.json 2>/dev/null | head -1); \
-		if [ -n "$$file" ]; then $(PYTHON) scripts/show_results.py $$file; fi \
+		ann=$$(ls -t test_results/dedup_recall_$${mode}_*.json 2>/dev/null | head -1); \
+		exh=$$(ls -t test_results_128/dedup_recall_$${mode}_exhaustive_*.json 2>/dev/null | head -1); \
+		if [ -n "$$ann" ]; then $(PYTHON) scripts/show_results.py $$ann; fi; \
+		if [ -n "$$exh" ]; then $(PYTHON) scripts/show_results.py $$exh; fi; \
 	done
 
 experiment03-weights:
@@ -105,8 +115,10 @@ experiment04-scalability-exhaustive:
 
 results04-scalability:
 	@for mode in binary float; do \
-		file=$$(ls -t test_results/scalability_$${mode}_*.json 2>/dev/null | head -1); \
-		if [ -n "$$file" ]; then $(PYTHON) scripts/show_results.py $$file; fi \
+		ann=$$(ls -t test_results/scalability_$${mode}_*.json 2>/dev/null | head -1); \
+		exh=$$(ls -t test_results_128/scalability_$${mode}_exhaustive_*.json 2>/dev/null | head -1); \
+		if [ -n "$$ann" ]; then $(PYTHON) scripts/show_results.py $$ann; fi; \
+		if [ -n "$$exh" ]; then $(PYTHON) scripts/show_results.py $$exh; fi; \
 	done
 
 experiment05-ranking-ann:
@@ -117,8 +129,10 @@ experiment05-ranking-exhaustive:
 
 results05-ranking:
 	@for mode in binary float; do \
-		file=$$(ls -t test_results/ranking_metrics_$${mode}_*.json 2>/dev/null | head -1); \
-		if [ -n "$$file" ]; then $(PYTHON) scripts/show_results.py $$file; fi \
+		ann=$$(ls -t test_results/ranking_metrics_$${mode}_*.json 2>/dev/null | head -1); \
+		exh=$$(ls -t test_results_128/ranking_metrics_$${mode}_exhaustive_*.json 2>/dev/null | head -1); \
+		if [ -n "$$ann" ]; then $(PYTHON) scripts/show_results.py $$ann; fi; \
+		if [ -n "$$exh" ]; then $(PYTHON) scripts/show_results.py $$exh; fi; \
 	done
 
 experiment06-per-field-noise:
@@ -138,8 +152,10 @@ experiment07-per-field-sweep-exhaustive:
 
 results07-per-field-sweep:
 	@for mode in binary float; do \
-		file=$$(ls -t test_results/per_field_sweep_$${mode}_*.json 2>/dev/null | head -1); \
-		if [ -n "$$file" ]; then $(PYTHON) scripts/show_results.py $$file; fi \
+		ann=$$(ls -t test_results/per_field_sweep_$${mode}_*.json 2>/dev/null | head -1); \
+		exh=$$(ls -t test_results_128/per_field_sweep_$${mode}_exhaustive_*.json 2>/dev/null | head -1); \
+		if [ -n "$$ann" ]; then $(PYTHON) scripts/show_results.py $$ann; fi; \
+		if [ -n "$$exh" ]; then $(PYTHON) scripts/show_results.py $$exh; fi; \
 	done
 
 experiment08-dimensionality-ann:
@@ -150,8 +166,10 @@ experiment08-dimensionality-exhaustive:
 
 results08-dimensionality:
 	@for mode in binary float; do \
-		file=$$(ls -t test_results/dimensionality_$${mode}_*.json 2>/dev/null | head -1); \
-		if [ -n "$$file" ]; then $(PYTHON) scripts/show_results.py $$file; fi \
+		ann=$$(ls -t test_results/dimensionality_$${mode}_*.json 2>/dev/null | head -1); \
+		exh=$$(ls -t test_results_128/dimensionality_$${mode}_exhaustive_*.json 2>/dev/null | head -1); \
+		if [ -n "$$ann" ]; then $(PYTHON) scripts/show_results.py $$ann; fi; \
+		if [ -n "$$exh" ]; then $(PYTHON) scripts/show_results.py $$exh; fi; \
 	done
 
 experiment09-date-encoding:
@@ -172,8 +190,10 @@ experiment10-scalability-noisy-dupes-exhaustive:
 
 results10-scalability-noisy-dupes:
 	@for mode in binary float; do \
-		file=$$(ls -t test_results/exp10_scalability_noisy_dupes/exp10_$${mode}_*.json 2>/dev/null | head -1); \
-		if [ -n "$$file" ]; then $(PYTHON) scripts/show_results.py $$file; fi \
+		ann=$$(ls -t test_results/exp10_scalability_noisy_dupes/exp10_$${mode}_*.json 2>/dev/null | head -1); \
+		exh=$$(ls -t test_results_128/exp10_scalability_noisy_dupes/exp10_$${mode}_exhaustive_*.json 2>/dev/null | head -1); \
+		if [ -n "$$ann" ]; then $(PYTHON) scripts/show_results.py $$ann; fi; \
+		if [ -n "$$exh" ]; then $(PYTHON) scripts/show_results.py $$exh; fi; \
 	done
 
 experiment11-nk-sweep-ann:
@@ -183,9 +203,11 @@ experiment11-nk-sweep-exhaustive:
 	HDC_NPROBE=128 $(PYTEST) tests/experiments/test_exp11_recall_nk_sweep.py -v -s
 
 results11-nk-sweep:
-	@file=$$(ls -t test_results/recall_nk_sweep_*.json 2>/dev/null | head -1); \
-	if [ -n "$$file" ]; then $(PYTHON) scripts/show_results.py $$file; \
-	else echo "No recall_nk_sweep results found in test_results/"; fi
+	@ann=$$(ls -t test_results/recall_nk_sweep_*.json 2>/dev/null | head -1); \
+	exh=$$(ls -t test_results_128/recall_nk_sweep_exhaustive_*.json 2>/dev/null | head -1); \
+	if [ -z "$$ann" ] && [ -z "$$exh" ]; then echo "No recall_nk_sweep results found."; fi; \
+	if [ -n "$$ann" ]; then $(PYTHON) scripts/show_results.py $$ann; fi; \
+	if [ -n "$$exh" ]; then $(PYTHON) scripts/show_results.py $$exh; fi
 
 experiment12-recall-n-sweep-ann:
 	HDC_NPROBE=8 $(PYTEST) tests/experiments/test_exp12_recall_n_sweep.py -v -s
@@ -194,15 +216,17 @@ experiment12-recall-n-sweep-exhaustive:
 	HDC_NPROBE=128 $(PYTEST) tests/experiments/test_exp12_recall_n_sweep.py -v -s
 
 results12-recall-n-sweep:
-	@file=$$(ls -t test_results/exp12_recall_n_sweep_*.json 2>/dev/null | head -1); \
-	if [ -n "$$file" ]; then $(PYTHON) scripts/show_results.py $$file; \
-	else echo "No exp12 results found in test_results/"; fi
+	@ann=$$(ls -t test_results/exp12_recall_n_sweep_*.json 2>/dev/null | head -1); \
+	exh=$$(ls -t test_results_128/exp12_recall_n_sweep_exhaustive_*.json 2>/dev/null | head -1); \
+	if [ -z "$$ann" ] && [ -z "$$exh" ]; then echo "No exp12 results found."; fi; \
+	if [ -n "$$ann" ]; then $(PYTHON) scripts/show_results.py $$ann; fi; \
+	if [ -n "$$exh" ]; then $(PYTHON) scripts/show_results.py $$exh; fi
 
 experiment13-separability:
 	$(PYTHON) tests/experiments/test_exp13_separability_analysis.py
 
 results13-separability:
-	@file=$$(ls -t test_results/exp13_separability_*.json 2>/dev/null | head -1); \
+	@file=$$(ls -t test_results_128/exp13_separability_exhaustive_*.json 2>/dev/null | head -1); \
 	if [ -n "$$file" ]; then $(PYTHON) scripts/show_results.py $$file; \
-	else echo "No exp13_separability results found in test_results/"; fi
+	else echo "No exp13_separability results found in test_results_128/ (exp13 always runs exhaustive)"; fi
 

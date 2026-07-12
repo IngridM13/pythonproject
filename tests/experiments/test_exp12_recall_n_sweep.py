@@ -18,8 +18,9 @@ For each vector_mode in {binary, float}:
 
 Output
 ------
-Saves test_results/exp12_recall_n_sweep_<timestamp>.json with one row
-per (mode, N).
+Saves exp12_recall_n_sweep[_exhaustive]_<timestamp>.json with one row per
+(mode, N), to test_results/ (nprobe=8) or test_results_128/ (nprobe=128)
+depending on the active HDC_NPROBE mode.
 
 Run
 ---
@@ -56,9 +57,9 @@ from configs.settings import (
     EXP12_SEED,
     HDC_DIM,
 )
-from database_utils.milvus_db_connection import ensure_people_collection
+from database_utils.milvus_db_connection import ensure_people_collection, get_nprobe
 from encoding_methods.encoding_and_search_milvus import find_closest_match_db, store_person
-from tests.experiments.experiment_utils import generate_canonical_persons
+from tests.experiments.experiment_utils import generate_canonical_persons, resolve_results_dir_and_suffix
 from tests.experiments.noise_injection import inject_noise
 
 
@@ -188,15 +189,16 @@ class TestExp12RecallNSweep:
                 os.environ["MILVUS_VECTOR_MODE"] = original_mode
 
         # --- Save JSON ---
-        project_root = Path(__file__).resolve().parents[2]
-        output_dir   = project_root / "test_results"
+        nprobe = get_nprobe()
+        output_dir, suffix = resolve_results_dir_and_suffix(nprobe)
         output_dir.mkdir(exist_ok=True)
         timestamp  = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_path = output_dir / f"exp12_recall_n_sweep_{timestamp}.json"
+        output_path = output_dir / f"exp12_recall_n_sweep{suffix}_{timestamp}.json"
 
         report = {
             "experiment": "Experiment 12 — Recall@1 under noise across collection sizes",
             "timestamp": timestamp,
+            "nprobe": nprobe,
             "config": {
                 "n_values":    n_values,
                 "m_queries":   m_queries,

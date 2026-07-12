@@ -57,9 +57,9 @@ from configs.settings import (
     EXP10_TOP_K,
     HDC_DIM,
 )
-from database_utils.milvus_db_connection import ensure_people_collection
+from database_utils.milvus_db_connection import ensure_people_collection, get_nprobe
 from encoding_methods.encoding_and_search_milvus import find_closest_match_db, store_person
-from tests.experiments.experiment_utils import generate_canonical_persons
+from tests.experiments.experiment_utils import generate_canonical_persons, resolve_results_dir_and_suffix
 from tests.experiments.noise_injection import inject_noise
 
 
@@ -114,7 +114,6 @@ def evaluate_recall(
 
 
 def _save_results(
-    output_dir: Path,
     mode: str,
     config: dict,
     rows: list,
@@ -122,12 +121,15 @@ def _save_results(
     top_d: int,
 ) -> tuple:
     """Save CSV and JSON reports. Returns (csv_path, json_path)."""
+    nprobe = get_nprobe()
+    output_dir, suffix = resolve_results_dir_and_suffix(nprobe)
+    output_dir = output_dir / "exp10_scalability_noisy_dupes"
     output_dir.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     recall_d_col = f"recall@{top_d}"
     recall_k_col = f"recall@{top_k}"
-    csv_path = output_dir / f"exp10_{mode}_{timestamp}.csv"
+    csv_path = output_dir / f"exp10_{mode}{suffix}_{timestamp}.csv"
     fieldnames = [
         "mode", "N", "noise_ratio", "noise_level", "duplicates_per_original",
         "recall@1", recall_k_col, recall_d_col, "mrr", "hit@1",
@@ -138,11 +140,12 @@ def _save_results(
         writer.writeheader()
         writer.writerows(rows)
 
-    json_path = output_dir / f"exp10_{mode}_{timestamp}.json"
+    json_path = output_dir / f"exp10_{mode}{suffix}_{timestamp}.json"
     json_path.write_text(json.dumps({
         "experiment": "Experiment 10 — Scalability with Noisy Duplicates",
         "timestamp":  timestamp,
         "mode":       mode,
+        "nprobe":     nprobe,
         "config":     config,
         "results":    rows,
     }, indent=2))
@@ -182,7 +185,6 @@ class TestExp10ScalabilityNoisyDupes:
             "seed":                    seed,
         }
 
-        output_dir = Path(__file__).resolve().parents[2] / "test_results" / "exp10_scalability_noisy_dupes"
         recall_d_col = f"recall@{duplicates_per_original}"
 
         print(
@@ -327,7 +329,7 @@ class TestExp10ScalabilityNoisyDupes:
                             print(f"[EXP10] Warning: could not drop {col_name}: {drop_err}")
 
                 # --- Save results ---
-                csv_path, json_path = _save_results(output_dir, mode, config, mode_rows, top_k, duplicates_per_original)
+                csv_path, json_path = _save_results(mode, config, mode_rows, top_k, duplicates_per_original)
                 print(f"\n[EXP10] CSV  → {csv_path}")
                 print(f"[EXP10] JSON → {json_path}")
 
