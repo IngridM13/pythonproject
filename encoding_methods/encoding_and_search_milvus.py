@@ -263,6 +263,27 @@ def find_closest_match_db(query_person, threshold=0.7, limit=5, collection_name:
     return out[:limit]
 
 
+def search_for_eval(query_person, top_k, collection_name: str = "people", field_weights=NAME_AND_DATE_WEIGHTS):
+    """
+    Thin wrapper around find_closest_match_db for use in recall experiments.
+
+    (a) Returns the top_k closest database entries for query_person with no
+        similarity filtering applied.
+    (b) threshold=0.0 is correct for evaluation: recall metrics must see every
+        retrieved candidate regardless of score — pre-filtering by similarity
+        would inflate recall by hiding low-similarity true positives.
+    (c) find_closest_match_db (default threshold=0.7) is for production use,
+        where only high-confidence matches should be surfaced to callers.
+    """
+    return find_closest_match_db(
+        query_person,
+        threshold=0.0,
+        limit=top_k,
+        collection_name=collection_name,
+        field_weights=field_weights,
+    )
+
+
 def find_similar_by_date(target_date, range_days=30, limit=5, collection_name: str = "people"):
     col = ensure_people_collection(collection_name)
     if not isinstance(target_date, (datetime, date_cls)):

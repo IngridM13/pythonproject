@@ -23,14 +23,14 @@ Setup
 
 Run
 ---
-    pytest tests/experiments/test_dedup_recall.py -v -s
+    pytest tests/experiments/test_exp02_dedup_recall.py -v -s
 
 Environment variables
 ---------------------
-    DEDUP_N_IDENTITIES          Number of canonical identities (default: 200)
+    DEDUP_N_IDENTITIES          Number of canonical identities (default: 1000)
     DEDUP_VARIANTS_PER_IDENTITY Noisy variants per identity (default: 3)
     DEDUP_NOISE_FRACTION        Noise fraction passed to inject_noise (default: 0.3)
-    DEDUP_TOP_K                 K for recall@K (default: 5)
+    DEDUP_TOP_K                 K for recall@K (default: 3)
     DEDUP_N_SAMPLES             Records to display in showcase section (default: 5)
     DEDUP_SEED                  RNG seed (default: DEFAULT_SEED from settings)
 """
@@ -45,7 +45,7 @@ import pytest
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from configs.settings import DEFAULT_SEED, HDC_DIM
-from encoding_methods.encoding_and_search_milvus import find_closest_match_db, store_person
+from encoding_methods.encoding_and_search_milvus import search_for_eval, store_person
 from tests.experiments.noise_injection import inject_noise
 from tests.experiments.experiment_utils import generate_canonical_persons, run_dedup_recall, save_report
 
@@ -147,10 +147,9 @@ class TestDedupRecall:
             identity_idx  = milvus_id_to_identity[query_milvus_id]
             query_display = _serialize_person(query_person)
 
-            matches = find_closest_match_db(
+            matches = search_for_eval(
                 query_person,
-                threshold=0.0,
-                limit=top_k + 1,
+                top_k + 1,
                 collection_name=test_collection,
             )
             neighbours = [m for m in matches if m["id"] != query_milvus_id][:top_k]

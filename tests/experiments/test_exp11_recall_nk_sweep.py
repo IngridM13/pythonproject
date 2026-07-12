@@ -46,7 +46,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 import database_utils.milvus_db_connection as milvus_conn
 from configs.settings import DEFAULT_SEED, HDC_DIM
 from database_utils.milvus_db_connection import _collection_cache, ensure_people_collection, get_nprobe
-from encoding_methods.encoding_and_search_milvus import find_closest_match_db, store_person
+from encoding_methods.encoding_and_search_milvus import search_for_eval, store_person
 from tests.experiments.experiment_utils import generate_canonical_persons, resolve_results_dir_and_suffix
 from tests.experiments.noise_injection import inject_noise
 
@@ -153,10 +153,9 @@ def _evaluate_all_k(
             )
 
             # Single Milvus search — request max_k + 1 to allow self-exclusion
-            matches    = find_closest_match_db(
+            matches    = search_for_eval(
                 query_person,
-                threshold=0.0,
-                limit=max_k + 1,
+                max_k + 1,
                 collection_name=col_name,
             )
             neighbours = [m for m in matches if m["id"] != query_milvus_id]

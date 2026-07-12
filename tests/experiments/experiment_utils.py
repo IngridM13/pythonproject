@@ -14,7 +14,7 @@ from pathlib import Path
 from configs.settings import NPROBE_EXHAUSTIVE
 from database_utils.milvus_db_connection import get_nprobe
 from dummy_data.generacion_base_de_datos import generate_data_chunk
-from encoding_methods.encoding_and_search_milvus import find_closest_match_db, store_person
+from encoding_methods.encoding_and_search_milvus import search_for_eval, store_person
 from tests.experiments.conftest import dataframe_row_to_person_dict
 from tests.experiments.noise_injection import _NOISE_FUNCS, inject_noise
 from utils.person_data_normalization import normalize_person_data
@@ -85,10 +85,9 @@ def _compute_metrics(
     for identity_idx, canonical in enumerate(canonical_persons):
         query_person = query_builder(canonical, identity_idx)
 
-        matches = find_closest_match_db(
+        matches = search_for_eval(
             query_person,
-            threshold=0.0,
-            limit=top_k + 1,
+            top_k + 1,
             collection_name=test_collection,
         )
 
@@ -244,10 +243,9 @@ def run_dedup_recall(
                 canonical_persons[identity_idx], noise_fraction, query_rng
             )
 
-            matches = find_closest_match_db(
+            matches = search_for_eval(
                 query_person,
-                threshold=0.0,
-                limit=top_k + 1,
+                top_k + 1,
                 collection_name=col_name,
             )
             neighbours = [m for m in matches if m["id"] != query_milvus_id][:top_k]

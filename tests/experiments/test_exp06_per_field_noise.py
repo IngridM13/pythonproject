@@ -29,6 +29,7 @@ Environment variables
     PER_FIELD_SEED      RNG seed (default: PER_FIELD_SEED from settings)
 """
 
+import hashlib
 import os
 import random
 import sys
@@ -45,6 +46,14 @@ from tests.experiments.experiment_utils import (
     insert_noisy_variants,
     save_report,
 )
+
+
+def _field_seed(field_name: str) -> int:
+    """Deterministic integer seed derived from a field name via SHA256.
+
+    Replaces Python's hash() which is randomised per-process (PYTHONHASHSEED).
+    """
+    return int(hashlib.sha256(field_name.encode()).hexdigest(), 16) % (2 ** 32)
 
 
 # ---------------------------------------------------------------------------
@@ -126,10 +135,10 @@ class TestPerFieldNoise:
         field_results = []
 
         for field in _FIELDS_TO_TEST:
-            field_rng_base = random.Random(seed + hash(field))
+            field_rng_base = random.Random(seed + _field_seed(field))
 
             def _field_query(canonical, identity_idx, _field=field, _base=seed):
-                rng = random.Random(_base + hash(_field) + identity_idx)
+                rng = random.Random(_base + _field_seed(_field) + identity_idx)
                 return _inject_single_field_noise(canonical, _field, rng)
 
             f_recall, f_mrr, f_hit1 = _compute_metrics(

@@ -58,7 +58,7 @@ from configs.settings import (
     HDC_DIM,
 )
 from database_utils.milvus_db_connection import ensure_people_collection, get_nprobe
-from encoding_methods.encoding_and_search_milvus import find_closest_match_db, store_person
+from encoding_methods.encoding_and_search_milvus import search_for_eval, store_person
 from tests.experiments.experiment_utils import generate_canonical_persons, resolve_results_dir_and_suffix
 from tests.experiments.noise_injection import inject_noise
 
@@ -265,10 +265,9 @@ class TestExp10ScalabilityNoisyDupes:
 
                         for q_idx, (noisy_mid, original_mid, noisy_person) in enumerate(noisy_entries):
                             q_start = time.perf_counter()
-                            matches = find_closest_match_db(
+                            matches = search_for_eval(
                                 noisy_person,
-                                threshold=0.0,
-                                limit=top_k + 1,
+                                top_k + 1,
                                 collection_name=col_name,
                             )
                             total_query_ms += (time.perf_counter() - q_start) * 1000
