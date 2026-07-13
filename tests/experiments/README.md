@@ -23,11 +23,11 @@ All experiments respect the `HDC_NPROBE` environment variable, which controls ho
 | `128` | Mode B — exhaustive | `nprobe=nlist`; functionally equivalent to brute-force for small N |
 
 ```bash
-# Run a single experiment in mode A (default)
-make experiment01-recall-under-noise
+# Run a single experiment in mode A (default, nprobe=8)
+make experiment01-recall-under-noise-ann
 
-# Run a single experiment in mode B
-HDC_NPROBE=128 make experiment01-recall-under-noise
+# Run a single experiment in mode B (exhaustive, nprobe=128)
+make experiment01-recall-under-noise-exhaustive
 
 # Run ALL experiments in mode A
 make experiments-ann
@@ -82,7 +82,7 @@ Experiments use one of two collection setups:
 
 ## Experiment 1 — Recall Under Noise
 
-**File**: `test_exp01_recall_under_noise.py` | **Run**: `make experiment01-recall-under-noise`
+**File**: `test_exp01_recall_under_noise.py` | **Run**: `make experiment01-recall-under-noise-ann` / `make experiment01-recall-under-noise-exhaustive`
 
 **Question**: Can the system retrieve a specific stored record when the query is a corrupted version of it?
 
@@ -102,7 +102,7 @@ Experiments use one of two collection setups:
 
 ## Experiment 2 — Dedup Recall
 
-**File**: `test_exp02_dedup_recall.py` | **Run**: `make experiment02-dedup-recall`
+**File**: `test_exp02_dedup_recall.py` | **Run**: `make experiment02-dedup-recall-ann` / `make experiment02-dedup-recall-exhaustive`
 
 **Question**: Given a stored noisy record, does at least one other variant of the same identity appear in its top-K neighbours?
 
@@ -142,7 +142,7 @@ Experiments use one of two collection setups:
 
 ## Experiment 4 — Scalability
 
-**File**: `test_exp04_scalability.py` | **Run**: `make experiment04-scalability`
+**File**: `test_exp04_scalability.py` | **Run**: `make experiment04-scalability-ann` / `make experiment04-scalability-exhaustive`
 
 **Question**: How do insertion time, query time, and dedup recall scale with collection size?
 
@@ -162,7 +162,7 @@ Experiments use one of two collection setups:
 
 ## Experiment 5 — Ranking Metrics
 
-**File**: `test_exp05_ranking_metrics.py` | **Run**: `make experiment05-ranking`
+**File**: `test_exp05_ranking_metrics.py` | **Run**: `make experiment05-ranking-ann` / `make experiment05-ranking-exhaustive`
 
 **Question**: Beyond Recall@K, how good is the ranking quality? Does the correct match appear near the top, and how pure is the result set?
 
@@ -202,7 +202,7 @@ Experiments use one of two collection setups:
 
 ## Experiment 7 — Per-Field Noise Sweep
 
-**File**: `test_exp07_per_field_noise_sweep.py` | **Run**: `make experiment07-per-field-sweep`
+**File**: `test_exp07_per_field_noise_sweep.py` | **Run**: `make experiment07-per-field-sweep-ann` / `make experiment07-per-field-sweep-exhaustive`
 
 **Question**: For each key field individually, how does recall degrade as noise on that field increases from 0% to 90%?
 
@@ -223,7 +223,7 @@ Experiments use one of two collection setups:
 
 ## Experiment 8 — Dimensionality Ablation
 
-**File**: `test_exp08_dimensionality.py` | **Run**: `make experiment08-dimensionality`
+**File**: `test_exp08_dimensionality.py` | **Run**: `make experiment08-dimensionality-ann` / `make experiment08-dimensionality-exhaustive`
 
 **Question**: At what number of HDC dimensions does recall saturate? Is D=10,000 necessary?
 
@@ -262,7 +262,7 @@ Experiments use one of two collection setups:
 
 ## Experiment 10 — Scalability with Noisy Duplicates
 
-**File**: `test_exp10_scalability_noisy_dupes.py` | **Run**: `make experiment10-scalability-noisy-dupes`
+**File**: `test_exp10_scalability_noisy_dupes.py` | **Run**: `make experiment10-scalability-noisy-dupes-ann` / `make experiment10-scalability-noisy-dupes-exhaustive`
 
 **Question**: How does recall scale when the database contains both clean originals and noisy duplicates mixed together (Scenario B at large scale)?
 
@@ -289,7 +289,7 @@ Experiments use one of two collection setups:
 
 ## Experiment 11 — NK Sweep
 
-**File**: `test_exp11_recall_nk_sweep.py` | **Run**: `make experiment11-nk-sweep`
+**File**: `test_exp11_recall_nk_sweep.py` | **Run**: `make experiment11-nk-sweep-ann` / `make experiment11-nk-sweep-exhaustive`
 
 **Question**: How does recall change as both collection size N and search depth K vary simultaneously?
 
@@ -301,7 +301,7 @@ Experiments use one of two collection setups:
 
 ## Experiment 12 — Recall@1 vs Collection Size (Scenario A)
 
-**File**: `test_exp12_recall_n_sweep.py` | **Run**: `make experiment12-recall-n-sweep`
+**File**: `test_exp12_recall_n_sweep.py` | **Run**: `make experiment12-recall-n-sweep-ann` / `make experiment12-recall-n-sweep-exhaustive`
 
 **Question**: How does recall degrade as collection size grows, under the production scenario (clean DB, noisy query)?
 
@@ -342,18 +342,18 @@ Experiments use one of two collection setups:
 
 ## Results summary
 
-| Experiment | Run target | Results target | Output location |
+| Experiment | Run target (mode A / mode B) | Results target | Output location |
 |---|---|---|---|
-| 1 — Recall Under Noise | `make experiment01-recall-under-noise` | `make results01-recall-under-noise` | `test_results/recall_under_noise_*.json` |
-| 2 — Dedup Recall | `make experiment02-dedup-recall` | `make results02-dedup-recall` | `test_results/dedup_recall_*.json` |
+| 1 — Recall Under Noise | `make experiment01-recall-under-noise-ann` / `-exhaustive` | `make results01-recall-under-noise` | `test_results/recall_under_noise_*.json` |
+| 2 — Dedup Recall | `make experiment02-dedup-recall-ann` / `-exhaustive` | `make results02-dedup-recall` | `test_results/dedup_recall_*.json` |
 | 3 — Field Weighting | `make experiment03-weights` | `make results03-weights` | `test_results/field_weighting_*.json` |
-| 4 — Scalability | `make experiment04-scalability` | `make results04-scalability` | `test_results/scalability_*.json` |
-| 5 — Ranking Metrics | `make experiment05-ranking` | `make results05-ranking` | `test_results/ranking_metrics_*.json` |
+| 4 — Scalability | `make experiment04-scalability-ann` / `-exhaustive` | `make results04-scalability` | `test_results/scalability_*.json` |
+| 5 — Ranking Metrics | `make experiment05-ranking-ann` / `-exhaustive` | `make results05-ranking` | `test_results/ranking_metrics_*.json` |
 | 6 — Per-Field Noise | `make experiment06-per-field-noise` | `make results06-per-field-noise` | `test_results/per_field_noise_*.json` |
-| 7 — Per-Field Sweep | `make experiment07-per-field-sweep` | `make results07-per-field-sweep` | `test_results/per_field_sweep_*.json` |
-| 8 — Dimensionality | `make experiment08-dimensionality` | `make results08-dimensionality` | `test_results/dimensionality_*.json` |
+| 7 — Per-Field Sweep | `make experiment07-per-field-sweep-ann` / `-exhaustive` | `make results07-per-field-sweep` | `test_results/per_field_sweep_*.json` |
+| 8 — Dimensionality | `make experiment08-dimensionality-ann` / `-exhaustive` | `make results08-dimensionality` | `test_results/dimensionality_*.json` |
 | 9 — Date Encoding | `make experiment09-date-encoding` | `make results09-date-encoding` | `test_results/date_encoding_*.json` |
-| 10 — Noisy Dupes | `make experiment10-scalability-noisy-dupes` | `make results10-scalability-noisy-dupes` | `test_results/exp10_scalability_noisy_dupes/` |
-| 11 — NK Sweep | `make experiment11-nk-sweep` | `make results11-nk-sweep` | `test_results/recall_nk_sweep_*.json` |
-| 12 — Recall vs N | `make experiment12-recall-n-sweep` | `make results12-recall-n-sweep` | `test_results/exp12_recall_n_sweep_*.json` |
-| 13 — Separability | `make experiment13-separability` | `make results13-separability` | `test_results/exp13_separability_*.json` |
+| 10 — Noisy Dupes | `make experiment10-scalability-noisy-dupes-ann` / `-exhaustive` | `make results10-scalability-noisy-dupes` | `test_results/exp10_scalability_noisy_dupes/` |
+| 11 — NK Sweep | `make experiment11-nk-sweep-ann` / `-exhaustive` | `make results11-nk-sweep` | `test_results/recall_nk_sweep_*.json` |
+| 12 — Recall vs N | `make experiment12-recall-n-sweep-ann` / `-exhaustive` | `make results12-recall-n-sweep` | `test_results/exp12_recall_n_sweep_*.json` |
+| 13 — Separability | `make experiment13-separability` | `make results13-separability` | `test_results_128/exp13_separability_exhaustive_*.json` |
