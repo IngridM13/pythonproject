@@ -1,0 +1,91 @@
+{
+  "mode": "float",
+  "config": {
+    "n_identities": 1000,
+    "variants_per_identity": 3,
+    "noise_fraction": 0.3,
+    "top_k": 3,
+    "hdim": 10000,
+    "seed": 42
+  },
+  "baseline": {
+    "recall_at_k": 1.0,
+    "mrr": 0.9993333333333334,
+    "hit_at_1": 0.999
+  },
+  "results": [
+    {
+      "field": "marital_status",
+      "recall_at_k": 0.977,
+      "delta_recall": 0.02300000000000002,
+      "mrr": 0.9730000000000001,
+      "delta_mrr": 0.02633333333333332,
+      "hit_at_1": 0.97,
+      "delta_hit1": 0.029000000000000026
+    },
+    {
+      "field": "gender",
+      "recall_at_k": 0.981,
+      "delta_recall": 0.019000000000000017,
+      "mrr": 0.9758333333333332,
+      "delta_mrr": 0.023500000000000187,
+      "hit_at_1": 0.972,
+      "delta_hit1": 0.027000000000000024
+    },
+    {
+      "field": "race",
+      "recall_at_k": 0.989,
+      "delta_recall": 0.01100000000000001,
+      "mrr": 0.9860000000000001,
+      "delta_mrr": 0.013333333333333308,
+      "hit_at_1": 0.984,
+      "delta_hit1": 0.015000000000000013
+    },
+    {
+      "field": "lastname",
+      "recall_at_k": 0.991,
+      "delta_recall": 0.009000000000000008,
+      "mrr": 0.9855000000000002,
+      "delta_mrr": 0.013833333333333253,
+      "hit_at_1": 0.981,
+      "delta_hit1": 0.018000000000000016
+    },
+    {
+      "field": "name",
+      "recall_at_k": 0.996,
+      "delta_recall": 0.0040000000000000036,
+      "mrr": 0.9928333333333333,
+      "delta_mrr": 0.006500000000000061,
+      "hit_at_1": 0.99,
+      "delta_hit1": 0.009000000000000008
+    },
+    {
+      "field": "mobile_number",
+      "recall_at_k": 0.997,
+      "delta_recall": 0.0030000000000000027,
+      "mrr": 0.9958333333333333,
+      "delta_mrr": 0.0035000000000000586,
+      "hit_at_1": 0.995,
+      "delta_hit1": 0.0040000000000000036
+    },
+    {
+      "field": "dob",
+      "recall_at_k": 0.999,
+      "delta_recall": 0.0010000000000000009,
+      "mrr": 0.9976666666666667,
+      "delta_mrr": 0.0016666666666667052,
+      "hit_at_1": 0.997,
+      "delta_hit1": 0.0020000000000000018
+    },
+    {
+      "field": "address",
+      "recall_at_k": 0.999,
+      "delta_recall": 0.0010000000000000009,
+      "mrr": 0.9971666666666668,
+      "delta_mrr": 0.00216666666666665,
+      "hit_at_1": 0.996,
+      "delta_hit1": 0.0030000000000000027
+    }
+  ],
+  "nprobe": 8
+}

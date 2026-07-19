@@ -102,7 +102,10 @@ A `Makefile` is provided for convenience:
 | `make experiments-exhaustive` | Run all 13 experiments with nprobe=128 (exhaustive, mode B) |
 | `make experiment01-recall-under-noise-ann` | Run Experiment 1 (approximate, nprobe=8) |
 | `make experiment01-recall-under-noise-exhaustive` | Run Experiment 1 (exhaustive, nprobe=128) |
-| `make experiment06-per-field-noise` | Run Experiment 6 (no mode suffix — inherits `HDC_NPROBE`) |
+| `make experiment03-weights-ann` | Run Experiment 3 (approximate, nprobe=8) |
+| `make experiment03-weights-exhaustive` | Run Experiment 3 (exhaustive, nprobe=128) |
+| `make experiment06-per-field-noise-ann` | Run Experiment 6 (approximate, nprobe=8) |
+| `make experiment06-per-field-noise-exhaustive` | Run Experiment 6 (exhaustive, nprobe=128) |
 | `make experiment13-separability` | Run Experiment 13 (separability analysis, always exhaustive) |
 | `make results01-recall-under-noise` | Show latest results for Experiment 1 |
 

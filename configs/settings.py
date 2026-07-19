@@ -24,6 +24,13 @@ NAME_AND_DATE_WEIGHTS: Dict[str, int] = {
     "dob": 2,
 }
 
+# Experiment 3 — Field Weighting Ablation
+FIELD_WEIGHTING_N = 1000
+FIELD_WEIGHTING_V = 3
+FIELD_WEIGHTING_NOISE = 0.30
+FIELD_WEIGHTING_TOP_K = 3
+FIELD_WEIGHTING_SEED = 42
+
 # Experiment 4 — Scalability
 SCALABILITY_N_VALUES = [100, 500, 1000, 5000, 10000]
 SCALABILITY_V = 3

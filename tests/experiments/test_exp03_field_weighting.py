@@ -31,6 +31,14 @@ Weighting variants
 Run
 ---
     pytest tests/experiments/test_field_weighting.py -v -s
+
+Environment variables
+---------------------
+    FIELD_WEIGHTING_N       Number of canonical identities (default: FIELD_WEIGHTING_N from settings)
+    FIELD_WEIGHTING_V       Noisy variants per identity (default: FIELD_WEIGHTING_V from settings)
+    FIELD_WEIGHTING_NOISE   Noise fraction for variant generation (default: FIELD_WEIGHTING_NOISE from settings)
+    FIELD_WEIGHTING_TOP_K   K for recall@K (default: FIELD_WEIGHTING_TOP_K from settings)
+    FIELD_WEIGHTING_SEED    RNG seed (default: FIELD_WEIGHTING_SEED from settings)
 """
 
 import os
@@ -42,7 +50,14 @@ import pytest
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 import database_utils.milvus_db_connection as milvus_conn
-from configs.settings import DEFAULT_SEED, HDC_DIM
+from configs.settings import (
+    FIELD_WEIGHTING_N,
+    FIELD_WEIGHTING_NOISE,
+    FIELD_WEIGHTING_SEED,
+    FIELD_WEIGHTING_TOP_K,
+    FIELD_WEIGHTING_V,
+    HDC_DIM,
+)
 from database_utils.milvus_db_connection import ensure_people_collection
 from tests.experiments.experiment_utils import (
     generate_canonical_persons,
@@ -122,11 +137,11 @@ WEIGHTING_VARIANTS = [
 class TestFieldWeighting:
 
     def test_field_weighting_ablation(self):
-        n_identities          = 200
-        variants_per_identity = 3
-        noise_fraction        = 0.3
-        top_k                 = 3
-        seed                  = DEFAULT_SEED
+        n_identities          = int(os.environ.get("FIELD_WEIGHTING_N", FIELD_WEIGHTING_N))
+        variants_per_identity = int(os.environ.get("FIELD_WEIGHTING_V", FIELD_WEIGHTING_V))
+        noise_fraction        = float(os.environ.get("FIELD_WEIGHTING_NOISE", FIELD_WEIGHTING_NOISE))
+        top_k                 = int(os.environ.get("FIELD_WEIGHTING_TOP_K", FIELD_WEIGHTING_TOP_K))
+        seed                  = int(os.environ.get("FIELD_WEIGHTING_SEED", FIELD_WEIGHTING_SEED))
         total_records         = n_identities * variants_per_identity
 
         # --- Pre-generate canonical identities once (shared across variants) ---

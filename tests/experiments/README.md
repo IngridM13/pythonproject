@@ -122,7 +122,7 @@ Experiments use one of two collection setups:
 
 ## Experiment 3 — Field Weighting Ablation
 
-**File**: `test_exp03_field_weighting.py` | **Run**: `make experiment03-weights`
+**File**: `test_exp03_field_weighting.py` | **Run**: `make experiment03-weights-ann` / `make experiment03-weights-exhaustive`
 
 **Question**: How much does field weighting (upweighting name + dob) improve recall compared to uniform weights?
 
@@ -132,11 +132,11 @@ Experiments use one of two collection setups:
 
 | Variable | Default | Description |
 |---|---|---|
-| `FIELD_WEIGHT_N` | `200` | Number of canonical identities |
-| `FIELD_WEIGHT_V` | `3` | Noisy variants per identity |
-| `FIELD_WEIGHT_NOISE` | `0.3` | Noise fraction |
-| `FIELD_WEIGHT_K` | `5` | K for Recall@K |
-| `FIELD_WEIGHT_SEED` | `42` | RNG seed |
+| `FIELD_WEIGHTING_N` | `1000` | Number of canonical identities |
+| `FIELD_WEIGHTING_V` | `3` | Noisy variants per identity |
+| `FIELD_WEIGHTING_NOISE` | `0.3` | Noise fraction |
+| `FIELD_WEIGHTING_TOP_K` | `3` | K for Recall@K |
+| `FIELD_WEIGHTING_SEED` | `42` | RNG seed |
 
 ---
 
@@ -182,7 +182,7 @@ Experiments use one of two collection setups:
 
 ## Experiment 6 — Per-Field Noise Sensitivity
 
-**File**: `test_exp06_per_field_noise.py` | **Run**: `make experiment06-per-field-noise`
+**File**: `test_exp06_per_field_noise.py` | **Run**: `make experiment06-per-field-noise-ann` / `make experiment06-per-field-noise-exhaustive`
 
 **Question**: Which individual fields contribute most to retrieval quality?
 
@@ -346,10 +346,10 @@ Experiments use one of two collection setups:
 |---|---|---|---|
 | 1 — Recall Under Noise | `make experiment01-recall-under-noise-ann` / `-exhaustive` | `make results01-recall-under-noise` | `test_results/recall_under_noise_*.json` |
 | 2 — Dedup Recall | `make experiment02-dedup-recall-ann` / `-exhaustive` | `make results02-dedup-recall` | `test_results/dedup_recall_*.json` |
-| 3 — Field Weighting | `make experiment03-weights` | `make results03-weights` | `test_results/field_weighting_*.json` |
+| 3 — Field Weighting | `make experiment03-weights-ann` / `-exhaustive` | `make results03-weights` | `test_results/field_weighting_*.json` |
 | 4 — Scalability | `make experiment04-scalability-ann` / `-exhaustive` | `make results04-scalability` | `test_results/scalability_*.json` |
 | 5 — Ranking Metrics | `make experiment05-ranking-ann` / `-exhaustive` | `make results05-ranking` | `test_results/ranking_metrics_*.json` |
-| 6 — Per-Field Noise | `make experiment06-per-field-noise` | `make results06-per-field-noise` | `test_results/per_field_noise_*.json` |
+| 6 — Per-Field Noise | `make experiment06-per-field-noise-ann` / `-exhaustive` | `make results06-per-field-noise` | `test_results/per_field_noise_*.json` |
 | 7 — Per-Field Sweep | `make experiment07-per-field-sweep-ann` / `-exhaustive` | `make results07-per-field-sweep` | `test_results/per_field_sweep_*.json` |
 | 8 — Dimensionality | `make experiment08-dimensionality-ann` / `-exhaustive` | `make results08-dimensionality` | `test_results/dimensionality_*.json` |
 | 9 — Date Encoding | `make experiment09-date-encoding` | `make results09-date-encoding` | `test_results/date_encoding_*.json` |

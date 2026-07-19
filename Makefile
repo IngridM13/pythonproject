@@ -98,13 +98,18 @@ results02-dedup-recall:
 		if [ -n "$$exh" ]; then $(PYTHON) scripts/show_results.py $$exh; fi; \
 	done
 
-experiment03-weights:
-	$(PYTEST) tests/experiments/test_exp03_field_weighting.py -v -s
+experiment03-weights-ann:
+	HDC_NPROBE=8 $(PYTEST) tests/experiments/test_exp03_field_weighting.py -v -s
+
+experiment03-weights-exhaustive:
+	HDC_NPROBE=128 $(PYTEST) tests/experiments/test_exp03_field_weighting.py -v -s
 
 results03-weights:
 	@for mode in binary float; do \
-		file=$$(ls -t test_results/field_weighting_$${mode}_*.json 2>/dev/null | head -1); \
-		if [ -n "$$file" ]; then $(PYTHON) scripts/show_results.py $$file; fi \
+		ann=$$(ls -t test_results/field_weighting_$${mode}_*.json 2>/dev/null | head -1); \
+		exh=$$(ls -t test_results_128/field_weighting_$${mode}_exhaustive_*.json 2>/dev/null | head -1); \
+		if [ -n "$$ann" ]; then $(PYTHON) scripts/show_results.py $$ann; fi; \
+		if [ -n "$$exh" ]; then $(PYTHON) scripts/show_results.py $$exh; fi; \
 	done
 
 experiment04-scalability-ann:
@@ -135,13 +140,18 @@ results05-ranking:
 		if [ -n "$$exh" ]; then $(PYTHON) scripts/show_results.py $$exh; fi; \
 	done
 
-experiment06-per-field-noise:
-	$(PYTEST) tests/experiments/test_exp06_per_field_noise.py -v -s
+experiment06-per-field-noise-ann:
+	HDC_NPROBE=8 $(PYTEST) tests/experiments/test_exp06_per_field_noise.py -v -s
+
+experiment06-per-field-noise-exhaustive:
+	HDC_NPROBE=128 $(PYTEST) tests/experiments/test_exp06_per_field_noise.py -v -s
 
 results06-per-field-noise:
 	@for mode in binary float; do \
-		file=$$(ls -t test_results/per_field_noise_$${mode}_*.json 2>/dev/null | head -1); \
-		if [ -n "$$file" ]; then $(PYTHON) scripts/show_results.py $$file; fi \
+		ann=$$(ls -t test_results/per_field_noise_$${mode}_*.json 2>/dev/null | head -1); \
+		exh=$$(ls -t test_results_128/per_field_noise_$${mode}_exhaustive_*.json 2>/dev/null | head -1); \
+		if [ -n "$$ann" ]; then $(PYTHON) scripts/show_results.py $$ann; fi; \
+		if [ -n "$$exh" ]; then $(PYTHON) scripts/show_results.py $$exh; fi; \
 	done
 
 experiment07-per-field-sweep-ann:

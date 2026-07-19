@@ -1,5 +1,5 @@
 {
-  "mode": "binary",
+  "mode": "float",
   "config": {
     "fields": [
       "name",
@@ -35,55 +35,55 @@
       {
         "noise_level": 10,
         "recall_at_k": 0.995,
-        "mrr": 0.991667,
+        "mrr": 0.9925,
         "hit_at_1": 0.99
       },
       {
         "noise_level": 20,
-        "recall_at_k": 1.0,
-        "mrr": 0.993333,
+        "recall_at_k": 0.995,
+        "mrr": 0.9925,
         "hit_at_1": 0.99
       },
       {
         "noise_level": 30,
-        "recall_at_k": 1.0,
-        "mrr": 0.993333,
+        "recall_at_k": 0.995,
+        "mrr": 0.9925,
         "hit_at_1": 0.99
       },
       {
         "noise_level": 40,
-        "recall_at_k": 1.0,
-        "mrr": 0.990833,
-        "hit_at_1": 0.985
+        "recall_at_k": 0.995,
+        "mrr": 0.9925,
+        "hit_at_1": 0.99
       },
       {
         "noise_level": 50,
         "recall_at_k": 0.995,
-        "mrr": 0.991667,
+        "mrr": 0.9925,
         "hit_at_1": 0.99
       },
       {
         "noise_level": 60,
-        "recall_at_k": 1.0,
-        "mrr": 0.993333,
+        "recall_at_k": 0.995,
+        "mrr": 0.9925,
         "hit_at_1": 0.99
       },
       {
         "noise_level": 70,
-        "recall_at_k": 1.0,
-        "mrr": 0.993333,
+        "recall_at_k": 0.995,
+        "mrr": 0.9925,
         "hit_at_1": 0.99
       },
       {
         "noise_level": 80,
         "recall_at_k": 0.995,
-        "mrr": 0.991667,
+        "mrr": 0.9925,
         "hit_at_1": 0.99
       },
       {
         "noise_level": 90,
         "recall_at_k": 0.995,
-        "mrr": 0.991667,
+        "mrr": 0.9925,
         "hit_at_1": 0.99
       }
     ],
@@ -96,56 +96,56 @@
       },
       {
         "noise_level": 10,
-        "recall_at_k": 0.995,
-        "mrr": 0.99,
-        "hit_at_1": 0.985
+        "recall_at_k": 1.0,
+        "mrr": 0.994167,
+        "hit_at_1": 0.99
       },
       {
         "noise_level": 20,
-        "recall_at_k": 0.995,
-        "mrr": 0.9875,
-        "hit_at_1": 0.98
+        "recall_at_k": 1.0,
+        "mrr": 0.994167,
+        "hit_at_1": 0.99
       },
       {
         "noise_level": 30,
-        "recall_at_k": 1.0,
-        "mrr": 0.989167,
-        "hit_at_1": 0.98
-      },
-      {
-        "noise_level": 40,
         "recall_at_k": 1.0,
         "mrr": 0.991667,
         "hit_at_1": 0.985
       },
       {
+        "noise_level": 40,
+        "recall_at_k": 1.0,
+        "mrr": 0.996667,
+        "hit_at_1": 0.995
+      },
+      {
         "noise_level": 50,
-        "recall_at_k": 0.995,
-        "mrr": 0.9875,
-        "hit_at_1": 0.98
+        "recall_at_k": 1.0,
+        "mrr": 0.996667,
+        "hit_at_1": 0.995
       },
       {
         "noise_level": 60,
-        "recall_at_k": 0.995,
-        "mrr": 0.989167,
-        "hit_at_1": 0.985
+        "recall_at_k": 1.0,
+        "mrr": 0.994167,
+        "hit_at_1": 0.99
       },
       {
         "noise_level": 70,
-        "recall_at_k": 0.995,
-        "mrr": 0.99,
-        "hit_at_1": 0.985
+        "recall_at_k": 1.0,
+        "mrr": 0.994167,
+        "hit_at_1": 0.99
       },
       {
         "noise_level": 80,
-        "recall_at_k": 0.995,
-        "mrr": 0.989167,
-        "hit_at_1": 0.985
+        "recall_at_k": 1.0,
+        "mrr": 0.994167,
+        "hit_at_1": 0.99
       },
       {
         "noise_level": 90,
-        "recall_at_k": 0.995,
-        "mrr": 0.99,
+        "recall_at_k": 1.0,
+        "mrr": 0.991667,
         "hit_at_1": 0.985
       }
     ],
@@ -211,5 +211,6 @@
         "hit_at_1": 1.0
       }
     ]
-  }
+  },
+  "nprobe": 8
 }
