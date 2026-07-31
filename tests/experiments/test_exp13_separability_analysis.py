@@ -5,12 +5,23 @@ Experiment 13 — Separability Analysis for HDC-based Deduplication.
 Measures the separability between positive similarities (ground truth duplicates)
 and negative similarities (best false positives) across collection sizes and modes.
 
-For each (mode, N) pair:
-  1. Insert N canonical records into a fresh Milvus collection.
-  2. Select M=200 random query sources (seeded, no replacement).
-  3. For each query: inject noise (configurable via EXP13_NOISE, default 0.30),
-     capture sim_pos, sim_neg, gap, and rank of the ground truth.
-  4. Aggregate gap distribution statistics and save to JSON.
+For each mode, N_VALUES is processed in ascending order against a single
+collection that is grown incrementally instead of being rebuilt from
+scratch at every N. For each (mode, N) pair:
+  1. Insert only the delta of new canonical records needed to go from the
+     previous N to the current one (first step generates N0 from scratch).
+     The collection is reused across all N steps and all noise levels
+     below, since noise is only injected into the query side, not the
+     indexed records; this avoids re-inserting already-present records.
+  2. Select M=200 random query sources (seeded, no replacement) from the
+     full accumulated set of N records; the same sample is reused across
+     noise levels for direct pairing.
+  3. For each noise level in EXP13_NOISE_LEVELS (default 0.20, 0.30): for
+     each query, inject noise at that level, capture sim_pos, sim_neg, gap,
+     and rank of the ground truth.
+  4. Aggregate gap distribution statistics per (mode, N, noise) and save to
+     JSON.
+  5. Drop the collection once per mode, after finishing the whole N sweep.
 
 Similarity conventions
 ----------------------
@@ -29,11 +40,11 @@ Run
 
 Environment variables
 ---------------------
-    EXP13_N_VALUES   Comma-separated collection sizes  (default: 1000,5000,10000,20000)
-    EXP13_M_QUERIES  Queries per (mode, N)             (default: 200)
-    EXP13_NOISE      Noise fraction for inject_noise   (default: 0.30)
-    EXP13_SEED       RNG seed                          (default: 42)
-    EXP13_MODES      Comma-separated modes             (default: binary,float)
+    EXP13_N_VALUES      Comma-separated collection sizes     (default: from settings)
+    EXP13_M_QUERIES     Queries per (mode, N)                (default: from settings)
+    EXP13_NOISE_LEVELS  Comma-separated noise fractions       (default: from settings, 0.20 and 0.30)
+    EXP13_SEED          RNG seed                              (default: from settings)
+    EXP13_MODES         Comma-separated modes                 (default: binary,float)
 
 Output
 ------
@@ -59,7 +70,7 @@ import database_utils.milvus_db_connection as milvus_conn
 from configs.settings import (
     EXP13_M_QUERIES,
     EXP13_N_VALUES,
-    EXP13_NOISE,
+    EXP13_NOISE_LEVELS,
     EXP13_SEED,
     HDC_DIM,
     NAME_AND_DATE_WEIGHTS,
@@ -73,7 +84,7 @@ from database_utils.milvus_db_connection import (
 from encoding_methods.encoding_and_search_milvus import (
     _encode_for_milvus,
     encode_person,
-    store_person,
+    store_people_batch,
 )
 from tests.experiments.experiment_utils import generate_canonical_persons
 from tests.experiments.noise_injection import inject_noise
@@ -175,135 +186,143 @@ def _drop_collection(col_name: str, mode: str) -> None:
 # Per-(mode, N) experiment
 # ---------------------------------------------------------------------------
 
+def _insert_canonical_records_delta(delta_n: int, col_name: str) -> tuple[list, list]:
+    """
+    Generate and insert only `delta_n` *new* canonical records into col_name.
+
+    Used to grow a collection incrementally across an N sweep: the caller
+    keeps the accumulated (canonical_persons, canonical_ids) lists from the
+    previous, smaller N and extends them with what this call returns,
+    instead of regenerating and reinserting the whole N from scratch.
+    """
+    col = ensure_people_collection(col_name)
+    print(f"[EXP13] Generating {delta_n} new canonical records...")
+    delta_persons = generate_canonical_persons(delta_n)
+    delta_ids = store_people_batch(delta_persons, collection_name=col_name,
+                                    field_weights=NAME_AND_DATE_WEIGHTS)
+    col.flush()
+    print(f"[EXP13] Inserted and flushed {delta_n} new records.")
+    return delta_persons, delta_ids
+
+
 def _run_one(
     mode: str,
     n: int,
     m_queries: int,
     noise: float,
     seed: int,
+    col_name: str,
+    canonical_persons: list,
+    canonical_ids: list,
 ) -> dict:
     """
-    Run separability analysis for one (mode, N) pair.
+    Run separability analysis for one (mode, N, noise) triple against an
+    already-populated collection (records are inserted once per (mode, N)
+    by the caller and reused across noise levels, since noise only affects
+    the query side).
 
     Returns the result dict (without raw arrays truncated — full lists included).
     """
-    col_name = f"exp13_{uuid.uuid4().hex[:10]}"
-    print(f"\n[EXP13] mode={mode}  N={n}  M={m_queries}  collection={col_name}")
+    print(f"\n[EXP13] mode={mode}  N={n}  M={m_queries}  noise={noise}  collection={col_name}")
 
-    col = ensure_people_collection(col_name)
+    # Select M query sources (deterministic, without replacement) — same
+    # sample across noise levels for direct pairing.
+    rng = random.Random(seed)
+    query_indices = rng.sample(range(n), min(m_queries, n))
 
-    try:
-        # 1. Generate and insert N canonical records
-        print(f"[EXP13] Generating {n} canonical records...")
-        canonical_persons = generate_canonical_persons(n)
-        canonical_ids: list[int] = []
-        for person in canonical_persons:
-            mid = store_person(person, collection_name=col_name,
-                               field_weights=NAME_AND_DATE_WEIGHTS)
-            canonical_ids.append(mid)
-        col.flush()
-        print(f"[EXP13] Inserted and flushed {n} records.")
+    # Query loop
+    gaps: list[float] = []
+    sim_pos_list: list[float] = []
+    sim_neg_list: list[float] = []
+    rank_pos_list: list[int] = []
+    missing = 0
 
-        # 2. Select M query sources (deterministic, without replacement)
-        rng = random.Random(seed)
-        query_indices = rng.sample(range(n), min(m_queries, n))
+    for q_i, idx in enumerate(query_indices):
+        # Deterministic per-query seed: avoids coupling queries to each other
+        query_rng = random.Random(seed + 1_000_000 + idx)
+        noisy_query = inject_noise(canonical_persons[idx], noise, query_rng)
+        ground_truth_id = canonical_ids[idx]
 
-        # 3. Query loop
-        gaps: list[float] = []
-        sim_pos_list: list[float] = []
-        sim_neg_list: list[float] = []
-        rank_pos_list: list[int] = []
-        missing = 0
+        results = _search_full(noisy_query, limit=n, col_name=col_name)
 
-        for q_i, idx in enumerate(query_indices):
-            # Deterministic per-query seed: avoids coupling queries to each other
-            query_rng = random.Random(seed + 1_000_000 + idx)
-            noisy_query = inject_noise(canonical_persons[idx], noise, query_rng)
-            ground_truth_id = canonical_ids[idx]
+        # Locate ground truth in ranked results
+        rank_pos = None
+        sim_pos = None
+        for rank, r in enumerate(results, 1):
+            if r["id"] == ground_truth_id:
+                rank_pos = rank
+                sim_pos = r["sim"]
+                break
 
-            results = _search_full(noisy_query, limit=n, col_name=col_name)
+        if sim_pos is None:
+            # Should never occur with limit == collection_size
+            missing += 1
+            print(f"[EXP13] WARNING: ground truth missing for query {q_i} "
+                  f"(idx={idx}, gt_id={ground_truth_id})")
+            continue
 
-            # Locate ground truth in ranked results
-            rank_pos = None
-            sim_pos = None
-            for rank, r in enumerate(results, 1):
-                if r["id"] == ground_truth_id:
-                    rank_pos = rank
-                    sim_pos = r["sim"]
-                    break
+        # sim_neg: similarity of the best false positive
+        #   rank_pos == 1 → falso positivo = rank 2
+        #   rank_pos  > 1 → falso positivo = rank 1
+        if rank_pos == 1:
+            sim_neg = results[1]["sim"] if len(results) > 1 else sim_pos
+        else:
+            sim_neg = results[0]["sim"]
 
-            if sim_pos is None:
-                # Should never occur with limit == collection_size
-                missing += 1
-                print(f"[EXP13] WARNING: ground truth missing for query {q_i} "
-                      f"(idx={idx}, gt_id={ground_truth_id})")
-                continue
+        gap = sim_pos - sim_neg
+        gaps.append(gap)
+        sim_pos_list.append(sim_pos)
+        sim_neg_list.append(sim_neg)
+        rank_pos_list.append(rank_pos)
 
-            # sim_neg: similarity of the best false positive
-            #   rank_pos == 1 → falso positivo = rank 2
-            #   rank_pos  > 1 → falso positivo = rank 1
-            if rank_pos == 1:
-                sim_neg = results[1]["sim"] if len(results) > 1 else sim_pos
-            else:
-                sim_neg = results[0]["sim"]
+        done = q_i + 1
+        if done % 50 == 0 or done == len(query_indices):
+            pct_pos = 100.0 * sum(g > 0 for g in gaps) / len(gaps)
+            print(
+                f"[EXP13]   noise={noise}  queried {done}/{len(query_indices)}  "
+                f"avg_gap={mean(gaps):.4f}  pct_positive={pct_pos:.1f}%"
+            )
 
-            gap = sim_pos - sim_neg
-            gaps.append(gap)
-            sim_pos_list.append(sim_pos)
-            sim_neg_list.append(sim_neg)
-            rank_pos_list.append(rank_pos)
+    if missing:
+        print(f"[EXP13] {missing} queries had no ground truth in results — skipped.")
 
-            done = q_i + 1
-            if done % 50 == 0 or done == len(query_indices):
-                pct_pos = 100.0 * sum(g > 0 for g in gaps) / len(gaps)
-                print(
-                    f"[EXP13]   queried {done}/{len(query_indices)}  "
-                    f"avg_gap={mean(gaps):.4f}  pct_positive={pct_pos:.1f}%"
-                )
+    # Aggregate statistics
+    sorted_gaps = sorted(gaps)
+    n_total = len(gaps)
+    n_positive = sum(g > 0 for g in gaps)
+    n_collision = n_total - n_positive
+    recall_at_1 = (
+        sum(r == 1 for r in rank_pos_list) / len(rank_pos_list)
+        if rank_pos_list else 0.0
+    )
 
-        if missing:
-            print(f"[EXP13] {missing} queries had no ground truth in results — skipped.")
+    entry = {
+        "mode": mode,
+        "N": n,
+        "noise": noise,
+        "gaps":    [round(g, 6) for g in gaps],
+        "sim_pos": [round(s, 6) for s in sim_pos_list],
+        "sim_neg": [round(s, 6) for s in sim_neg_list],
+        "ranks":   rank_pos_list,
+        "gap_mean": round(mean(gaps), 6) if gaps else 0.0,
+        "gap_std":  round(stdev(gaps), 6) if len(gaps) > 1 else 0.0,
+        "gap_min":  round(min(gaps), 6) if gaps else 0.0,
+        "gap_max":  round(max(gaps), 6) if gaps else 0.0,
+        "gap_p25":  round(_percentile(sorted_gaps, 25), 6),
+        "gap_p75":  round(_percentile(sorted_gaps, 75), 6),
+        "pct_gap_positive": round(100.0 * n_positive / n_total, 2) if n_total else 0.0,
+        "pct_collision":    round(100.0 * n_collision / n_total, 2) if n_total else 0.0,
+        "recall_at_1":      round(recall_at_1, 6),
+    }
 
-        # 4. Aggregate statistics
-        sorted_gaps = sorted(gaps)
-        n_total = len(gaps)
-        n_positive = sum(g > 0 for g in gaps)
-        n_collision = n_total - n_positive
-        recall_at_1 = (
-            sum(r == 1 for r in rank_pos_list) / len(rank_pos_list)
-            if rank_pos_list else 0.0
-        )
-
-        entry = {
-            "mode": mode,
-            "N": n,
-            "noise": noise,
-            "gaps":    [round(g, 6) for g in gaps],
-            "sim_pos": [round(s, 6) for s in sim_pos_list],
-            "sim_neg": [round(s, 6) for s in sim_neg_list],
-            "ranks":   rank_pos_list,
-            "gap_mean": round(mean(gaps), 6) if gaps else 0.0,
-            "gap_std":  round(stdev(gaps), 6) if len(gaps) > 1 else 0.0,
-            "gap_min":  round(min(gaps), 6) if gaps else 0.0,
-            "gap_max":  round(max(gaps), 6) if gaps else 0.0,
-            "gap_p25":  round(_percentile(sorted_gaps, 25), 6),
-            "gap_p75":  round(_percentile(sorted_gaps, 75), 6),
-            "pct_gap_positive": round(100.0 * n_positive / n_total, 2) if n_total else 0.0,
-            "pct_collision":    round(100.0 * n_collision / n_total, 2) if n_total else 0.0,
-            "recall_at_1":      round(recall_at_1, 6),
-        }
-
-        print(
-            f"[EXP13] RESULT  mode={mode}  N={n}  "
-            f"gap_mean={entry['gap_mean']:.4f}  gap_std={entry['gap_std']:.4f}  "
-            f"pct_positive={entry['pct_gap_positive']:.1f}%  "
-            f"collision={entry['pct_collision']:.1f}%  "
-            f"recall@1={entry['recall_at_1']:.3f}"
-        )
-        return entry
-
-    finally:
-        _drop_collection(col_name, mode)
+    print(
+        f"[EXP13] RESULT  mode={mode}  N={n}  noise={noise}  "
+        f"gap_mean={entry['gap_mean']:.4f}  gap_std={entry['gap_std']:.4f}  "
+        f"pct_positive={entry['pct_gap_positive']:.1f}%  "
+        f"collision={entry['pct_collision']:.1f}%  "
+        f"recall@1={entry['recall_at_1']:.3f}"
+    )
+    return entry
 
 
 # ---------------------------------------------------------------------------
@@ -313,12 +332,29 @@ def _run_one(
 def run_experiment(
     n_values: list,
     m_queries: int,
-    noise: float,
+    noise_levels: list,
     seed: int,
     modes: list,
 ) -> list:
-    """Run all (mode, N) pairs and return list of result dicts."""
+    """
+    Run all (mode, N) pairs, looping over noise_levels for each, and return
+    list of result dicts.
+
+    N_VALUES is processed in ascending order against a single collection
+    per mode, grown incrementally: only the delta of new canonical records
+    needed for each step is generated and inserted, instead of regenerating
+    and reinserting all N records from scratch every time. Noise is
+    injected only on the query side, so this also means the insertion cost
+    (which dominates runtime at large N) is paid once per new record,
+    never repeated for records already present from a smaller N.
+    """
     all_results = []
+
+    n_values_sorted = sorted(n_values)
+    if n_values_sorted != n_values:
+        print(f"[EXP13] Note: n_values reordered ascending for incremental "
+              f"reuse: {n_values} -> {n_values_sorted}")
+    n_values = n_values_sorted
 
     for mode in modes:
         original_mode = os.environ.get("MILVUS_VECTOR_MODE", "binary")
@@ -329,10 +365,30 @@ def run_experiment(
             print(f"[EXP13]  MODE: {mode.upper()}")
             print(f"[EXP13] {'═' * 60}")
 
-            for n in n_values:
-                entry = _run_one(mode=mode, n=n, m_queries=m_queries,
-                                 noise=noise, seed=seed)
-                all_results.append(entry)
+            col_name = f"exp13_{uuid.uuid4().hex[:10]}"
+            canonical_persons: list = []
+            canonical_ids: list     = []
+
+            try:
+                for n in n_values:
+                    delta_n = n - len(canonical_persons)
+                    if delta_n > 0:
+                        delta_persons, delta_ids = _insert_canonical_records_delta(delta_n, col_name)
+                        canonical_persons.extend(delta_persons)
+                        canonical_ids.extend(delta_ids)
+                    else:
+                        print(f"[EXP13] N={n}: no new records needed — reusing prior data.")
+
+                    for noise in noise_levels:
+                        entry = _run_one(
+                            mode=mode, n=n, m_queries=m_queries, noise=noise,
+                            seed=seed, col_name=col_name,
+                            canonical_persons=canonical_persons,
+                            canonical_ids=canonical_ids,
+                        )
+                        all_results.append(entry)
+            finally:
+                _drop_collection(col_name, mode)
 
         finally:
             os.environ["MILVUS_VECTOR_MODE"] = original_mode
@@ -402,32 +458,37 @@ def main() -> None:
         else list(EXP13_N_VALUES)
     )
     m_queries = int(os.environ.get("EXP13_M_QUERIES", EXP13_M_QUERIES))
-    noise     = float(os.environ.get("EXP13_NOISE",    EXP13_NOISE))
+    raw_noise = os.environ.get("EXP13_NOISE_LEVELS", "")
+    noise_levels = (
+        [float(x.strip()) for x in raw_noise.split(",") if x.strip()]
+        if raw_noise.strip()
+        else list(EXP13_NOISE_LEVELS)
+    )
     seed      = int(os.environ.get("EXP13_SEED",       EXP13_SEED))
     raw_modes = os.environ.get("EXP13_MODES", "binary,float")
     modes     = [m.strip() for m in raw_modes.split(",") if m.strip()]
 
     print("\n[EXP13] Separability Analysis — HDC Deduplication")
-    print(f"[EXP13] N_values={n_values}  M={m_queries}  noise={noise}  "
+    print(f"[EXP13] N_values={n_values}  M={m_queries}  noise_levels={noise_levels}  "
           f"seed={seed}  modes={modes}  dims={HDC_DIM}")
 
     all_results = run_experiment(
         n_values=n_values,
         m_queries=m_queries,
-        noise=noise,
+        noise_levels=noise_levels,
         seed=seed,
         modes=modes,
     )
 
     report = {
         "metadata": {
-            "nprobe":   NPROBE_EXHAUSTIVE,
-            "noise":    noise,
-            "dims":     HDC_DIM,
-            "M":        m_queries,
-            "seed":     seed,
-            "modes":    modes,
-            "N_values": n_values,
+            "nprobe":       NPROBE_EXHAUSTIVE,
+            "noise_levels": noise_levels,
+            "dims":         HDC_DIM,
+            "M":            m_queries,
+            "seed":         seed,
+            "modes":        modes,
+            "N_values":     n_values,
         },
         "results": all_results,
     }

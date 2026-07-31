@@ -149,12 +149,11 @@ def encode_person(person, field_weights=NAME_AND_DATE_WEIGHTS, excluded_fields=N
 
 
 # --- Database Operations ---
-def store_person(
+def _build_person_doc(
     person: Dict[str, Any],
-    collection_name: str = "people",
     field_weights=NAME_AND_DATE_WEIGHTS,
     excluded_fields=None,
-) -> int:
+) -> Dict[str, Any]:
     person_data = person.copy()
 
     if 'attrs' not in person_data or not isinstance(person_data['attrs'], dict):
@@ -166,10 +165,10 @@ def store_person(
 
     normalized_person = normalize_person_data(person_data)
     hv = encode_person(normalized_person, field_weights=field_weights, excluded_fields=excluded_fields)
-    
+
     # Usar _encode_for_milvus para preparar el vector en el formato correcto
     milvus_vector = _encode_for_milvus(hv)
-    
+
     doc_to_insert = {
         **normalized_person,
         "hv": milvus_vector,
@@ -184,10 +183,55 @@ def store_person(
         else:
             doc_to_insert["dob"] = str(d)
 
+    return doc_to_insert
+
+
+def store_person(
+    person: Dict[str, Any],
+    collection_name: str = "people",
+    field_weights=NAME_AND_DATE_WEIGHTS,
+    excluded_fields=None,
+) -> int:
+    doc_to_insert = _build_person_doc(person, field_weights=field_weights, excluded_fields=excluded_fields)
     col = ensure_people_collection(collection_name)
 
     res = col.insert(doc_to_insert)
     return res.primary_keys[0] if hasattr(res, 'primary_keys') else res.inserted_ids[0]
+
+
+def store_people_batch(
+    persons: List[Dict[str, Any]],
+    collection_name: str = "people",
+    field_weights=NAME_AND_DATE_WEIGHTS,
+    excluded_fields=None,
+    chunk_size: int = 500,
+) -> List[int]:
+    """
+    Batch version of store_person(): encodes `persons` and inserts them in
+    chunks of `chunk_size` rows per col.insert() call instead of one RPC per
+    person. Milvus insert() throughput is dominated by per-call overhead
+    (one synchronous round trip to the write-ahead log per call), so batching
+    cuts wall-clock insert time by 1-2 orders of magnitude for large N.
+
+    Returns milvus IDs in the same order as `persons`.
+    """
+    if not persons:
+        return []
+
+    col = ensure_people_collection(collection_name)
+    ids: List[int] = []
+
+    for start in range(0, len(persons), chunk_size):
+        chunk = persons[start:start + chunk_size]
+        docs = [
+            _build_person_doc(person, field_weights=field_weights, excluded_fields=excluded_fields)
+            for person in chunk
+        ]
+        res = col.insert(docs)
+        chunk_ids = res.primary_keys if hasattr(res, 'primary_keys') else res.inserted_ids
+        ids.extend(chunk_ids)
+
+    return ids
 
 
 def get_person_details(person_id: int, collection_name: str = "people") -> Dict[str, Any]:

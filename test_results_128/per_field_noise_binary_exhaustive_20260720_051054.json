@@ -15,15 +15,6 @@
   },
   "results": [
     {
-      "field": "marital_status",
-      "recall_at_k": 0.969,
-      "delta_recall": 0.031000000000000028,
-      "mrr": 0.9651666666666666,
-      "delta_mrr": 0.03316666666666679,
-      "hit_at_1": 0.962,
-      "delta_hit1": 0.03500000000000003
-    },
-    {
       "field": "lastname",
       "recall_at_k": 0.99,
       "delta_recall": 0.010000000000000009,
@@ -42,33 +33,6 @@
       "delta_hit1": 0.016000000000000014
     },
     {
-      "field": "mobile_number",
-      "recall_at_k": 0.998,
-      "delta_recall": 0.0020000000000000018,
-      "mrr": 0.9940000000000001,
-      "delta_mrr": 0.0043333333333333,
-      "hit_at_1": 0.991,
-      "delta_hit1": 0.006000000000000005
-    },
-    {
-      "field": "race",
-      "recall_at_k": 0.999,
-      "delta_recall": 0.0010000000000000009,
-      "mrr": 0.9973333333333334,
-      "delta_mrr": 0.0010000000000000009,
-      "hit_at_1": 0.996,
-      "delta_hit1": 0.0010000000000000009
-    },
-    {
-      "field": "address",
-      "recall_at_k": 0.999,
-      "delta_recall": 0.0010000000000000009,
-      "mrr": 0.9961666666666668,
-      "delta_mrr": 0.00216666666666665,
-      "hit_at_1": 0.994,
-      "delta_hit1": 0.0030000000000000027
-    },
-    {
       "field": "dob",
       "recall_at_k": 1.0,
       "delta_recall": 0.0,
@@ -85,7 +49,43 @@
       "delta_mrr": 0.00033333333333340764,
       "hit_at_1": 0.996,
       "delta_hit1": 0.0010000000000000009
+    },
+    {
+      "field": "race",
+      "recall_at_k": 1.0,
+      "delta_recall": 0.0,
+      "mrr": 0.9978333333333333,
+      "delta_mrr": 0.000500000000000056,
+      "hit_at_1": 0.996,
+      "delta_hit1": 0.0010000000000000009
+    },
+    {
+      "field": "marital_status",
+      "recall_at_k": 1.0,
+      "delta_recall": 0.0,
+      "mrr": 0.9978333333333333,
+      "delta_mrr": 0.000500000000000056,
+      "hit_at_1": 0.996,
+      "delta_hit1": 0.0010000000000000009
+    },
+    {
+      "field": "mobile_number",
+      "recall_at_k": 1.0,
+      "delta_recall": 0.0,
+      "mrr": 0.9978333333333333,
+      "delta_mrr": 0.000500000000000056,
+      "hit_at_1": 0.996,
+      "delta_hit1": 0.0010000000000000009
+    },
+    {
+      "field": "address",
+      "recall_at_k": 1.0,
+      "delta_recall": 0.0,
+      "mrr": 0.9983333333333334,
+      "delta_mrr": 0.0,
+      "hit_at_1": 0.997,
+      "delta_hit1": 0.0
     }
   ],
-  "nprobe": 8
+  "nprobe": 128
 }

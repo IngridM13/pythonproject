@@ -14,7 +14,7 @@ from pathlib import Path
 from configs.settings import NPROBE_EXHAUSTIVE
 from database_utils.milvus_db_connection import get_nprobe
 from dummy_data.generacion_base_de_datos import generate_data_chunk
-from encoding_methods.encoding_and_search_milvus import search_for_eval, store_person
+from encoding_methods.encoding_and_search_milvus import search_for_eval, store_people_batch
 from tests.experiments.conftest import dataframe_row_to_person_dict
 from tests.experiments.noise_injection import _NOISE_FUNCS, inject_noise
 from utils.person_data_normalization import normalize_person_data
@@ -141,6 +141,7 @@ def insert_noisy_variants(
     noise_fraction: float,
     seed: int,
     col_name: str,
+    identity_offset: int = 0,
     **store_kwargs,
 ) -> tuple:
     """
@@ -160,30 +161,52 @@ def insert_noisy_variants(
         Base RNG seed; each (identity, variant) pair uses a deterministic offset.
     col_name : str
         Milvus collection name.
+    identity_offset : int
+        Added to the local identity index when computing the per-variant RNG
+        seed and the values stored in milvus_id_to_identity. Lets a caller
+        insert only a *delta* slice of canonical_persons (e.g. when growing a
+        collection incrementally across a scale sweep) while keeping the same
+        noise reproducible as if the whole set had been generated in one call
+        with a "global" identity index of identity_offset + local_idx.
+        identity_to_milvus_ids in the return value is still local (0-based,
+        one entry per person in this call) — the caller is responsible for
+        appending it to any accumulated, offset-aligned list.
     **store_kwargs
-        Extra keyword arguments forwarded to store_person() (e.g. field_weights,
+        Extra keyword arguments forwarded to store_people_batch() (e.g. field_weights,
         excluded_fields for the field-weighting experiment).
 
     Returns
     -------
     tuple[list, dict]
         (identity_to_milvus_ids, milvus_id_to_identity)
-        identity_to_milvus_ids[i] is the list of Milvus IDs for identity i.
-        milvus_id_to_identity maps each Milvus ID back to its identity index.
+        identity_to_milvus_ids[i] is the list of Milvus IDs for identity i
+        (local index, i.e. relative to this call's canonical_persons).
+        milvus_id_to_identity maps each Milvus ID back to its *global*
+        identity index (identity_offset + local index).
     """
     n = len(canonical_persons)
     identity_to_milvus_ids = [[] for _ in range(n)]
     milvus_id_to_identity  = {}
 
-    for identity_idx, canonical in enumerate(canonical_persons):
+    noisy_persons: list = []
+    noisy_local_idx: list = []
+
+    for local_idx, canonical in enumerate(canonical_persons):
+        global_idx = identity_offset + local_idx
         for variant_idx in range(variants_per_identity):
             rng = random.Random(
-                seed + identity_idx * variants_per_identity + variant_idx
+                seed + global_idx * variants_per_identity + variant_idx
             )
-            noisy     = inject_noise(canonical, noise_fraction, rng)
-            milvus_id = store_person(noisy, collection_name=col_name, **store_kwargs)
-            identity_to_milvus_ids[identity_idx].append(milvus_id)
-            milvus_id_to_identity[milvus_id] = identity_idx
+            noisy = inject_noise(canonical, noise_fraction, rng)
+            noisy_persons.append(noisy)
+            noisy_local_idx.append(local_idx)
+
+    milvus_ids = store_people_batch(noisy_persons, collection_name=col_name, **store_kwargs)
+
+    for local_idx, milvus_id in zip(noisy_local_idx, milvus_ids):
+        global_idx = identity_offset + local_idx
+        identity_to_milvus_ids[local_idx].append(milvus_id)
+        milvus_id_to_identity[milvus_id] = global_idx
 
     return identity_to_milvus_ids, milvus_id_to_identity
 

@@ -32,7 +32,9 @@ Environment variables
     DEDUP_NOISE_FRACTION        Noise fraction passed to inject_noise (default: 0.3)
     DEDUP_TOP_K                 K for recall@K (default: 3)
     DEDUP_N_SAMPLES             Records to display in showcase section (default: 5)
-    DEDUP_SEED                  RNG seed (default: DEFAULT_SEED from settings)
+    DEDUP_SEED                  RNG seed (default: from settings)
+
+    All defaults now centralized in configs/settings.py (DEDUP_* constants).
 """
 
 import os
@@ -44,7 +46,16 @@ import pytest
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from configs.settings import DEFAULT_SEED, HDC_DIM
+from configs.settings import (
+    DEDUP_N_IDENTITIES,
+    DEDUP_NOISE_FRACTION,
+    DEDUP_N_SAMPLES,
+    DEDUP_SEED,
+    DEDUP_TOP_K,
+    DEDUP_VARIANTS_PER_IDENTITY,
+    DEFAULT_SEED,
+    HDC_DIM,
+)
 from encoding_methods.encoding_and_search_milvus import search_for_eval, store_person
 from tests.experiments.noise_injection import inject_noise
 from tests.experiments.experiment_utils import generate_canonical_persons, run_dedup_recall, save_report
@@ -77,12 +88,12 @@ class TestDedupRecall:
 
     def test_dedup_recall(self, with_vector_mode, test_collection):
         # --- Config from env ---
-        n_identities          = int(os.environ.get("DEDUP_N_IDENTITIES", 1000))
-        variants_per_identity = int(os.environ.get("DEDUP_VARIANTS_PER_IDENTITY", 3))
-        noise_fraction        = float(os.environ.get("DEDUP_NOISE_FRACTION", 0.3))
-        top_k                 = int(os.environ.get("DEDUP_TOP_K", 3))
-        n_samples             = int(os.environ.get("DEDUP_N_SAMPLES", 5))
-        seed                  = int(os.environ.get("DEDUP_SEED", DEFAULT_SEED))
+        n_identities          = int(os.environ.get("DEDUP_N_IDENTITIES", DEDUP_N_IDENTITIES))
+        variants_per_identity = int(os.environ.get("DEDUP_VARIANTS_PER_IDENTITY", DEDUP_VARIANTS_PER_IDENTITY))
+        noise_fraction        = float(os.environ.get("DEDUP_NOISE_FRACTION", DEDUP_NOISE_FRACTION))
+        top_k                 = int(os.environ.get("DEDUP_TOP_K", DEDUP_TOP_K))
+        n_samples             = int(os.environ.get("DEDUP_N_SAMPLES", DEDUP_N_SAMPLES))
+        seed                  = int(os.environ.get("DEDUP_SEED", DEDUP_SEED))
 
         mode = with_vector_mode
         total_records = n_identities * variants_per_identity

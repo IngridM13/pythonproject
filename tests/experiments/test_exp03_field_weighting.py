@@ -26,7 +26,20 @@ Weighting variants
 - leave_out_race   : excluded_fields={"race"}
 - leave_out_marital: excluded_fields={"marital_status"}
 - leave_out_phone  : excluded_fields={"mobile_number"}
-- leave_out_address: excluded_fields={"address", "akas", "landlines"}
+- leave_out_address: excluded_fields={"attrs"} (drops address + akas + landlines together;
+                      these three live under a single nested "attrs" key after
+                      normalize_person_data(), not as top-level "address"/"akas"/"landlines"
+                      keys — excluding those three names directly was a no-op, since
+                      encode_person_binary/bipolar only ever see the top-level key "attrs".
+                      Fixed 26/07/2026; results generated before this fix undercount this
+                      ablation as a 0.0 pp delta vs. baseline.)
+- name_and_address : name=2, lastname=2, attrs=2 (added 26/07/2026 — the leave-out ablation
+                      showed address/akas/landlines carry more informational weight than dob
+                      once leave_out_address was measured correctly; this variant tests
+                      reinforcing name + address instead of name + dob.)
+- name_date_address: name=2, lastname=2, dob=2, attrs=2 (added 26/07/2026 — combines all
+                      three field groups found informative by the leave-out ablation, to see
+                      whether reinforcing all of them beats reinforcing any two alone.)
 
 Run
 ---
@@ -93,6 +106,16 @@ WEIGHTING_VARIANTS = [
         "excluded_fields": None,
     },
     {
+        "name": "name_and_address",
+        "field_weights": {"name": 2, "lastname": 2, "attrs": 2},
+        "excluded_fields": None,
+    },
+    {
+        "name": "name_date_address",
+        "field_weights": {"name": 2, "lastname": 2, "dob": 2, "attrs": 2},
+        "excluded_fields": None,
+    },
+    {
         "name": "leave_out_name",
         "field_weights": None,
         "excluded_fields": {"name", "lastname"},
@@ -125,7 +148,13 @@ WEIGHTING_VARIANTS = [
     {
         "name": "leave_out_address",
         "field_weights": None,
-        "excluded_fields": {"address", "akas", "landlines"},
+        # NOTE (fixed 26/07/2026): address/akas/landlines are nested under a single
+        # "attrs" key by normalize_person_data() — encode_person_binary/bipolar only
+        # ever see the top-level key "attrs", so excluding {"address","akas","landlines"}
+        # by name was a silent no-op (identical hits to baseline in every prior run).
+        # Excluding "attrs" itself correctly drops all three together, matching this
+        # variant's original intent.
+        "excluded_fields": {"attrs"},
     },
 ]
 

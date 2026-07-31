@@ -1,0 +1,88 @@
+{
+  "experiment": "Experiment 10 \u2014 Scalability with Noisy Duplicates",
+  "timestamp": "20260726_105306",
+  "mode": "float",
+  "nprobe": 128,
+  "config": {
+    "collection_sizes": [
+      1000,
+      5000,
+      10000,
+      50000,
+      100000
+    ],
+    "noise_ratio": 0.2,
+    "noise_level": 0.3,
+    "top_k": 3,
+    "duplicates_per_original": 3,
+    "hdim": 10000,
+    "seed": 42
+  },
+  "results": [
+    {
+      "mode": "float",
+      "N": 1000,
+      "noise_ratio": 0.2,
+      "noise_level": 0.3,
+      "duplicates_per_original": 3,
+      "recall@1": 0.868687,
+      "recall@3": 1.0,
+      "mrr": 0.934343,
+      "hit@1": 0.868687,
+      "avg_query_time_ms": 4.303,
+      "total_insert_time_s": 4.4321
+    },
+    {
+      "mode": "float",
+      "N": 5000,
+      "noise_ratio": 0.2,
+      "noise_level": 0.3,
+      "duplicates_per_original": 3,
+      "recall@1": 0.887888,
+      "recall@3": 1.0,
+      "mrr": 0.943277,
+      "hit@1": 0.887888,
+      "avg_query_time_ms": 7.665,
+      "total_insert_time_s": 17.067
+    },
+    {
+      "mode": "float",
+      "N": 10000,
+      "noise_ratio": 0.2,
+      "noise_level": 0.3,
+      "duplicates_per_original": 3,
+      "recall@1": 0.896897,
+      "recall@3": 0.998999,
+      "mrr": 0.94703,
+      "hit@1": 0.896897,
+      "avg_query_time_ms": 10.768,
+      "total_insert_time_s": 24.2747
+    },
+    {
+      "mode": "float",
+      "N": 50000,
+      "noise_ratio": 0.2,
+      "noise_level": 0.3,
+      "duplicates_per_original": 3,
+      "recall@1": 0.879188,
+      "recall@3": 0.9961,
+      "mrr": 0.936327,
+      "hit@1": 0.879188,
+      "avg_query_time_ms": 32.781,
+      "total_insert_time_s": 185.5122
+    },
+    {
+      "mode": "float",
+      "N": 100000,
+      "noise_ratio": 0.2,
+      "noise_level": 0.3,
+      "duplicates_per_original": 3,
+      "recall@1": 0.868037,
+      "recall@3": 0.991649,
+      "mrr": 0.927768,
+      "hit@1": 0.868037,
+      "avg_query_time_ms": 92.622,
+      "total_insert_time_s": 229.6212
+    }
+  ]
+}
