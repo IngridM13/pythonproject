@@ -38,7 +38,7 @@ import pytest
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from configs.settings import HDC_DIM, RANKING_N, RANKING_V, RANKING_NOISE, RANKING_TOP_K, RANKING_SEED
-from encoding_methods.encoding_and_search_milvus import find_closest_match_db
+from encoding_methods.encoding_and_search_milvus import search_for_eval
 from tests.experiments.noise_injection import inject_noise
 from tests.experiments.experiment_utils import generate_canonical_persons, insert_noisy_variants, save_report
 
@@ -98,10 +98,9 @@ class TestRankingMetrics:
                     canonical_persons[identity_idx], noise_fraction, query_rng
                 )
 
-                matches = find_closest_match_db(
+                matches = search_for_eval(
                     query_person,
-                    threshold=0.0,
-                    limit=top_k + 1,
+                    top_k + 1,
                     collection_name=test_collection,
                 )
 

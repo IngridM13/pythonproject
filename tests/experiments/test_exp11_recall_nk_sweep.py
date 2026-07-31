@@ -28,6 +28,14 @@ the active HDC_NPROBE mode. Prints a pivot table per mode to stdout.
 Run
 ---
     pytest tests/experiments/test_exp11_recall_nk_sweep.py -v -s
+
+Environment variables
+---------------------
+    EXP11_N_VALUES        Comma-separated collection sizes (default: from settings)
+    EXP11_K_VALUES         Comma-separated top-k values (default: from settings)
+    EXP11_NOISE_FRACTION   Noise fraction for inject_noise (default: from settings)
+    EXP11_VARIANTS         Variants per identity indexed (default: from settings)
+    EXP11_SEED              RNG seed (default: from settings)
 """
 
 import json
@@ -44,21 +52,41 @@ import pytest
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 import database_utils.milvus_db_connection as milvus_conn
-from configs.settings import DEFAULT_SEED, HDC_DIM
+from configs.settings import (
+    DEFAULT_SEED,
+    EXP11_K_VALUES,
+    EXP11_N_VALUES,
+    EXP11_NOISE_FRACTION,
+    EXP11_SEED,
+    EXP11_VARIANTS,
+    HDC_DIM,
+)
 from database_utils.milvus_db_connection import _collection_cache, ensure_people_collection, get_nprobe
-from encoding_methods.encoding_and_search_milvus import find_closest_match_db, store_person
+from encoding_methods.encoding_and_search_milvus import search_for_eval, store_person
 from tests.experiments.experiment_utils import generate_canonical_persons, resolve_results_dir_and_suffix
 from tests.experiments.noise_injection import inject_noise
 
 # ---------------------------------------------------------------------------
-# Sweep configuration
+# Sweep configuration — defaults from configs/settings.py, overridable via env
 # ---------------------------------------------------------------------------
 
-N_VALUES      = [200, 1000, 5000]
-K_VALUES      = [2, 3, 5]
-NOISE_FRACTION = 0.3
-VARIANTS       = 3          # variants_per_identity
-SEED           = DEFAULT_SEED
+_raw_n = os.environ.get("EXP11_N_VALUES", "")
+N_VALUES = (
+    [int(x.strip()) for x in _raw_n.split(",") if x.strip()]
+    if _raw_n.strip()
+    else list(EXP11_N_VALUES)
+)
+
+_raw_k = os.environ.get("EXP11_K_VALUES", "")
+K_VALUES = (
+    [int(x.strip()) for x in _raw_k.split(",") if x.strip()]
+    if _raw_k.strip()
+    else list(EXP11_K_VALUES)
+)
+
+NOISE_FRACTION = float(os.environ.get("EXP11_NOISE_FRACTION", EXP11_NOISE_FRACTION))
+VARIANTS       = int(os.environ.get("EXP11_VARIANTS", EXP11_VARIANTS))
+SEED           = int(os.environ.get("EXP11_SEED", EXP11_SEED))
 MODES          = ["binary", "float"]
 
 _MAX_K = max(K_VALUES)
@@ -153,10 +181,9 @@ def _evaluate_all_k(
             )
 
             # Single Milvus search — request max_k + 1 to allow self-exclusion
-            matches    = find_closest_match_db(
+            matches    = search_for_eval(
                 query_person,
-                threshold=0.0,
-                limit=max_k + 1,
+                max_k + 1,
                 collection_name=col_name,
             )
             neighbours = [m for m in matches if m["id"] != query_milvus_id]

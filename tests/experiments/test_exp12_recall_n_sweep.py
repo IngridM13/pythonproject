@@ -8,19 +8,31 @@ as queries, making the experiment feasible at large N.
 Design
 ------
 For each vector_mode in {binary, float}:
-  For each N in N_VALUES:
-    1. Generate N canonical persons and insert them into a fresh collection.
-    2. Sample M records (M ≤ N) at random from the inserted set.
-    3. For each sampled record, inject noise (without inserting it) and
-       query top-1 against the collection.
-    4. Compute Recall@1 = fraction of queries where top-1 == original.
-    5. Drop the collection and move to the next (mode, N) pair.
+  N_VALUES is processed in ascending order against a single collection that
+  is grown incrementally, instead of being rebuilt from scratch at every N:
+  For each N in sorted(N_VALUES):
+    1. Generate only the delta of new canonical persons needed to go from
+       the previous N to the current one, and insert them (first step
+       generates N0 from scratch).
+    2. Sample M records (M ≤ N) at random from the full inserted set so far
+       — the same sample is reused across all noise levels for that
+       (mode, N) so results are directly paired.
+    3. For each noise level in NOISE_LEVELS:
+       For each sampled record, inject noise at that level (without inserting
+       it) and query top-1 against the collection.
+       Compute Recall@1 = fraction of queries where top-1 == original.
+    4. Move to the next N (same collection, same mode). Drop the collection
+       once per mode, after finishing the whole N sweep.
+
+Note: "insert_time_s" is the marginal insertion time for this step (growing
+from N_prev to N), not the time to insert all N records from an empty
+collection.
 
 Output
 ------
 Saves exp12_recall_n_sweep[_exhaustive]_<timestamp>.json with one row per
-(mode, N), to test_results/ (nprobe=8) or test_results_128/ (nprobe=128)
-depending on the active HDC_NPROBE mode.
+(mode, N, noise_level), to test_results/ (nprobe=8) or test_results_128/
+(nprobe=128) depending on the active HDC_NPROBE mode.
 
 Run
 ---
@@ -28,11 +40,11 @@ Run
 
 Environment variables
 ---------------------
-    EXP12_N_VALUES     Comma-separated collection sizes (default: from settings)
-    EXP12_M_QUERIES    Number of query records sampled per N (default: 200)
-    EXP12_NOISE_LEVEL  Noise level for query corruption (default: 0.30)
-    EXP12_SEED         RNG seed (default: 42)
-    EXP12_MODES        Comma-separated modes to run (default: binary,float)
+    EXP12_N_VALUES      Comma-separated collection sizes (default: from settings)
+    EXP12_M_QUERIES     Number of query records sampled per N (default: from settings)
+    EXP12_NOISE_LEVELS  Comma-separated noise levels for query corruption (default: from settings, 0.20 and 0.30)
+    EXP12_SEED          RNG seed (default: from settings)
+    EXP12_MODES         Comma-separated modes to run (default: binary,float)
 """
 
 import json
@@ -53,12 +65,12 @@ from configs.settings import (
     DEFAULT_SEED,
     EXP12_M_QUERIES,
     EXP12_N_VALUES,
-    EXP12_NOISE_LEVEL,
+    EXP12_NOISE_LEVELS,
     EXP12_SEED,
     HDC_DIM,
 )
 from database_utils.milvus_db_connection import ensure_people_collection, get_nprobe
-from encoding_methods.encoding_and_search_milvus import find_closest_match_db, store_person
+from encoding_methods.encoding_and_search_milvus import search_for_eval, store_people_batch
 from tests.experiments.experiment_utils import generate_canonical_persons, resolve_results_dir_and_suffix
 from tests.experiments.noise_injection import inject_noise
 
@@ -77,15 +89,26 @@ class TestExp12RecallNSweep:
             if raw_n.strip()
             else list(EXP12_N_VALUES)
         )
-        m_queries    = int(os.environ.get("EXP12_M_QUERIES",   EXP12_M_QUERIES))
-        noise_level  = float(os.environ.get("EXP12_NOISE_LEVEL", EXP12_NOISE_LEVEL))
-        seed         = int(os.environ.get("EXP12_SEED",          EXP12_SEED))
-        raw_modes    = os.environ.get("EXP12_MODES", "binary,float")
-        modes        = [m.strip() for m in raw_modes.split(",") if m.strip()]
+        m_queries = int(os.environ.get("EXP12_M_QUERIES", EXP12_M_QUERIES))
+        raw_noise = os.environ.get("EXP12_NOISE_LEVELS", "")
+        noise_levels = (
+            [float(x.strip()) for x in raw_noise.split(",") if x.strip()]
+            if raw_noise.strip()
+            else list(EXP12_NOISE_LEVELS)
+        )
+        seed      = int(os.environ.get("EXP12_SEED", EXP12_SEED))
+        raw_modes = os.environ.get("EXP12_MODES", "binary,float")
+        modes     = [m.strip() for m in raw_modes.split(",") if m.strip()]
+
+        n_values_sorted = sorted(n_values)
+        if n_values_sorted != n_values:
+            print(f"[EXP12] Note: n_values reordered ascending for incremental "
+                  f"reuse: {n_values} -> {n_values_sorted}")
+        n_values = n_values_sorted
 
         print(
             f"\n[EXP12] n_values={n_values}  m_queries={m_queries}  "
-            f"noise_level={noise_level}  seed={seed}  modes={modes}"
+            f"noise_levels={noise_levels}  seed={seed}  modes={modes}"
         )
 
         all_results = []
@@ -97,93 +120,99 @@ class TestExp12RecallNSweep:
             try:
                 print(f"\n[EXP12] ── mode={mode} {'─' * 55}")
 
-                for n in n_values:
-                    m = min(m_queries, n)
-                    col_name = f"exp12_{uuid.uuid4().hex[:10]}"
+                # One persistent collection per mode — grown incrementally
+                # across the N sweep instead of recreated from scratch each time.
+                col_name = f"exp12_{uuid.uuid4().hex[:10]}"
+                col      = ensure_people_collection(col_name)
 
-                    print(
-                        f"\n[EXP12] mode={mode}  N={n}  M={m}  "
-                        f"noise={noise_level}  collection={col_name}"
-                    )
+                canonical_persons: list = []
+                milvus_ids: list        = []
 
-                    ensure_people_collection(col_name)
+                try:
+                    for n in n_values:
+                        m = min(m_queries, n)
 
-                    try:
+                        print(f"\n[EXP12] mode={mode}  N={n}  M={m}  collection={col_name}")
+
+                        # --- 1. Generate and insert only the delta of new canonical records ---
+                        delta_n = n - len(canonical_persons)
+                        if delta_n > 0:
+                            print(f"[EXP12] Generating {delta_n} new canonical records "
+                                  f"({len(canonical_persons)} -> {n})...")
+                            delta_persons = generate_canonical_persons(delta_n)
+
+                            t_insert_start = time.perf_counter()
+                            delta_mids = store_people_batch(delta_persons, collection_name=col_name)
+                            canonical_persons.extend(delta_persons)
+                            milvus_ids.extend(delta_mids)
+
+                            col.flush()
+                            total_insert_time_s = time.perf_counter() - t_insert_start
+                            print(
+                                f"[EXP12] Inserted & flushed {delta_n} new records "
+                                f"(marginal) in {total_insert_time_s:.2f}s"
+                            )
+                        else:
+                            total_insert_time_s = 0.0
+                            print("[EXP12] No new records needed for this N — reusing prior data.")
+
+                        # --- 2. Sample M records to use as queries (shared across noise levels) ---
                         rng = random.Random(seed)
-
-                        # --- 1. Generate and insert N canonical records ---
-                        print(f"[EXP12] Generating {n} canonical records...")
-                        canonical_persons = generate_canonical_persons(n)
-
-                        t_insert_start = time.perf_counter()
-                        milvus_ids = []
-                        for person in canonical_persons:
-                            mid = store_person(person, collection_name=col_name)
-                            milvus_ids.append(mid)
-
-                        col = ensure_people_collection(col_name)
-                        col.flush()
-                        total_insert_time_s = time.perf_counter() - t_insert_start
-                        print(
-                            f"[EXP12] Inserted & flushed {n} records "
-                            f"in {total_insert_time_s:.2f}s"
-                        )
-
-                        # --- 2. Sample M records to use as queries ---
                         sample_indices = rng.sample(range(n), m)
 
-                        # --- 3. Query with noisy versions (not inserted) ---
-                        hits = 0
-                        total_query_ms = 0.0
+                        # --- 3. For each noise level, query with noisy versions (not inserted) ---
+                        for noise_level in noise_levels:
+                            noise_rng = random.Random(seed)
+                            hits = 0
+                            total_query_ms = 0.0
 
-                        for q_idx, idx in enumerate(sample_indices):
-                            noisy = inject_noise(canonical_persons[idx], noise_level, rng)
+                            for q_idx, idx in enumerate(sample_indices):
+                                noisy = inject_noise(canonical_persons[idx], noise_level, noise_rng)
 
-                            t0 = time.perf_counter()
-                            matches = find_closest_match_db(
-                                noisy,
-                                threshold=0.0,
-                                limit=1,
-                                collection_name=col_name,
-                            )
-                            total_query_ms += (time.perf_counter() - t0) * 1000
-
-                            if matches and matches[0]["id"] == milvus_ids[idx]:
-                                hits += 1
-
-                            done = q_idx + 1
-                            if done % 50 == 0 or done == m:
-                                print(
-                                    f"[EXP12]   queried {done}/{m}  "
-                                    f"recall@1={hits / done:.3f}"
+                                t0 = time.perf_counter()
+                                matches = search_for_eval(
+                                    noisy,
+                                    1,
+                                    collection_name=col_name,
                                 )
+                                total_query_ms += (time.perf_counter() - t0) * 1000
 
-                        recall_at_1    = hits / m if m > 0 else 0.0
-                        avg_query_ms   = total_query_ms / m if m > 0 else 0.0
+                                if matches and matches[0]["id"] == milvus_ids[idx]:
+                                    hits += 1
 
-                        print(
-                            f"[EXP12] RESULT  mode={mode}  N={n}  M={m}  "
-                            f"recall@1={recall_at_1:.3f}  "
-                            f"avg_query={avg_query_ms:.1f}ms  "
-                            f"insert={total_insert_time_s:.2f}s"
-                        )
+                                done = q_idx + 1
+                                if done % 50 == 0 or done == m:
+                                    print(
+                                        f"[EXP12]   noise={noise_level}  queried {done}/{m}  "
+                                        f"recall@1={hits / done:.3f}"
+                                    )
 
-                        all_results.append({
-                            "mode":               mode,
-                            "n":                  n,
-                            "m_queries":          m,
-                            "noise_level":        noise_level,
-                            "recall_at_1":        round(recall_at_1, 6),
-                            "hits":               hits,
-                            "avg_query_time_ms":  round(avg_query_ms, 3),
-                            "insert_time_s":      round(total_insert_time_s, 4),
-                        })
+                            recall_at_1  = hits / m if m > 0 else 0.0
+                            avg_query_ms = total_query_ms / m if m > 0 else 0.0
 
-                    finally:
-                        try:
-                            col.drop()
-                        except Exception as e:
-                            print(f"[EXP12] Warning: could not drop {col_name}: {e}")
+                            print(
+                                f"[EXP12] RESULT  mode={mode}  N={n}  M={m}  noise={noise_level}  "
+                                f"recall@1={recall_at_1:.3f}  "
+                                f"avg_query={avg_query_ms:.1f}ms  "
+                                f"insert={total_insert_time_s:.2f}s"
+                            )
+
+                            all_results.append({
+                                "mode":               mode,
+                                "n":                  n,
+                                "m_queries":          m,
+                                "noise_level":        noise_level,
+                                "recall_at_1":        round(recall_at_1, 6),
+                                "hits":               hits,
+                                "avg_query_time_ms":  round(avg_query_ms, 3),
+                                "insert_time_s":      round(total_insert_time_s, 4),
+                            })
+
+                finally:
+                    try:
+                        col.drop()
+                    except Exception as e:
+                        print(f"[EXP12] Warning: could not drop {col_name}: {e}")
 
             finally:
                 os.environ["MILVUS_VECTOR_MODE"] = original_mode
@@ -200,12 +229,12 @@ class TestExp12RecallNSweep:
             "timestamp": timestamp,
             "nprobe": nprobe,
             "config": {
-                "n_values":    n_values,
-                "m_queries":   m_queries,
-                "noise_level": noise_level,
-                "hdim":        HDC_DIM,
-                "seed":        seed,
-                "modes":       modes,
+                "n_values":     n_values,
+                "m_queries":    m_queries,
+                "noise_levels": noise_levels,
+                "hdim":         HDC_DIM,
+                "seed":         seed,
+                "modes":        modes,
             },
             "results": all_results,
         }
@@ -213,11 +242,11 @@ class TestExp12RecallNSweep:
         print(f"\n[EXP12] Results saved to {output_path.name}")
 
         # --- Summary table ---
-        print(f"\n{'mode':<8}  {'N':>8}  {'M':>6}  {'Recall@1':>10}  {'Avg Q (ms)':>12}  {'Insert (s)':>12}")
-        print("-" * 65)
+        print(f"\n{'mode':<8}  {'N':>8}  {'noise':>6}  {'M':>6}  {'Recall@1':>10}  {'Avg Q (ms)':>12}  {'Insert (s)':>12}")
+        print("-" * 75)
         for r in all_results:
             print(
-                f"{r['mode']:<8}  {r['n']:>8}  {r['m_queries']:>6}  "
+                f"{r['mode']:<8}  {r['n']:>8}  {r['noise_level']:>6}  {r['m_queries']:>6}  "
                 f"{r['recall_at_1']:>10.3f}  {r['avg_query_time_ms']:>12.1f}  "
                 f"{r['insert_time_s']:>12.2f}"
             )

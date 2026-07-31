@@ -1,5 +1,5 @@
 {
-  "mode": "binary",
+  "mode": "float",
   "config": {
     "fields": [
       "name",
@@ -18,7 +18,7 @@
       80,
       90
     ],
-    "n_identities": 200,
+    "n_identities": 1000,
     "variants_per_identity": 3,
     "top_k": 3,
     "hdim": 10000,
@@ -29,187 +29,188 @@
       {
         "noise_level": 0,
         "recall_at_k": 1.0,
-        "mrr": 1.0,
-        "hit_at_1": 1.0
+        "mrr": 0.999333,
+        "hit_at_1": 0.999
       },
       {
         "noise_level": 10,
         "recall_at_k": 0.995,
-        "mrr": 0.991667,
-        "hit_at_1": 0.99
+        "mrr": 0.991167,
+        "hit_at_1": 0.988
       },
       {
         "noise_level": 20,
-        "recall_at_k": 1.0,
-        "mrr": 0.993333,
-        "hit_at_1": 0.99
+        "recall_at_k": 0.996,
+        "mrr": 0.992333,
+        "hit_at_1": 0.989
       },
       {
         "noise_level": 30,
-        "recall_at_k": 1.0,
-        "mrr": 0.993333,
+        "recall_at_k": 0.996,
+        "mrr": 0.992833,
         "hit_at_1": 0.99
       },
       {
         "noise_level": 40,
         "recall_at_k": 0.995,
-        "mrr": 0.991667,
-        "hit_at_1": 0.99
+        "mrr": 0.991833,
+        "hit_at_1": 0.989
       },
       {
         "noise_level": 50,
         "recall_at_k": 0.995,
-        "mrr": 0.991667,
-        "hit_at_1": 0.99
+        "mrr": 0.991833,
+        "hit_at_1": 0.989
       },
       {
         "noise_level": 60,
-        "recall_at_k": 1.0,
-        "mrr": 0.993333,
-        "hit_at_1": 0.99
+        "recall_at_k": 0.995,
+        "mrr": 0.9915,
+        "hit_at_1": 0.988
       },
       {
         "noise_level": 70,
-        "recall_at_k": 1.0,
-        "mrr": 0.993333,
-        "hit_at_1": 0.99
+        "recall_at_k": 0.996,
+        "mrr": 0.9915,
+        "hit_at_1": 0.988
       },
       {
         "noise_level": 80,
         "recall_at_k": 0.995,
-        "mrr": 0.991667,
-        "hit_at_1": 0.99
+        "mrr": 0.991833,
+        "hit_at_1": 0.989
       },
       {
         "noise_level": 90,
-        "recall_at_k": 1.0,
-        "mrr": 0.993333,
-        "hit_at_1": 0.99
+        "recall_at_k": 0.995,
+        "mrr": 0.991333,
+        "hit_at_1": 0.988
       }
     ],
     "lastname": [
       {
         "noise_level": 0,
         "recall_at_k": 1.0,
-        "mrr": 1.0,
-        "hit_at_1": 1.0
+        "mrr": 0.999333,
+        "hit_at_1": 0.999
       },
       {
         "noise_level": 10,
-        "recall_at_k": 0.995,
-        "mrr": 0.984167,
-        "hit_at_1": 0.975
+        "recall_at_k": 0.991,
+        "mrr": 0.9865,
+        "hit_at_1": 0.983
       },
       {
         "noise_level": 20,
-        "recall_at_k": 0.995,
-        "mrr": 0.989167,
-        "hit_at_1": 0.985
-      },
-      {
-        "noise_level": 30,
-        "recall_at_k": 1.0,
-        "mrr": 0.990833,
-        "hit_at_1": 0.985
-      },
-      {
-        "noise_level": 40,
-        "recall_at_k": 0.995,
-        "mrr": 0.99,
-        "hit_at_1": 0.985
-      },
-      {
-        "noise_level": 50,
-        "recall_at_k": 0.995,
-        "mrr": 0.9875,
+        "recall_at_k": 0.99,
+        "mrr": 0.984333,
         "hit_at_1": 0.98
       },
       {
+        "noise_level": 30,
+        "recall_at_k": 0.991,
+        "mrr": 0.985167,
+        "hit_at_1": 0.98
+      },
+      {
+        "noise_level": 40,
+        "recall_at_k": 0.987,
+        "mrr": 0.982,
+        "hit_at_1": 0.978
+      },
+      {
+        "noise_level": 50,
+        "recall_at_k": 0.99,
+        "mrr": 0.985,
+        "hit_at_1": 0.981
+      },
+      {
         "noise_level": 60,
-        "recall_at_k": 0.995,
-        "mrr": 0.989167,
-        "hit_at_1": 0.985
+        "recall_at_k": 0.991,
+        "mrr": 0.985333,
+        "hit_at_1": 0.981
       },
       {
         "noise_level": 70,
-        "recall_at_k": 0.995,
-        "mrr": 0.99,
-        "hit_at_1": 0.985
+        "recall_at_k": 0.991,
+        "mrr": 0.985333,
+        "hit_at_1": 0.98
       },
       {
         "noise_level": 80,
-        "recall_at_k": 0.995,
-        "mrr": 0.99,
-        "hit_at_1": 0.985
+        "recall_at_k": 0.989,
+        "mrr": 0.983667,
+        "hit_at_1": 0.979
       },
       {
         "noise_level": 90,
-        "recall_at_k": 0.995,
-        "mrr": 0.9925,
-        "hit_at_1": 0.99
+        "recall_at_k": 0.988,
+        "mrr": 0.982667,
+        "hit_at_1": 0.978
       }
     ],
     "dob": [
       {
         "noise_level": 0,
         "recall_at_k": 1.0,
-        "mrr": 1.0,
-        "hit_at_1": 1.0
+        "mrr": 0.999333,
+        "hit_at_1": 0.999
       },
       {
         "noise_level": 10,
         "recall_at_k": 1.0,
-        "mrr": 1.0,
-        "hit_at_1": 1.0
+        "mrr": 0.999333,
+        "hit_at_1": 0.999
       },
       {
         "noise_level": 20,
         "recall_at_k": 1.0,
-        "mrr": 1.0,
-        "hit_at_1": 1.0
+        "mrr": 0.999333,
+        "hit_at_1": 0.999
       },
       {
         "noise_level": 30,
         "recall_at_k": 1.0,
-        "mrr": 1.0,
-        "hit_at_1": 1.0
+        "mrr": 0.999333,
+        "hit_at_1": 0.999
       },
       {
         "noise_level": 40,
         "recall_at_k": 1.0,
-        "mrr": 1.0,
-        "hit_at_1": 1.0
+        "mrr": 0.999333,
+        "hit_at_1": 0.999
       },
       {
         "noise_level": 50,
         "recall_at_k": 1.0,
-        "mrr": 1.0,
-        "hit_at_1": 1.0
+        "mrr": 0.999333,
+        "hit_at_1": 0.999
       },
       {
         "noise_level": 60,
         "recall_at_k": 1.0,
-        "mrr": 1.0,
-        "hit_at_1": 1.0
+        "mrr": 0.999333,
+        "hit_at_1": 0.999
       },
       {
         "noise_level": 70,
         "recall_at_k": 1.0,
-        "mrr": 1.0,
-        "hit_at_1": 1.0
+        "mrr": 0.999333,
+        "hit_at_1": 0.999
       },
       {
         "noise_level": 80,
         "recall_at_k": 1.0,
-        "mrr": 1.0,
-        "hit_at_1": 1.0
+        "mrr": 0.999333,
+        "hit_at_1": 0.999
       },
       {
         "noise_level": 90,
         "recall_at_k": 1.0,
-        "mrr": 1.0,
-        "hit_at_1": 1.0
+        "mrr": 0.999333,
+        "hit_at_1": 0.999
       }
     ]
-  }
+  },
+  "nprobe": 128
 }

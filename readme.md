@@ -21,13 +21,33 @@ The pipeline works as follows:
 - Milvus integration with support for both `BINARY_VECTOR` (HAMMING) and `FLOAT_VECTOR` (IP) index modes
 - Recall-under-noise experiment to measure fault tolerance quantitatively
 
+## Field Weighting
+
+During encoding, each field's contribution to the final hypervector can be scaled by an integer weight. A weight of `N` means the field's bound hypervector is counted `N` times in the bundling step — equivalent to multiplying its influence by `N` in the final majority vote.
+
+The default weight configuration is `NAME_AND_DATE_WEIGHTS` (defined in `configs/settings.py`):
+
+| Field | Default weight |
+|---|---|
+| `name` | 2 |
+| `lastname` | 2 |
+| `dob` | 2 |
+| all other fields | 1 (implicit) |
+
+This configuration is applied by default to all encoding and search operations — `encode_person()`, `store_person()`, `find_closest_match_db()`, and `search_for_eval()`. It was selected because it improves deduplication recall@5: binary 92.3% → 98.7%, float 95.7% → 99.3%.
+
+To use equal weights or a custom configuration, pass `field_weights=None` or a custom `Dict[str, int]` to any of those functions. Fields absent from the dict receive weight 1.
+
+Experiment 3 (`test_exp03_field_weighting.py`) ablates eleven weighting variants to characterize the sensitivity of recall to different configurations.
+
 ## Setup
 
 Requires `pyenv` for Python version management.
 
 ```bash
-pyenv install
-pip install -r requirements.txt
+pyenv install                               # installs the version pinned in .python-version
+python3.11 -m venv .venv311                 # create the project virtual environment
+.venv311/bin/pip install -r requirements.txt
 ```
 
 Start Milvus (required for most tests and experiments):
@@ -80,8 +100,13 @@ A `Makefile` is provided for convenience:
 | `make test-functional` | Functional tests only |
 | `make experiments-ann` | Run all 13 experiments with nprobe=8 (approximate, mode A) |
 | `make experiments-exhaustive` | Run all 13 experiments with nprobe=128 (exhaustive, mode B) |
-| `make experiment01-recall-under-noise` | Run Experiment 1 only |
-| `make experiment06-per-field-noise` | Run Experiment 6 only (any experiment follows this pattern) |
+| `make experiment01-recall-under-noise-ann` | Run Experiment 1 (approximate, nprobe=8) |
+| `make experiment01-recall-under-noise-exhaustive` | Run Experiment 1 (exhaustive, nprobe=128) |
+| `make experiment03-weights-ann` | Run Experiment 3 (approximate, nprobe=8) |
+| `make experiment03-weights-exhaustive` | Run Experiment 3 (exhaustive, nprobe=128) |
+| `make experiment06-per-field-noise-ann` | Run Experiment 6 (approximate, nprobe=8) |
+| `make experiment06-per-field-noise-exhaustive` | Run Experiment 6 (exhaustive, nprobe=128) |
+| `make experiment13-separability` | Run Experiment 13 (separability analysis, always exhaustive) |
 | `make results01-recall-under-noise` | Show latest results for Experiment 1 |
 
 See `tests/experiments/README.md` for the full list of experiment commands and configuration options.
@@ -117,7 +142,7 @@ make experiments-ann
 make experiments-exhaustive
 
 # Run a single experiment
-HDC_NPROBE=8 make experiment01-recall-under-noise
+make experiment01-recall-under-noise-ann
 HDC_NPROBE=128 make experiment13-separability
 
 # View results for a specific experiment
@@ -137,8 +162,8 @@ Measures how well the system finds the correct record when the query is a corrup
 **Metric**: `recall@1 = hits / N` per noise level.
 
 ```bash
-make experiment
-# or: pytest tests/experiments/test_recall_under_noise.py -v -s
+make experiment01-recall-under-noise-ann
+# or: pytest tests/experiments/test_exp01_recall_under_noise.py -v -s
 ```
 
 Configuration via environment variables:
@@ -157,7 +182,7 @@ Configuration via environment variables:
 By default the test collection is dropped after the experiment. To keep it alive:
 
 ```bash
-KEEP_COLLECTION=1 pytest tests/experiments/test_recall_under_noise.py -v -s
+KEEP_COLLECTION=1 pytest tests/experiments/test_exp01_recall_under_noise.py -v -s
 ```
 
 The fixture will print the collection name at the end of the run, e.g.:
@@ -204,63 +229,26 @@ results belongs to the same identity.
 neighbour in the top-K comes from the same canonical identity.
 
 ```bash
-make experiment-dedup
-# or: pytest tests/experiments/test_dedup_recall.py -v -s
+make experiment02-dedup-recall-ann
+# or: pytest tests/experiments/test_exp02_dedup_recall.py -v -s
 ```
 
 Configuration via environment variables:
 
 | Variable | Default | Description |
 |---|---|---|
-| `DEDUP_N_IDENTITIES` | `200` | Number of canonical identities to generate |
+| `DEDUP_N_IDENTITIES` | `1000` | Number of canonical identities to generate |
 | `DEDUP_VARIANTS_PER_IDENTITY` | `3` | Noisy variants per identity (total records = N×V) |
 | `DEDUP_NOISE_FRACTION` | `0.3` | Fraction of fields corrupted per variant |
-| `DEDUP_TOP_K` | `5` | K for recall@K |
+| `DEDUP_TOP_K` | `3` | K for recall@K |
 | `DEDUP_SEED` | `DEFAULT_SEED` | RNG seed for reproducibility |
 | `KEEP_COLLECTION` | — | Set to `1` to keep the Milvus collection alive after the run |
 
 Results are saved as JSON to `test_results/dedup_recall_<mode>_<timestamp>.json`.
 
 ```bash
-make results-dedup
-```
-
-### Deduplication Showcase
-
-A visual, record-level experiment. Creates N identities with V noisy variants
-each, picks a random sample of records, searches for each one, and prints the
-full content of both the query record and its top-K results — labelling each
-result as `[MATCH]` (same identity) or `[DIFF]` (different identity).
-
-Designed for manual inspection: useful for verifying that the system retrieves
-plausible candidates and for understanding failure cases.
-
-```bash
-make experiment-showcase
-# or: pytest tests/experiments/test_dedup_showcase.py -v -s
-```
-
-Configuration via environment variables:
-
-| Variable | Default | Description |
-|---|---|---|
-| `SHOWCASE_N_IDENTITIES` | `100` | Number of canonical identities to generate |
-| `SHOWCASE_VARIANTS_PER_IDENTITY` | `3` | Noisy variants per identity |
-| `SHOWCASE_NOISE_FRACTION` | `0.3` | Fraction of fields corrupted per variant |
-| `SHOWCASE_N_SAMPLES` | `5` | Number of records to query |
-| `SHOWCASE_TOP_K` | `2` | Top results to retrieve per query |
-| `SHOWCASE_SEED` | `DEFAULT_SEED` | RNG seed for reproducibility |
-| `KEEP_COLLECTION` | — | Set to `1` to keep the Milvus collection alive after the run |
-
-Results are saved as JSON to `test_results/dedup_showcase_<mode>_<timestamp>.json`.
-
-To view results in a human-readable format:
-
-```bash
-make results          # latest result file (any mode)
-make results-float    # latest float mode result
-make results-binary   # latest binary mode result
+make results02-dedup-recall
 
 # or for a specific file:
-python scripts/show_results.py test_results/recall_under_noise_float_<timestamp>.json
+python scripts/show_results.py test_results/dedup_recall_binary_<timestamp>.json
 ```

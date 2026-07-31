@@ -1,0 +1,227 @@
+{
+  "experiment": "Experiment 12 \u2014 Recall@1 under noise across collection sizes",
+  "timestamp": "20260726_112005",
+  "nprobe": 128,
+  "config": {
+    "n_values": [
+      1000,
+      5000,
+      10000,
+      50000,
+      100000
+    ],
+    "m_queries": 200,
+    "noise_levels": [
+      0.2,
+      0.3
+    ],
+    "hdim": 10000,
+    "seed": 42,
+    "modes": [
+      "binary",
+      "float"
+    ]
+  },
+  "results": [
+    {
+      "mode": "binary",
+      "n": 1000,
+      "m_queries": 200,
+      "noise_level": 0.2,
+      "recall_at_1": 1.0,
+      "hits": 200,
+      "avg_query_time_ms": 2.983,
+      "insert_time_s": 3.3407
+    },
+    {
+      "mode": "binary",
+      "n": 1000,
+      "m_queries": 200,
+      "noise_level": 0.3,
+      "recall_at_1": 1.0,
+      "hits": 200,
+      "avg_query_time_ms": 2.834,
+      "insert_time_s": 3.3407
+    },
+    {
+      "mode": "binary",
+      "n": 5000,
+      "m_queries": 200,
+      "noise_level": 0.2,
+      "recall_at_1": 1.0,
+      "hits": 200,
+      "avg_query_time_ms": 5.348,
+      "insert_time_s": 11.8134
+    },
+    {
+      "mode": "binary",
+      "n": 5000,
+      "m_queries": 200,
+      "noise_level": 0.3,
+      "recall_at_1": 1.0,
+      "hits": 200,
+      "avg_query_time_ms": 5.353,
+      "insert_time_s": 11.8134
+    },
+    {
+      "mode": "binary",
+      "n": 10000,
+      "m_queries": 200,
+      "noise_level": 0.2,
+      "recall_at_1": 1.0,
+      "hits": 200,
+      "avg_query_time_ms": 5.706,
+      "insert_time_s": 14.9065
+    },
+    {
+      "mode": "binary",
+      "n": 10000,
+      "m_queries": 200,
+      "noise_level": 0.3,
+      "recall_at_1": 0.985,
+      "hits": 197,
+      "avg_query_time_ms": 5.898,
+      "insert_time_s": 14.9065
+    },
+    {
+      "mode": "binary",
+      "n": 50000,
+      "m_queries": 200,
+      "noise_level": 0.2,
+      "recall_at_1": 0.995,
+      "hits": 199,
+      "avg_query_time_ms": 26.156,
+      "insert_time_s": 105.2625
+    },
+    {
+      "mode": "binary",
+      "n": 50000,
+      "m_queries": 200,
+      "noise_level": 0.3,
+      "recall_at_1": 0.96,
+      "hits": 192,
+      "avg_query_time_ms": 26.527,
+      "insert_time_s": 105.2625
+    },
+    {
+      "mode": "binary",
+      "n": 100000,
+      "m_queries": 200,
+      "noise_level": 0.2,
+      "recall_at_1": 1.0,
+      "hits": 200,
+      "avg_query_time_ms": 74.168,
+      "insert_time_s": 129.4503
+    },
+    {
+      "mode": "binary",
+      "n": 100000,
+      "m_queries": 200,
+      "noise_level": 0.3,
+      "recall_at_1": 0.955,
+      "hits": 191,
+      "avg_query_time_ms": 26.904,
+      "insert_time_s": 129.4503
+    },
+    {
+      "mode": "float",
+      "n": 1000,
+      "m_queries": 200,
+      "noise_level": 0.2,
+      "recall_at_1": 1.0,
+      "hits": 200,
+      "avg_query_time_ms": 7.505,
+      "insert_time_s": 6.1473
+    },
+    {
+      "mode": "float",
+      "n": 1000,
+      "m_queries": 200,
+      "noise_level": 0.3,
+      "recall_at_1": 1.0,
+      "hits": 200,
+      "avg_query_time_ms": 5.481,
+      "insert_time_s": 6.1473
+    },
+    {
+      "mode": "float",
+      "n": 5000,
+      "m_queries": 200,
+      "noise_level": 0.2,
+      "recall_at_1": 1.0,
+      "hits": 200,
+      "avg_query_time_ms": 10.201,
+      "insert_time_s": 11.0573
+    },
+    {
+      "mode": "float",
+      "n": 5000,
+      "m_queries": 200,
+      "noise_level": 0.3,
+      "recall_at_1": 1.0,
+      "hits": 200,
+      "avg_query_time_ms": 7.087,
+      "insert_time_s": 11.0573
+    },
+    {
+      "mode": "float",
+      "n": 10000,
+      "m_queries": 200,
+      "noise_level": 0.2,
+      "recall_at_1": 1.0,
+      "hits": 200,
+      "avg_query_time_ms": 12.36,
+      "insert_time_s": 15.8564
+    },
+    {
+      "mode": "float",
+      "n": 10000,
+      "m_queries": 200,
+      "noise_level": 0.3,
+      "recall_at_1": 0.99,
+      "hits": 198,
+      "avg_query_time_ms": 8.144,
+      "insert_time_s": 15.8564
+    },
+    {
+      "mode": "float",
+      "n": 50000,
+      "m_queries": 200,
+      "noise_level": 0.2,
+      "recall_at_1": 1.0,
+      "hits": 200,
+      "avg_query_time_ms": 51.296,
+      "insert_time_s": 136.7088
+    },
+    {
+      "mode": "float",
+      "n": 50000,
+      "m_queries": 200,
+      "noise_level": 0.3,
+      "recall_at_1": 0.99,
+      "hits": 198,
+      "avg_query_time_ms": 41.8,
+      "insert_time_s": 136.7088
+    },
+    {
+      "mode": "float",
+      "n": 100000,
+      "m_queries": 200,
+      "noise_level": 0.2,
+      "recall_at_1": 1.0,
+      "hits": 200,
+      "avg_query_time_ms": 162.098,
+      "insert_time_s": 179.634
+    },
+    {
+      "mode": "float",
+      "n": 100000,
+      "m_queries": 200,
+      "noise_level": 0.3,
+      "recall_at_1": 0.965,
+      "hits": 193,
+      "avg_query_time_ms": 51.857,
+      "insert_time_s": 179.634
+    }
+  ]
+}

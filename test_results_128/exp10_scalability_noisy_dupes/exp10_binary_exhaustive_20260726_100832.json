@@ -1,0 +1,88 @@
+{
+  "experiment": "Experiment 10 \u2014 Scalability with Noisy Duplicates",
+  "timestamp": "20260726_100832",
+  "mode": "binary",
+  "nprobe": 128,
+  "config": {
+    "collection_sizes": [
+      1000,
+      5000,
+      10000,
+      50000,
+      100000
+    ],
+    "noise_ratio": 0.2,
+    "noise_level": 0.3,
+    "top_k": 3,
+    "duplicates_per_original": 3,
+    "hdim": 10000,
+    "seed": 42
+  },
+  "results": [
+    {
+      "mode": "binary",
+      "N": 1000,
+      "noise_ratio": 0.2,
+      "noise_level": 0.3,
+      "duplicates_per_original": 3,
+      "recall@1": 0.843434,
+      "recall@3": 1.0,
+      "mrr": 0.919192,
+      "hit@1": 0.843434,
+      "avg_query_time_ms": 6.245,
+      "total_insert_time_s": 4.5854
+    },
+    {
+      "mode": "binary",
+      "N": 5000,
+      "noise_ratio": 0.2,
+      "noise_level": 0.3,
+      "duplicates_per_original": 3,
+      "recall@1": 0.890891,
+      "recall@3": 0.998999,
+      "mrr": 0.943777,
+      "hit@1": 0.890891,
+      "avg_query_time_ms": 5.155,
+      "total_insert_time_s": 14.3574
+    },
+    {
+      "mode": "binary",
+      "N": 10000,
+      "noise_ratio": 0.2,
+      "noise_level": 0.3,
+      "duplicates_per_original": 3,
+      "recall@1": 0.903403,
+      "recall@3": 0.998498,
+      "mrr": 0.950033,
+      "hit@1": 0.903403,
+      "avg_query_time_ms": 4.828,
+      "total_insert_time_s": 17.2698
+    },
+    {
+      "mode": "binary",
+      "N": 50000,
+      "noise_ratio": 0.2,
+      "noise_level": 0.3,
+      "duplicates_per_original": 3,
+      "recall@1": 0.868887,
+      "recall@3": 0.991999,
+      "mrr": 0.928109,
+      "hit@1": 0.868887,
+      "avg_query_time_ms": 5.241,
+      "total_insert_time_s": 131.5053
+    },
+    {
+      "mode": "binary",
+      "N": 100000,
+      "noise_ratio": 0.2,
+      "noise_level": 0.3,
+      "duplicates_per_original": 3,
+      "recall@1": 0.851535,
+      "recall@3": 0.980098,
+      "mrr": 0.912816,
+      "hit@1": 0.851535,
+      "avg_query_time_ms": 5.554,
+      "total_insert_time_s": 158.1663
+    }
+  ]
+}

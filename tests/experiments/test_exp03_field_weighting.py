@@ -26,11 +26,32 @@ Weighting variants
 - leave_out_race   : excluded_fields={"race"}
 - leave_out_marital: excluded_fields={"marital_status"}
 - leave_out_phone  : excluded_fields={"mobile_number"}
-- leave_out_address: excluded_fields={"address", "akas", "landlines"}
+- leave_out_address: excluded_fields={"attrs"} (drops address + akas + landlines together;
+                      these three live under a single nested "attrs" key after
+                      normalize_person_data(), not as top-level "address"/"akas"/"landlines"
+                      keys — excluding those three names directly was a no-op, since
+                      encode_person_binary/bipolar only ever see the top-level key "attrs".
+                      Fixed 26/07/2026; results generated before this fix undercount this
+                      ablation as a 0.0 pp delta vs. baseline.)
+- name_and_address : name=2, lastname=2, attrs=2 (added 26/07/2026 — the leave-out ablation
+                      showed address/akas/landlines carry more informational weight than dob
+                      once leave_out_address was measured correctly; this variant tests
+                      reinforcing name + address instead of name + dob.)
+- name_date_address: name=2, lastname=2, dob=2, attrs=2 (added 26/07/2026 — combines all
+                      three field groups found informative by the leave-out ablation, to see
+                      whether reinforcing all of them beats reinforcing any two alone.)
 
 Run
 ---
     pytest tests/experiments/test_field_weighting.py -v -s
+
+Environment variables
+---------------------
+    FIELD_WEIGHTING_N       Number of canonical identities (default: FIELD_WEIGHTING_N from settings)
+    FIELD_WEIGHTING_V       Noisy variants per identity (default: FIELD_WEIGHTING_V from settings)
+    FIELD_WEIGHTING_NOISE   Noise fraction for variant generation (default: FIELD_WEIGHTING_NOISE from settings)
+    FIELD_WEIGHTING_TOP_K   K for recall@K (default: FIELD_WEIGHTING_TOP_K from settings)
+    FIELD_WEIGHTING_SEED    RNG seed (default: FIELD_WEIGHTING_SEED from settings)
 """
 
 import os
@@ -42,7 +63,14 @@ import pytest
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 import database_utils.milvus_db_connection as milvus_conn
-from configs.settings import DEFAULT_SEED, HDC_DIM
+from configs.settings import (
+    FIELD_WEIGHTING_N,
+    FIELD_WEIGHTING_NOISE,
+    FIELD_WEIGHTING_SEED,
+    FIELD_WEIGHTING_TOP_K,
+    FIELD_WEIGHTING_V,
+    HDC_DIM,
+)
 from database_utils.milvus_db_connection import ensure_people_collection
 from tests.experiments.experiment_utils import (
     generate_canonical_persons,
@@ -78,6 +106,16 @@ WEIGHTING_VARIANTS = [
         "excluded_fields": None,
     },
     {
+        "name": "name_and_address",
+        "field_weights": {"name": 2, "lastname": 2, "attrs": 2},
+        "excluded_fields": None,
+    },
+    {
+        "name": "name_date_address",
+        "field_weights": {"name": 2, "lastname": 2, "dob": 2, "attrs": 2},
+        "excluded_fields": None,
+    },
+    {
         "name": "leave_out_name",
         "field_weights": None,
         "excluded_fields": {"name", "lastname"},
@@ -110,7 +148,13 @@ WEIGHTING_VARIANTS = [
     {
         "name": "leave_out_address",
         "field_weights": None,
-        "excluded_fields": {"address", "akas", "landlines"},
+        # NOTE (fixed 26/07/2026): address/akas/landlines are nested under a single
+        # "attrs" key by normalize_person_data() — encode_person_binary/bipolar only
+        # ever see the top-level key "attrs", so excluding {"address","akas","landlines"}
+        # by name was a silent no-op (identical hits to baseline in every prior run).
+        # Excluding "attrs" itself correctly drops all three together, matching this
+        # variant's original intent.
+        "excluded_fields": {"attrs"},
     },
 ]
 
@@ -122,11 +166,11 @@ WEIGHTING_VARIANTS = [
 class TestFieldWeighting:
 
     def test_field_weighting_ablation(self):
-        n_identities          = 200
-        variants_per_identity = 3
-        noise_fraction        = 0.3
-        top_k                 = 3
-        seed                  = DEFAULT_SEED
+        n_identities          = int(os.environ.get("FIELD_WEIGHTING_N", FIELD_WEIGHTING_N))
+        variants_per_identity = int(os.environ.get("FIELD_WEIGHTING_V", FIELD_WEIGHTING_V))
+        noise_fraction        = float(os.environ.get("FIELD_WEIGHTING_NOISE", FIELD_WEIGHTING_NOISE))
+        top_k                 = int(os.environ.get("FIELD_WEIGHTING_TOP_K", FIELD_WEIGHTING_TOP_K))
+        seed                  = int(os.environ.get("FIELD_WEIGHTING_SEED", FIELD_WEIGHTING_SEED))
         total_records         = n_identities * variants_per_identity
 
         # --- Pre-generate canonical identities once (shared across variants) ---

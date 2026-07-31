@@ -32,7 +32,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 
 from configs.settings import DEFAULT_SEED, HDC_DIM
 from dummy_data.generacion_base_de_datos import generate_data_chunk
-from encoding_methods.encoding_and_search_milvus import find_closest_match_db, store_person
+from encoding_methods.encoding_and_search_milvus import search_for_eval, store_person
 from utils.person_data_normalization import normalize_person_data
 from tests.experiments.noise_injection import inject_noise
 from tests.experiments.near_duplicates import generate_near_duplicates
@@ -108,10 +108,9 @@ class TestRecallUnderNoise:
 
             for milvus_id, person in id_to_person.items():
                 noisy = inject_noise(person, noise_level, rng)
-                matches = find_closest_match_db(
+                matches = search_for_eval(
                     noisy,
-                    threshold=threshold,
-                    limit=1,
+                    1,
                     collection_name=test_collection,
                 )
                 if matches and matches[0]["id"] == milvus_id:

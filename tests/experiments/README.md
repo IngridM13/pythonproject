@@ -23,11 +23,11 @@ All experiments respect the `HDC_NPROBE` environment variable, which controls ho
 | `128` | Mode B — exhaustive | `nprobe=nlist`; functionally equivalent to brute-force for small N |
 
 ```bash
-# Run a single experiment in mode A (default)
-make experiment01-recall-under-noise
+# Run a single experiment in mode A (default, nprobe=8)
+make experiment01-recall-under-noise-ann
 
-# Run a single experiment in mode B
-HDC_NPROBE=128 make experiment01-recall-under-noise
+# Run a single experiment in mode B (exhaustive, nprobe=128)
+make experiment01-recall-under-noise-exhaustive
 
 # Run ALL experiments in mode A
 make experiments-ann
@@ -82,7 +82,7 @@ Experiments use one of two collection setups:
 
 ## Experiment 1 — Recall Under Noise
 
-**File**: `test_exp01_recall_under_noise.py` | **Run**: `make experiment01-recall-under-noise`
+**File**: `test_exp01_recall_under_noise.py` | **Run**: `make experiment01-recall-under-noise-ann` / `make experiment01-recall-under-noise-exhaustive`
 
 **Question**: Can the system retrieve a specific stored record when the query is a corrupted version of it?
 
@@ -102,7 +102,7 @@ Experiments use one of two collection setups:
 
 ## Experiment 2 — Dedup Recall
 
-**File**: `test_exp02_dedup_recall.py` | **Run**: `make experiment02-dedup-recall`
+**File**: `test_exp02_dedup_recall.py` | **Run**: `make experiment02-dedup-recall-ann` / `make experiment02-dedup-recall-exhaustive`
 
 **Question**: Given a stored noisy record, does at least one other variant of the same identity appear in its top-K neighbours?
 
@@ -122,27 +122,27 @@ Experiments use one of two collection setups:
 
 ## Experiment 3 — Field Weighting Ablation
 
-**File**: `test_exp03_field_weighting.py` | **Run**: `make experiment03-weights`
+**File**: `test_exp03_field_weighting.py` | **Run**: `make experiment03-weights-ann` / `make experiment03-weights-exhaustive`
 
 **Question**: How much does field weighting (upweighting name + dob) improve recall compared to uniform weights?
 
-**Method**: Run dedup recall under multiple weight configurations: `uniform`, `name_heavy`, `name_and_date`, `date_heavy`, `name_only`, `date_only`.
+**Method**: Run dedup recall under 11 variants: 4 weighting schemes (`baseline`=uniform weights, `name_heavy`=name+lastname×3, `date_heavy`=dob×3, `name_and_date`=name+lastname+dob×2, the production default) plus 7 leave-one-field-out ablations (`leave_out_name`, `leave_out_dob`, `leave_out_gender`, `leave_out_race`, `leave_out_marital`, `leave_out_phone`, `leave_out_address`) that fully exclude a field/field-group from encoding via `excluded_fields` rather than reweighting it.
 
-**Metric**: Recall@K, MRR, Hit@1 per configuration; delta vs uniform baseline.
+**Metric**: Recall@K per variant (`recall_at_k`, `hits`, `total`); delta vs. `baseline`. Note: unlike some other experiments, MRR and Hit@1 are not computed or persisted for this experiment — only Recall@K.
 
 | Variable | Default | Description |
 |---|---|---|
-| `FIELD_WEIGHT_N` | `200` | Number of canonical identities |
-| `FIELD_WEIGHT_V` | `3` | Noisy variants per identity |
-| `FIELD_WEIGHT_NOISE` | `0.3` | Noise fraction |
-| `FIELD_WEIGHT_K` | `5` | K for Recall@K |
-| `FIELD_WEIGHT_SEED` | `42` | RNG seed |
+| `FIELD_WEIGHTING_N` | `1000` | Number of canonical identities |
+| `FIELD_WEIGHTING_V` | `3` | Noisy variants per identity |
+| `FIELD_WEIGHTING_NOISE` | `0.3` | Noise fraction |
+| `FIELD_WEIGHTING_TOP_K` | `3` | K for Recall@K |
+| `FIELD_WEIGHTING_SEED` | `42` | RNG seed |
 
 ---
 
 ## Experiment 4 — Scalability
 
-**File**: `test_exp04_scalability.py` | **Run**: `make experiment04-scalability`
+**File**: `test_exp04_scalability.py` | **Run**: `make experiment04-scalability-ann` / `make experiment04-scalability-exhaustive`
 
 **Question**: How do insertion time, query time, and dedup recall scale with collection size?
 
@@ -162,7 +162,7 @@ Experiments use one of two collection setups:
 
 ## Experiment 5 — Ranking Metrics
 
-**File**: `test_exp05_ranking_metrics.py` | **Run**: `make experiment05-ranking`
+**File**: `test_exp05_ranking_metrics.py` | **Run**: `make experiment05-ranking-ann` / `make experiment05-ranking-exhaustive`
 
 **Question**: Beyond Recall@K, how good is the ranking quality? Does the correct match appear near the top, and how pure is the result set?
 
@@ -175,14 +175,14 @@ Experiments use one of two collection setups:
 | `RANKING_N_IDENTITIES` | `5000` | Number of canonical identities |
 | `RANKING_VARIANTS_PER_IDENTITY` | `3` | Noisy variants per identity |
 | `RANKING_NOISE_FRACTION` | `0.30` | Noise fraction |
-| `RANKING_TOP_K` | `5` | K for ranking metrics |
+| `RANKING_TOP_K` | `3` | K for ranking metrics |
 | `RANKING_SEED` | `42` | RNG seed |
 
 ---
 
 ## Experiment 6 — Per-Field Noise Sensitivity
 
-**File**: `test_exp06_per_field_noise.py` | **Run**: `make experiment06-per-field-noise`
+**File**: `test_exp06_per_field_noise.py` | **Run**: `make experiment06-per-field-noise-ann` / `make experiment06-per-field-noise-exhaustive`
 
 **Question**: Which individual fields contribute most to retrieval quality?
 
@@ -202,7 +202,7 @@ Experiments use one of two collection setups:
 
 ## Experiment 7 — Per-Field Noise Sweep
 
-**File**: `test_exp07_per_field_noise_sweep.py` | **Run**: `make experiment07-per-field-sweep`
+**File**: `test_exp07_per_field_noise_sweep.py` | **Run**: `make experiment07-per-field-sweep-ann` / `make experiment07-per-field-sweep-exhaustive`
 
 **Question**: For each key field individually, how does recall degrade as noise on that field increases from 0% to 90%?
 
@@ -214,7 +214,7 @@ Experiments use one of two collection setups:
 |---|---|---|
 | `PER_FIELD_SWEEP_FIELDS` | `name,lastname,dob` | Comma-separated fields to sweep |
 | `PER_FIELD_SWEEP_NOISE_LEVELS` | `0,10,20,...,90` | Noise levels (integers 0–100) |
-| `PER_FIELD_SWEEP_N` | `200` | Number of canonical identities |
+| `PER_FIELD_SWEEP_N` | `1000` | Number of canonical identities (raised from 200 on 27/07/2026 — see settings.py comment) |
 | `PER_FIELD_SWEEP_V` | `3` | Noisy variants per identity |
 | `PER_FIELD_SWEEP_TOP_K` | `3` | K for Recall@K |
 | `PER_FIELD_SWEEP_SEED` | `42` | RNG seed |
@@ -223,7 +223,7 @@ Experiments use one of two collection setups:
 
 ## Experiment 8 — Dimensionality Ablation
 
-**File**: `test_exp08_dimensionality.py` | **Run**: `make experiment08-dimensionality`
+**File**: `test_exp08_dimensionality.py` | **Run**: `make experiment08-dimensionality-ann` / `make experiment08-dimensionality-exhaustive`
 
 **Question**: At what number of HDC dimensions does recall saturate? Is D=10,000 necessary?
 
@@ -262,7 +262,7 @@ Experiments use one of two collection setups:
 
 ## Experiment 10 — Scalability with Noisy Duplicates
 
-**File**: `test_exp10_scalability_noisy_dupes.py` | **Run**: `make experiment10-scalability-noisy-dupes`
+**File**: `test_exp10_scalability_noisy_dupes.py` | **Run**: `make experiment10-scalability-noisy-dupes-ann` / `make experiment10-scalability-noisy-dupes-exhaustive`
 
 **Question**: How does recall scale when the database contains both clean originals and noisy duplicates mixed together (Scenario B at large scale)?
 
@@ -276,10 +276,10 @@ Experiments use one of two collection setups:
 
 | Variable | Default | Description |
 |---|---|---|
-| `EXP10_COLLECTION_SIZES` | `10000,50000,100000` | Comma-separated N values |
+| `EXP10_COLLECTION_SIZES` | `1000,5000,10000,50000,100000` | Comma-separated N values (shared `SCALE_N_VALUES` grid, see settings.py) |
 | `EXP10_NOISE_RATIO` | `0.20` | Fraction of noisy duplicates relative to N |
 | `EXP10_NOISE_LEVEL` | `0.30` | Corruption level |
-| `EXP10_TOP_K` | `5` | K for Recall@K |
+| `EXP10_TOP_K` | `3` | K for Recall@K |
 | `EXP10_DUPLICATES_PER_ORIGINAL` | `3` | Noisy variants per source record |
 | `EXP10_SEED` | `42` | RNG seed |
 
@@ -289,19 +289,19 @@ Experiments use one of two collection setups:
 
 ## Experiment 11 — NK Sweep
 
-**File**: `test_exp11_recall_nk_sweep.py` | **Run**: `make experiment11-nk-sweep`
+**File**: `test_exp11_recall_nk_sweep.py` | **Run**: `make experiment11-nk-sweep-ann` / `make experiment11-nk-sweep-exhaustive`
 
 **Question**: How does recall change as both collection size N and search depth K vary simultaneously?
 
 **Method**: 2D sweep over N × K. For each (N, K) pair: insert N×V variants, retrieve neighbours up to max(K), compute recall. Prints a pivot table per mode.
 
-**Note**: Parameters are hardcoded in the file (`N_VALUES=[200,1000,5000]`, `K_VALUES=[2,3,5]`, `NOISE=0.3`, `V=3`).
+**Defaults** (from `configs/settings.py`, overridable via env vars): `EXP11_N_VALUES=[200,1000,5000]`, `EXP11_K_VALUES=[2,3,5]`, `EXP11_NOISE_FRACTION=0.3`, `EXP11_VARIANTS=3`.
 
 ---
 
 ## Experiment 12 — Recall@1 vs Collection Size (Scenario A)
 
-**File**: `test_exp12_recall_n_sweep.py` | **Run**: `make experiment12-recall-n-sweep`
+**File**: `test_exp12_recall_n_sweep.py` | **Run**: `make experiment12-recall-n-sweep-ann` / `make experiment12-recall-n-sweep-exhaustive`
 
 **Question**: How does recall degrade as collection size grows, under the production scenario (clean DB, noisy query)?
 
@@ -311,9 +311,9 @@ Experiments use one of two collection setups:
 
 | Variable | Default | Description |
 |---|---|---|
-| `EXP12_N_VALUES` | `1000,5000,10000,50000` | Comma-separated collection sizes |
+| `EXP12_N_VALUES` | `1000,5000,10000,50000,100000` | Comma-separated collection sizes (shared `SCALE_N_VALUES` grid, see settings.py) |
 | `EXP12_M_QUERIES` | `200` | Number of queries per N |
-| `EXP12_NOISE_LEVEL` | `0.20` | Noise fraction |
+| `EXP12_NOISE_LEVELS` | `0.20,0.30` | Comma-separated noise fractions; the collection is inserted once per (mode, N) and reused across noise levels |
 | `EXP12_SEED` | `42` | RNG seed |
 
 ---
@@ -332,9 +332,9 @@ Experiments use one of two collection setups:
 
 | Variable | Default | Description |
 |---|---|---|
-| `EXP13_N_VALUES` | `1000,5000,10000,50000` | Comma-separated collection sizes |
+| `EXP13_N_VALUES` | `1000,5000,10000,50000,100000` | Comma-separated collection sizes (shared `SCALE_N_VALUES` grid, see settings.py) |
 | `EXP13_M_QUERIES` | `200` | Queries per (mode, N) |
-| `EXP13_NOISE` | `0.20` | Noise fraction |
+| `EXP13_NOISE_LEVELS` | `0.20,0.30` | Comma-separated noise fractions; the collection is inserted once per (mode, N) and reused across noise levels |
 | `EXP13_SEED` | `42` | RNG seed |
 | `EXP13_MODES` | `binary,float` | Comma-separated modes |
 
@@ -342,18 +342,18 @@ Experiments use one of two collection setups:
 
 ## Results summary
 
-| Experiment | Run target | Results target | Output location |
+| Experiment | Run target (mode A / mode B) | Results target | Output location |
 |---|---|---|---|
-| 1 — Recall Under Noise | `make experiment01-recall-under-noise` | `make results01-recall-under-noise` | `test_results/recall_under_noise_*.json` |
-| 2 — Dedup Recall | `make experiment02-dedup-recall` | `make results02-dedup-recall` | `test_results/dedup_recall_*.json` |
-| 3 — Field Weighting | `make experiment03-weights` | `make results03-weights` | `test_results/field_weighting_*.json` |
-| 4 — Scalability | `make experiment04-scalability` | `make results04-scalability` | `test_results/scalability_*.json` |
-| 5 — Ranking Metrics | `make experiment05-ranking` | `make results05-ranking` | `test_results/ranking_metrics_*.json` |
-| 6 — Per-Field Noise | `make experiment06-per-field-noise` | `make results06-per-field-noise` | `test_results/per_field_noise_*.json` |
-| 7 — Per-Field Sweep | `make experiment07-per-field-sweep` | `make results07-per-field-sweep` | `test_results/per_field_sweep_*.json` |
-| 8 — Dimensionality | `make experiment08-dimensionality` | `make results08-dimensionality` | `test_results/dimensionality_*.json` |
+| 1 — Recall Under Noise | `make experiment01-recall-under-noise-ann` / `-exhaustive` | `make results01-recall-under-noise` | `test_results/recall_under_noise_*.json` |
+| 2 — Dedup Recall | `make experiment02-dedup-recall-ann` / `-exhaustive` | `make results02-dedup-recall` | `test_results/dedup_recall_*.json` |
+| 3 — Field Weighting | `make experiment03-weights-ann` / `-exhaustive` | `make results03-weights` | `test_results/field_weighting_*.json` |
+| 4 — Scalability | `make experiment04-scalability-ann` / `-exhaustive` | `make results04-scalability` | `test_results/scalability_*.json` |
+| 5 — Ranking Metrics | `make experiment05-ranking-ann` / `-exhaustive` | `make results05-ranking` | `test_results/ranking_metrics_*.json` |
+| 6 — Per-Field Noise | `make experiment06-per-field-noise-ann` / `-exhaustive` | `make results06-per-field-noise` | `test_results/per_field_noise_*.json` |
+| 7 — Per-Field Sweep | `make experiment07-per-field-sweep-ann` / `-exhaustive` | `make results07-per-field-sweep` | `test_results/per_field_sweep_*.json` |
+| 8 — Dimensionality | `make experiment08-dimensionality-ann` / `-exhaustive` | `make results08-dimensionality` | `test_results/dimensionality_*.json` |
 | 9 — Date Encoding | `make experiment09-date-encoding` | `make results09-date-encoding` | `test_results/date_encoding_*.json` |
-| 10 — Noisy Dupes | `make experiment10-scalability-noisy-dupes` | `make results10-scalability-noisy-dupes` | `test_results/exp10_scalability_noisy_dupes/` |
-| 11 — NK Sweep | `make experiment11-nk-sweep` | `make results11-nk-sweep` | `test_results/recall_nk_sweep_*.json` |
-| 12 — Recall vs N | `make experiment12-recall-n-sweep` | `make results12-recall-n-sweep` | `test_results/exp12_recall_n_sweep_*.json` |
-| 13 — Separability | `make experiment13-separability` | `make results13-separability` | `test_results/exp13_separability_*.json` |
+| 10 — Noisy Dupes | `make experiment10-scalability-noisy-dupes-ann` / `-exhaustive` | `make results10-scalability-noisy-dupes` | `test_results/exp10_scalability_noisy_dupes/` |
+| 11 — NK Sweep | `make experiment11-nk-sweep-ann` / `-exhaustive` | `make results11-nk-sweep` | `test_results/recall_nk_sweep_*.json` |
+| 12 — Recall vs N | `make experiment12-recall-n-sweep-ann` / `-exhaustive` | `make results12-recall-n-sweep` | `test_results/exp12_recall_n_sweep_*.json` |
+| 13 — Separability | `make experiment13-separability` | `make results13-separability` | `test_results_128/exp13_separability_exhaustive_*.json` |

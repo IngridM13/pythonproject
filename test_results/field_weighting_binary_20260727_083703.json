@@ -1,0 +1,92 @@
+{
+  "mode": "binary",
+  "config": {
+    "n_identities": 1000,
+    "variants_per_identity": 3,
+    "noise_fraction": 0.3,
+    "top_k": 3,
+    "hdim": 10000,
+    "seed": 42
+  },
+  "results": [
+    {
+      "variant": "baseline",
+      "recall_at_k": 0.959333,
+      "hits": 2878,
+      "total": 3000
+    },
+    {
+      "variant": "name_heavy",
+      "recall_at_k": 0.936,
+      "hits": 2808,
+      "total": 3000
+    },
+    {
+      "variant": "date_heavy",
+      "recall_at_k": 0.972,
+      "hits": 2916,
+      "total": 3000
+    },
+    {
+      "variant": "name_and_date",
+      "recall_at_k": 0.943667,
+      "hits": 2831,
+      "total": 3000
+    },
+    {
+      "variant": "name_and_address",
+      "recall_at_k": 0.964,
+      "hits": 2892,
+      "total": 3000
+    },
+    {
+      "variant": "name_date_address",
+      "recall_at_k": 0.968667,
+      "hits": 2906,
+      "total": 3000
+    },
+    {
+      "variant": "leave_out_name",
+      "recall_at_k": 0.503333,
+      "hits": 1510,
+      "total": 3000
+    },
+    {
+      "variant": "leave_out_dob",
+      "recall_at_k": 0.936333,
+      "hits": 2809,
+      "total": 3000
+    },
+    {
+      "variant": "leave_out_gender",
+      "recall_at_k": 0.967667,
+      "hits": 2903,
+      "total": 3000
+    },
+    {
+      "variant": "leave_out_race",
+      "recall_at_k": 0.942,
+      "hits": 2826,
+      "total": 3000
+    },
+    {
+      "variant": "leave_out_marital",
+      "recall_at_k": 0.964333,
+      "hits": 2893,
+      "total": 3000
+    },
+    {
+      "variant": "leave_out_phone",
+      "recall_at_k": 0.899,
+      "hits": 2697,
+      "total": 3000
+    },
+    {
+      "variant": "leave_out_address",
+      "recall_at_k": 0.911667,
+      "hits": 2735,
+      "total": 3000
+    }
+  ],
+  "nprobe": 8
+}

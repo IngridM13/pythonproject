@@ -6,7 +6,7 @@ CHUNK_SIZE = 500_000  # Process in chunks to optimize memory
 OUTPUT_FILE = "test_synthetic_dataset.csv"
 DEFAULT_SEED=42
 
-# Defininicion de la hiperdimensionalidad hypervector
+# Dimensión del hipervector
 HDC_DIM = 10000
 
 # nprobe controls ANN search approximation (IVF index).
@@ -23,6 +23,21 @@ NAME_AND_DATE_WEIGHTS: Dict[str, int] = {
     "lastname": 2,
     "dob": 2,
 }
+
+# Experiment 2 — Dedup Recall
+DEDUP_N_IDENTITIES = 1000
+DEDUP_VARIANTS_PER_IDENTITY = 3
+DEDUP_NOISE_FRACTION = 0.30
+DEDUP_TOP_K = 3
+DEDUP_N_SAMPLES = 5
+DEDUP_SEED = 42
+
+# Experiment 3 — Field Weighting Ablation
+FIELD_WEIGHTING_N = 1000
+FIELD_WEIGHTING_V = 3
+FIELD_WEIGHTING_NOISE = 0.30
+FIELD_WEIGHTING_TOP_K = 3
+FIELD_WEIGHTING_SEED = 42
 
 # Experiment 4 — Scalability
 SCALABILITY_N_VALUES = [100, 500, 1000, 5000, 10000]
@@ -48,7 +63,12 @@ PER_FIELD_SEED = 42
 # Experiment 7 — Per-Field Noise Sweep
 PER_FIELD_SWEEP_FIELDS = ["name", "lastname", "dob"]
 PER_FIELD_SWEEP_NOISE_LEVELS = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90]
-PER_FIELD_SWEEP_N = 200
+# Raised from 200 to 1000 (27/07/2026): at N=200 the sweep showed a flat
+# ~0.995-1.000 recall curve across the whole 0-90% range, matching the exact
+# same low-competition saturation issue already documented for Experiment 6
+# ("con N=200 el recall baseline se aproxima al 100%..."). N=1000 matches the
+# scale Experiment 6 already uses for this same reason.
+PER_FIELD_SWEEP_N = 1000
 PER_FIELD_SWEEP_V = 3
 PER_FIELD_SWEEP_TOP_K = 3
 PER_FIELD_SWEEP_SEED = 42
@@ -68,28 +88,36 @@ DATE_ENC_NOISE = 0.30
 DATE_ENC_TOP_K = 3
 DATE_ENC_SEED = 42
 
+# Scale experiments (10, 12, 13) share a common N grid for direct comparability.
+# 14a extends beyond it (overlaps at 50_000 / 100_000) for extreme-scale capacity testing.
+SCALE_N_VALUES = [1_000, 5_000, 10_000, 50_000, 100_000]
+
 # Experiment 10 — Scalability with Noisy Duplicates
-EXP10_COLLECTION_SIZES = [10_000, 50_000, 100_000]
+EXP10_COLLECTION_SIZES = SCALE_N_VALUES
 EXP10_NOISE_RATIO = 0.20
 EXP10_NOISE_LEVEL = 0.30
 EXP10_TOP_K = 3
 EXP10_SEED = 42
 EXP10_DUPLICATES_PER_ORIGINAL = 3
 
+# Experiment 11 — 2D sweep: collection size (N) x top_k -> Recall@k
+EXP11_N_VALUES = [200, 1_000, 5_000]
+EXP11_K_VALUES = [2, 3, 5]
+EXP11_NOISE_FRACTION = 0.30
+EXP11_VARIANTS = 3
+EXP11_SEED = 42
+
 # Experiment 12 — Recall@1 under noise across collection sizes
-EXP12_N_VALUES = [1_000, 5_000, 10_000, 50_000]
+# Noise levels 20% and 30% straddle the critical degradation threshold identified
+# by Experiment 13's separability analysis; both are kept to see whether the ANN
+# gap itself widens across that transition, not just recall in isolation.
+EXP12_N_VALUES = SCALE_N_VALUES
 EXP12_M_QUERIES = 200
-EXP12_NOISE_LEVEL = 0.2
+EXP12_NOISE_LEVELS = [0.20, 0.30]
 EXP12_SEED = 42
 
 # Experiment 13 — Separability Analysis
-EXP13_N_VALUES = [1_000, 5_000, 10_000, 50_000]
+EXP13_N_VALUES = SCALE_N_VALUES
 EXP13_M_QUERIES = 200
-EXP13_NOISE = 0.20
+EXP13_NOISE_LEVELS = [0.20, 0.30]
 EXP13_SEED = 42
-
-# Experiment 14a — Float Capacity Analysis
-EXP14A_N_VALUES    = [50_000, 100_000, 150_000, 200_000]
-EXP14A_M_QUERIES   = 200
-EXP14A_NOISE_VALUES = [0.20, 0.30]
-EXP14A_SEED        = 42
