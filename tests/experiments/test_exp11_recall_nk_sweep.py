@@ -62,7 +62,7 @@ from configs.settings import (
     HDC_DIM,
 )
 from database_utils.milvus_db_connection import _collection_cache, ensure_people_collection, get_nprobe
-from encoding_methods.encoding_and_search_milvus import search_for_eval, store_person
+from encoding_methods.encoding_and_search_milvus import search_for_eval, store_people_batch
 from tests.experiments.experiment_utils import generate_canonical_persons, resolve_results_dir_and_suffix
 from tests.experiments.noise_injection import inject_noise
 
@@ -132,13 +132,21 @@ def _insert_and_flush(
     identity_to_milvus_ids = [[] for _ in range(n)]
     milvus_id_to_identity: dict = {}
 
+    noisy_persons: list = []
+    noisy_identity_idx: list = []
+
     for identity_idx, canonical in enumerate(canonical_persons):
         for variant_idx in range(variants):
             rng = random.Random(seed + identity_idx * variants + variant_idx)
-            noisy     = inject_noise(canonical, noise_fraction, rng)
-            milvus_id = store_person(noisy, collection_name=col_name)
-            identity_to_milvus_ids[identity_idx].append(milvus_id)
-            milvus_id_to_identity[milvus_id] = identity_idx
+            noisy = inject_noise(canonical, noise_fraction, rng)
+            noisy_persons.append(noisy)
+            noisy_identity_idx.append(identity_idx)
+
+    milvus_ids = store_people_batch(noisy_persons, collection_name=col_name)
+
+    for identity_idx, milvus_id in zip(noisy_identity_idx, milvus_ids):
+        identity_to_milvus_ids[identity_idx].append(milvus_id)
+        milvus_id_to_identity[milvus_id] = identity_idx
 
     col = ensure_people_collection(col_name)
     col.flush()
